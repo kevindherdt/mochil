@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en" data-theme="dark" data-palette="bobobooks">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="dark light">
+  <title>Library editor · Mochil</title>
+  <link rel="icon" type="image/png" href="/assets/icons/favicon-32.png">
+  <link rel="stylesheet" href="/assets/design-tokens.css?v=1">
+  <link rel="stylesheet" href="/assets/theme-tokens.css?v=10">
+  <link rel="stylesheet" href="/assets/field-suggestions.css?v=1" />
+    <link rel="stylesheet" href="/assets/editor.css?v=28">
+</head>
+<body>
+  <header class="ed-top">
+    <a class="ed-back" href="/" aria-label="Back to Mochil">←</a>
+    <h1>Library editor</h1>
+    <nav class="ed-tabs" aria-label="Editor pages"><a href="/editor" aria-current="page">Library</a><a href="/editor/import">Import</a></nav>
+    <label class="ed-library">Library <select id="ed-library"></select></label>
+    <input id="ed-search" type="search" placeholder="Search title, author, series or file" aria-label="Search books">
+    <details class="ed-columns ed-tools" id="ed-tools"><summary>Tools</summary><div class="ed-columns-list" id="ed-tools-list"></div></details>
+    <details class="ed-columns" id="ed-columns"><summary>Columns</summary><div class="ed-columns-list" id="ed-columns-list"></div></details>
+    <div class="ed-density" role="group" aria-label="Row size">
+      <button type="button" data-density="dense" aria-pressed="true">Dense</button>
+      <button type="button" data-density="comfortable" aria-pressed="false">Comfortable</button>
+    </div>
+  </header>
+  <div class="ed-collection-bar" hidden><select id="ed-collection" class="ed-collection" aria-label="Show one collection"></select><button type="button" id="ed-manage-collections" class="ed-quiet">Manage collections</button></div>
+  <nav class="ed-filters" id="ed-filters" aria-label="Filter books"></nav>
+  <div class="ed-selection" id="ed-selection" hidden>
+    <strong id="ed-selected-count"></strong>
+    <button type="button" data-action="series">Set series</button>
+    <button type="button" data-action="authors">Set author</button>
+    <button type="button" data-action="field">Set field…</button>
+    <button type="button" data-action="renumber">Renumber</button>
+    <button type="button" data-action="replace">Find &amp; replace</button>
+    <button type="button" data-action="useMatches" title="Fill empty fields from the certain Hardcover match of each selected book">Use clear matches</button>
+    <button type="button" data-action="useIsbn" title="Take the ISBN found inside each selected book">Use found ISBN</button>
+    <button type="button" data-action="collections" id="ed-collections">Collections…</button>
+    <button type="button" data-action="hardcover" id="ed-hardcover" hidden>Hardcover sync…</button>
+    <button type="button" data-action="open" id="ed-open" title="Open the picked book in the reader (a new tab)">Open in reader</button>
+    <button type="button" data-action="match" id="ed-match" title="Pick one book to look it up on Hardcover">Find matches</button>
+    <button type="button" data-action="move" id="ed-move" hidden>Move to…</button>
+    <button type="button" data-action="copy" id="ed-copy" hidden>Copy to…</button>
+    <button type="button" data-action="reset">Reset to files</button>
+    <button type="button" data-action="clear" class="ed-quiet">Clear selection</button>
+  </div>
+  <main>
+    <div class="ed-statusline"><p class="ed-status" id="ed-status" role="status" aria-live="polite"></p><button type="button" class="ed-stop" id="ed-stop" hidden>Stop</button></div>
+    <p class="ed-hint">Click a cell and type to edit it, or press Enter on the highlighted cell. Click a heading to sort. Shift-click a checkbox to select a range.</p>
+    <div class="ed-scroll">
+      <table class="ed-grid" id="ed-grid" role="grid" aria-label="Books">
+        <thead><tr id="ed-head"></tr></thead>
+        <tbody id="ed-body"></tbody>
+      </table>
+    </div>
+  </main>
+  <footer class="ed-save" id="ed-save" hidden>
+    <span id="ed-save-text"></span>
+    <button type="button" id="ed-discard" class="ed-quiet">Discard</button>
+    <button type="button" id="ed-review" class="ed-primary">Review &amp; save</button>
+  </footer>
+  <div class="ed-toast" id="ed-toast" role="status" hidden><span id="ed-toast-text"></span><button type="button" id="ed-undo">Undo</button></div>
+  <dialog id="ed-dialog"><form method="dialog" id="ed-dialog-form"><h2 id="ed-dialog-title"></h2><div id="ed-dialog-body"></div><p class="ed-error" id="ed-dialog-error" role="alert"></p><div class="ed-dialog-actions"><button value="cancel" class="ed-quiet" id="ed-dialog-cancel">Cancel</button><button value="ok" class="ed-primary" id="ed-dialog-ok">OK</button></div></form></dialog>
+  <script type="module" src="/assets/editor.js?v=68"></script>
+</body>
+</html>

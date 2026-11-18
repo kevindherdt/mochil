@@ -1,0 +1,21 @@
+/* One strong colour per kind of library, the same on the phone app. A card reads it from data-kind; unknown kinds keep their family colour. */
+/* Books take the warm amber of the palette rather than a blue that fought the accent; every
+   other kind was already warm or belongs to video/music/podcasts. The colour lives in one token
+   (card-surface.css) so light, dark and every palette move together. */
+:is(.jump-card,.library-menu-list li,.library-menu-mark):is([data-kind=books],[data-kind=mixed],[data-kind=calibre]){--kind:var(--kind-book);--kind-ink:var(--kind-book-ink)}
+:is(.jump-card,.library-menu-list li,.library-menu-mark):is([data-kind=lightnovels],[data-kind=light-novels],[data-kind=novels]){--kind:#ff8fc0;--kind-ink:#3a0b22}
+:is(.jump-card,.library-menu-list li,.library-menu-mark)[data-kind=manga]{--kind:#ffa45c;--kind-ink:#331700}
+:is(.jump-card,.library-menu-list li,.library-menu-mark)[data-kind=comics]{--kind:#ff7a7a;--kind-ink:#3a0a0a}
+:is(.jump-card,.library-menu-list li,.library-menu-mark)[data-kind=movies]{--kind:#ffd666;--kind-ink:#352800}
+:is(.jump-card,.library-menu-list li,.library-menu-mark)[data-kind=tv]{--kind:#6fdc9a;--kind-ink:#08301a}
+:is(.jump-card,.library-menu-list li,.library-menu-mark):is([data-kind=anime],[data-kind=video]){--kind:#b69cfb;--kind-ink:#1d1038}
+:is(.jump-card,.library-menu-list li,.library-menu-mark)[data-kind=music]{--kind:#5cc8f2;--kind-ink:#06293a}
+:is(.jump-card,.library-menu-list li,.library-menu-mark)[data-kind=audiobooks]{--kind:#4fd1b8;--kind-ink:#062e27}
+:is(.jump-card,.library-menu-list li,.library-menu-mark)[data-kind=podcasts]{--kind:var(--kind-podcast);--kind-ink:var(--kind-podcast-ink)}
+/* The tag is an icon on a solid chip of the kind colour. */
+.jump-card .jump-tag{padding:5px;border-radius:var(--r-pill);line-height:0}
+.jump-tag .kind-icon{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.library-menu-list li[data-kind=home],.library-menu-list li[data-kind=settings],.library-menu-list li[data-kind=editor]{--kind:var(--muted)}
+.library-menu-list li{display:flex;align-items:center;gap:10px}
+.library-menu-list li .kind-icon{width:20px;height:20px;flex:0 0 auto;fill:none;stroke:var(--kind,var(--muted));stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.library-menu-list li>span{flex:1;min-width:0}

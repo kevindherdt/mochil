@@ -1,0 +1,90 @@
+import assert from 'node:assert/strict'
+import { readFile } from 'node:fs/promises'
+import test from 'node:test'
+
+test('native select menus inherit explicit theme colors', async () => {
+  const css = await readFile(new URL('../static/app.css', import.meta.url), 'utf8')
+  assert.match(css, /select (?:option\s*,\s*select optgroup|optgroup\s*,\s*select option)\s*\{\s*background:\s*var\(--surface\);\s*color:\s*var\(--text\)/)
+})
+
+test('default web palette is Espresso, with Parchment as its light twin', async () => {
+  const css = await readFile(new URL('../static/theme-tokens.css', import.meta.url), 'utf8')
+  assert.match(css, /data-palette="bobobooks".*data-theme="dark"/)
+  assert.match(css, /--bg:\s*#171513/)
+  assert.match(css, /--surface:\s*#211e1b/)
+  assert.match(css, /data-palette="bobobooks".*data-theme="light"/)
+  assert.match(css, /--bg:\s*#f4ede3/)
+  assert.match(css, /--surface:\s*#fffbf4/)
+  assert.match(css, /--accent:\s*#9c4522/)
+})
+
+// Espresso ships a dark block and a light block; the other two keep one set of values.
+const palettes = [
+  { id: 'bobobooks', modes: ['dark', 'light'] },
+  { id: 'kiln', modes: ['any'] },
+  { id: 'paper', modes: ['any'] },
+]
+
+function luminance(hex) {
+  const [r, g, b] = [1, 3, 5].map(at => parseInt(hex.slice(at, at + 2), 16) / 255)
+    .map(value => (value <= 0.03928 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4))
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b
+}
+const contrast = (a, b) => {
+  const [high, low] = [luminance(a), luminance(b)].sort((x, y) => y - x)
+  return (high + 0.05) / (low + 0.05)
+}
+function hue(hex) {
+  const [r, g, b] = [1, 3, 5].map(at => parseInt(hex.slice(at, at + 2), 16) / 255)
+  const max = Math.max(r, g, b), min = Math.min(r, g, b)
+  if (max === min) return null
+  const d = max - min
+  const value = max === r ? ((g - b) / d) % 6 : max === g ? (b - r) / d + 2 : (r - g) / d + 4
+  return (value * 60 + 360) % 360
+}
+
+test('every theme is registered, readable, and never green', async () => {
+  const css = await readFile(new URL('../static/theme-tokens.css', import.meta.url), 'utf8')
+  const controller = await readFile(new URL('../static/theme-controller.js', import.meta.url), 'utf8')
+  const settings = await readFile(new URL('../static/theme-settings-template.js', import.meta.url), 'utf8')
+  for (const palette of palettes) {
+    assert.match(controller, new RegExp(`"${palette.id}"`), `${palette.id} must be an accepted palette`)
+    assert.match(settings, new RegExp(`value="${palette.id}"`), `${palette.id} must be offered in Appearance`)
+    for (const mode of palette.modes) {
+      const selector = mode === 'any'
+        ? `data-palette="${palette.id}"\\]\\[data-theme\\]`
+        : `data-palette="${palette.id}"\\]\\[data-theme="${mode}"\\]`
+      const block = css.match(new RegExp(`${selector}[^}]*\\{([^}]*)\\}`))?.[1]
+      assert.ok(block, `${palette.id} ${mode} is missing`)
+      const token = name => block.match(new RegExp(`--${name}:\\s*(#[0-9a-fA-F]{6})`))?.[1]
+      const [bg, surface, text, muted, accent, ink] = ['bg', 'surface', 'text', 'muted', 'accent', 'accent-ink'].map(token)
+      for (const [label, value] of Object.entries({ bg, surface, text, muted, accent, ink })) assert.ok(value, `${palette.id} ${mode} lacks ${label}`)
+      assert.ok(contrast(text, bg) >= 7, `${palette.id} ${mode} text contrast`)
+      assert.ok(contrast(muted, bg) >= 4.5 && contrast(muted, surface) >= 4.5, `${palette.id} ${mode} secondary text contrast`)
+      assert.ok(contrast(accent, bg) >= 4.5, `${palette.id} ${mode} accent contrast`)
+      assert.ok(contrast(ink, accent) >= 4.5, `${palette.id} ${mode} text on accent contrast`)
+      assert.doesNotMatch(bg.toLowerCase(), /^#(000000|ffffff)$/, `${palette.id} ${mode} must not be pure black or white`)
+      for (const color of [bg, surface, accent]) {
+        const angle = hue(color)
+        assert.ok(angle === null || angle < 70 || angle > 170, `${palette.id} ${mode} uses a green (${color})`)
+      }
+    }
+  }
+})
+
+test('the Appearance picker offers only the four themes, and every one is defined in the shared token file', async () => {
+  const css = await readFile(new URL('../static/theme-tokens.css', import.meta.url), 'utf8')
+  const controller = await readFile(new URL('../static/theme-controller.js', import.meta.url), 'utf8')
+  const settings = await readFile(new URL('../static/theme-settings-template.js', import.meta.url), 'utf8')
+  const offered = [...controller.match(/const palettes = new Set\(\[([^\]]*)\]/)[1].matchAll(/"([a-z]+)"/g)].map(match => match[1])
+  assert.deepEqual(offered.sort(), ['bobobooks', 'eink', 'kiln', 'paper'])
+  for (const palette of offered) {
+    assert.match(settings, new RegExp(`value="${palette}"`), `${palette} is missing from the picker`)
+    assert.match(css, new RegExp(`data-palette="${palette}"\\]\\[data-theme`), `${palette} is not in theme-tokens.css`)
+  }
+  assert.doesNotMatch(css, /nocturne/i, 'the dead Nocturne token block must be gone')
+  assert.doesNotMatch(settings, /nocturne/i)
+  for (const removed of ['nocturne', 'dusk', 'twilight', 'tide', 'rosewood', 'ember', 'manjaro', 'ubuntu', 'material']) {
+    assert.doesNotMatch(settings, new RegExp(`value="${removed}"`), `${removed} must not be offered`)
+  }
+})
