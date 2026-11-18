@@ -1,0 +1,237 @@
+.video-player {
+  width: min(1200px, 100vw);
+  height: min(820px, 100dvh);
+  max-width: none;
+  max-height: none;
+  padding: 0;
+  border: 0;
+  background: #0b0a09;
+  color: var(--text);
+}
+
+.video-player::backdrop {
+  background: #000e;
+}
+
+.video-player header {
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 10px 0 16px;
+}
+
+.video-heading {
+  display: grid;
+  min-width: 0;
+}
+
+.video-heading strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 650;
+}
+
+.video-player header > strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 650;
+}
+
+.video-heading small {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: var(--fs-11);
+  line-height: 1.2;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.video-player-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.video-player header button {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  border: 0;
+  border-radius: var(--r-10);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.video-player header button:hover {
+  background: var(--raised);
+  color: var(--text);
+}
+
+.track-menu {
+  position: relative;
+}
+
+.track-menu summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  border-radius: var(--r-8);
+  color: var(--muted);
+  font-size: var(--fs-13);
+  cursor: pointer;
+  list-style: none;
+}
+
+.track-menu summary::-webkit-details-marker {
+  display: none;
+}
+
+.track-menu summary:hover,
+.track-menu[open] summary {
+  background: var(--raised);
+  color: var(--text);
+}
+
+.track-menu > summary {
+  width: 44px;
+  justify-content: center;
+  padding: 0;
+}
+
+.track-menu > summary svg {
+  width: 21px;
+  height: 21px;
+}
+
+.track-menu > div {
+  position: absolute;
+  z-index: 4;
+  top: 46px;
+  right: 0;
+  width: min(280px, calc(100vw - 24px));
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-12);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.track-menu label {
+  display: grid;
+  gap: 5px;
+  color: var(--muted);
+  font-size: var(--fs-12);
+  font-weight: 650;
+}
+
+.track-menu select {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  padding: 0 9px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-8);
+  background: var(--raised);
+  color: var(--text);
+}
+
+.video-stage {
+  position: relative;
+  width: 100%;
+  height: calc(100% - 52px);
+  background: #000;
+}
+
+.video-player video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: #000;
+  object-fit: contain;
+}
+
+.video-player video::-webkit-media-controls-toggle-closed-captions-button {
+  display: none !important;
+}
+
+.video-preview {
+  position: absolute;
+  z-index: 3;
+  left: clamp(92px, var(--preview-x), calc(100% - 92px));
+  bottom: 58px;
+  width: 176px;
+  margin: 0;
+  overflow: hidden;
+  transform: translateX(-50%);
+  border-radius: var(--r-8);
+  background: #0b0a09;
+  pointer-events: none;
+}
+
+:root:not([data-palette=eink]) .video-preview {
+  box-shadow: 0 10px 30px #000b;
+}
+
+.video-preview > span {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background-position: center;
+  background-size: cover;
+}
+
+.video-preview figcaption {
+  padding: 5px 8px;
+  color: #fff;
+  font-size: var(--fs-12);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.video-player p {
+  position: absolute;
+  inset: 62px 16px auto;
+  margin: 0;
+  color: #fff;
+  text-align: center;
+  pointer-events: none;
+}
+
+@media (max-width: 760px) {
+  .video-player {
+    width: 100vw;
+    height: 100dvh;
+  }
+
+  .video-player header {
+    padding-left: 14px;
+  }
+
+  .track-menu > div {
+    position: fixed;
+    z-index: 50;
+    top: 72px;
+    left: max(10px, env(safe-area-inset-left));
+    right: max(10px, env(safe-area-inset-right));
+    bottom: auto;
+    max-height: calc(100dvh - 90px - env(safe-area-inset-bottom));
+    overflow-y: auto;
+    width: auto;
+    padding: 16px;
+  }
+
+  .video-preview {
+    display: none !important;
+  }
+}

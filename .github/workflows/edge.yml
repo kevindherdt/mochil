@@ -1,0 +1,52 @@
+# The development channel: every push to main publishes `:edge`, so testers and the author can pull
+# what is actually in the tree without cutting a release. Releases (a v* tag) publish `:latest` and
+# the version tag from release.yml, and those are the only images `latest` ever points at.
+#
+# Nothing here is tagged `latest` on purpose: a pull of `latest` must never land on a half-finished
+# branch state, which is the one failure mode an install-by-pull product cannot recover from.
+name: edge
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: edge
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    uses: ./.github/workflows/ci.yml
+
+  container:
+    needs: verify
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: docker/setup-qemu-action@v4
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: Containerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}:edge
+            ghcr.io/${{ github.repository }}:edge-${{ github.sha }}
+      # An edge build that cannot install is worse than no edge build: prove the pushed tag boots
+      # from empty volumes before anyone pulls it.
+      - name: Prove the published image installs
+        run: |
+          IMAGE="ghcr.io/${{ github.repository }}:edge" \
+            ./scripts/install-smoke.sh --no-build

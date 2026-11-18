@@ -1,0 +1,11 @@
+# KOReader progress persistence limitation
+
+The plugin progress endpoint is **not transactional**. An HTTP error does not mean that nothing was saved. Document linking may be persisted first, the optional KoSync mirror is saved next, then reading progress and (when requested) explicit finished state are saved separately. A later error or process interruption can leave any earlier successful writes in place. The mirror may also be skipped when no sync user exists; unmatched requests can save a mirror without linking a reading position. Individual store rollback on a failed write does not undo earlier successful writes.
+
+`TestPluginProgressReadingFailureCanLeaveDurableKoSyncMirror` characterizes a reading-write failure that leaves a mirror on disk; `TestPluginProgressReportsFinishStoreFailure` characterizes progress surviving a failed finish write. These tests describe the current limitation, not an atomicity guarantee. A retry may repair a partial update, but timestamp ordering and concurrent edits mean retry is not a general rollback or reconciliation guarantee.
+
+## Potential design
+
+A robust solution needs one durable transactional authority for the link, progress, finish flag and mirror, with all writers and readers coordinated. One option is to migrate the relevant records to a transactional database and update them in one transaction, preserving existing timestamp conflict rules, history and notification semantics. If existing JSON stores must remain, a durable journal/outbox with replay and idempotent, version-checked operations could provide eventual convergence, not instantaneous atomic visibility across the independent files; it must handle crashes, storage failures, concurrent writers, replay ordering and upgrade/recovery. Either approach requires a migration and fault-injection tests at every persistence boundary, including restart and concurrency tests.
+
+Reordering the existing writes merely changes which partial state is possible. Best-effort compensating writes are not atomic: they can fail, crash, or overwrite concurrent updates. Combining progress and finished in one reading-store mutation could remove one intermediate state, but would not make that store atomic with the independent KoSync mirror or earlier linking; it should not be represented as a cross-store fix.

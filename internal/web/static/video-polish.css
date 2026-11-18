@@ -1,0 +1,137 @@
+/* Movies, TV and anime in the same card language as books and music: poster cards in a grid; an opened show becomes a wide hero with its seasons as cards. Loaded after app.css, so it only overrides. */
+#video-index .video-cover-grid:not(.video-season-episodes){display:grid;grid-template-columns:repeat(auto-fill,minmax(var(--grid-min,196px),1fr));gap:var(--grid-gap,clamp(22px,2.4vw,34px));align-items:stretch}
+
+/* A closed show or movie: a boxed poster with its title and counts. */
+#video-index .video-cover-grid>.video-show:not([open]),#video-index #videos.video-cover-grid>.video-item{padding:var(--card-pad,12px);border:1px solid var(--card-border);border-radius:var(--card-radius,var(--r-16));background:var(--card-bg);transition:border-color .16s ease,transform .16s ease}
+#video-index .video-cover-grid>.video-show:not([open]):is(:hover,:focus-within),#video-index #videos.video-cover-grid>.video-item:is(:hover,:focus-within){border-color:var(--card-hover-border);transform:translateY(calc(var(--card-lift,2px) * -1))}
+#video-index .video-cover-grid>.video-show:not([open])>summary{display:grid;grid-template-columns:minmax(0,1fr);gap:10px;min-height:0;padding:0}
+#video-index .video-cover-grid>.video-show:not([open])>summary>svg{display:none}
+#video-index .video-cover-grid>.video-show>summary .video-show-art,#video-index #videos.video-cover-grid>.video-item .video-art{width:100%;aspect-ratio:2/3;border:1px solid var(--card-border);border-radius:var(--r-10)}
+#video-index #videos.video-cover-grid>.video-item{content-visibility:visible}
+#video-index .video-cover-grid>.video-show>summary .video-show-copy,#video-index #videos.video-cover-grid>.video-item .video-copy{padding:0;gap:3px}
+#video-index .video-cover-grid .video-show-copy strong,#video-index #videos.video-cover-grid>.video-item .video-copy strong{display:-webkit-box;overflow:hidden;white-space:normal;-webkit-box-orient:vertical;-webkit-line-clamp:2;min-height:0;font:650 var(--fs-14)/1.25 "Source Sans","Segoe UI",sans-serif}
+#video-index .video-cover-grid .video-show-copy small,#video-index #videos.video-cover-grid>.video-item .video-copy small{color:var(--muted);font-size:var(--fs-12)}
+
+/* An opened show: a hero across the page, then its seasons. */
+#video-index .video-cover-grid>.video-show[open]{order:-1;grid-column:1/-1;position:relative;isolation:isolate;overflow:hidden;padding:24px;border:1px solid var(--card-border);border-radius:var(--r-24);background:var(--card-bg)}
+#video-index .video-cover-grid>.video-show[open]::before{content:"";position:absolute;inset:0;z-index:-1;background:radial-gradient(ellipse 70% 130% at 0 0,color-mix(in srgb,var(--accent) 22%,transparent),transparent 70%)}
+#video-index .video-cover-grid>.video-show[open]>summary{grid-template-columns:150px minmax(0,1fr);align-items:end;gap:24px;min-height:0;padding:0 0 22px}
+#video-index .video-cover-grid>.video-show[open]>summary .video-show-art{width:150px;box-shadow:var(--shadow-3)}
+#video-index .video-cover-grid>.video-show[open]>summary .video-show-copy{gap:8px}
+#video-index .video-cover-grid>.video-show[open]>summary .video-show-copy strong{display:block;white-space:normal;font:650 clamp(26px,3.4vw,38px)/1.1 Newsreader,Georgia,serif;letter-spacing:-.01em}
+#video-index .video-cover-grid>.video-show[open]>summary .video-show-copy small{font-size:var(--fs-14)}
+#video-index .video-cover-grid>.video-show[open]>summary>svg{position:absolute;top:20px;right:20px;width:22px;margin:0;color:var(--muted)}
+#video-index .video-cover-grid>.video-show .video-seasons{grid-template-columns:repeat(auto-fill,minmax(150px,170px));gap:16px}
+#video-index .video-show-metadata{padding:0 0 4px;border:0}
+#video-index .video-metadata-open{min-height:36px;padding:0 16px;border:1px solid color-mix(in srgb,var(--accent) 45%,transparent);border-radius:var(--r-pill);background:transparent;color:var(--accent);font:650 var(--fs-13) "Source Sans",sans-serif;cursor:pointer}
+#video-index .video-metadata-open:hover{background:color-mix(in srgb,var(--accent) 12%,transparent)}
+#video-index .show-playback{max-width:420px;border:0}
+#video-index .show-playback>summary{min-height:40px;border:0;color:var(--muted);font-weight:600}
+
+/* Season cards. */
+#video-index .video-cover-grid>.video-show .video-season:not([open]){padding:10px;border:1px solid var(--card-border);border-radius:var(--r-12);background:color-mix(in srgb,var(--card-bg) 70%,transparent);transition:border-color .16s ease}
+#video-index .video-cover-grid>.video-show .video-season:not([open]):hover{border-color:var(--card-hover-border)}
+#video-index .video-cover-grid>.video-show .video-season-art{border-radius:var(--r-8)}
+#video-index .video-cover-grid>.video-show .video-season>summary>span:nth-of-type(2){font:650 var(--fs-14)/1.2 "Source Sans",sans-serif}
+#video-index .video-cover-grid>.video-show .video-season>summary>small{justify-self:start;padding:3px 9px;border-radius:var(--r-pill);background:color-mix(in srgb,var(--kind-video) 16%,transparent);color:var(--kind-video)}
+#video-index .video-cover-grid>.video-show .video-season[open]{padding:0}
+
+/* Episodes: boxed cards with an even rhythm; the technical line wraps to at most two lines. */
+#video-index .video-season-episodes.video-cover-grid{gap:14px 12px}
+#video-index .video-season-episodes.video-cover-grid>.video-item{content-visibility:visible;padding:8px;border:1px solid var(--card-border);border-radius:var(--r-12);background:color-mix(in srgb,var(--card-bg) 60%,transparent);transition:border-color .16s ease}
+#video-index .video-season-episodes.video-cover-grid>.video-item:is(:hover,:focus-within){border-color:var(--card-hover-border)}
+#video-index .video-season-episodes.video-cover-grid>.video-item .video-copy{gap:2px;padding-top:8px}
+#video-index .video-season-episodes.video-cover-grid>.video-item .video-copy strong{min-height:0;-webkit-line-clamp:2}
+#video-index .video-season-episodes.video-cover-grid>.video-item .video-copy small{display:-webkit-box;overflow:hidden;-webkit-box-orient:vertical;-webkit-line-clamp:2}
+
+/* List layout: tidy rows with poster-shaped thumbnails. */
+#video-index .video-list:not(.video-cover-grid) .video-show-art{width:38px;aspect-ratio:2/3}
+#video-index .video-list:not(.video-cover-grid)>.video-show>summary{grid-template-columns:38px minmax(0,1fr) 20px}
+
+@media (max-width:600px){
+  #video-index .video-cover-grid:not(.video-season-episodes){grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 12px}
+  #video-index .video-cover-grid>.video-show[open]{padding:16px}
+  #video-index .video-cover-grid>.video-show[open]>summary{grid-template-columns:104px minmax(0,1fr);gap:16px}
+  #video-index .video-cover-grid>.video-show[open]>summary .video-show-art{width:104px}
+  #video-index .video-cover-grid>.video-show .video-seasons{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (prefers-reduced-motion:reduce){#video-index .video-cover-grid>*{transition:none!important}}
+:root[data-palette=eink] #video-index .video-cover-grid>.video-show[open]::before{display:none}
+
+/* Phones: the video libraries' only tool is the layout menu, so it joins the selector row instead of getting a bar of its own. */
+@media (max-width:600px){
+  :root:has(#video-index:not([hidden])){--catalog-sticky-top:64px}
+  body:has(#video-index:not([hidden])) nav.masthead.masthead:has(.shell-context:not([hidden])):not(.searching){height:56px;grid-template-columns:minmax(0,1fr) auto auto;grid-template-rows:44px;grid-template-areas:"destination context actions"}
+  body:has(#video-index:not([hidden])) .shell-context{width:auto;height:44px}
+  body:has(#video-index:not([hidden])) .shell-context .library-tools{width:auto}
+}
+
+/* Video libraries have no tabs, so the layout toggle sits flush right beside the other bar icons (the tab grid left an empty column after it). */
+body:has(#video-index:not([hidden])) .browse-controls{display:flex;justify-content:flex-end}
+body:has(#video-index:not([hidden])) .browse-controls::before{display:none}
+
+/* Library-wide TMDB matching bar above the shelf. */
+.video-bulk-match{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;margin:0 0 16px}
+.video-bulk-match button{min-height:36px;padding:0 16px;border:1px solid var(--card-border);border-radius:999px;background:var(--card-bg);color:inherit;cursor:pointer}
+.video-bulk-match small{opacity:.75}
+.video-bulk-match [data-bulk-results]{flex-basis:100%;display:grid;gap:8px}
+.video-bulk-match ul{margin:6px 0 0;padding-left:20px;max-height:240px;overflow:auto}
+
+#video-index .video-show-overview{display:none;margin:4px 0 0;max-width:68ch;color:var(--muted);font-size:var(--fs-14);line-height:1.5;display:none}
+#video-index .video-cover-grid>.video-show[open] .video-show-overview{display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
+#video-index .video-metadata-current{display:grid;gap:10px;padding:0}
+#video-index .video-metadata-current>small{color:var(--muted)}
+#video-index .video-metadata-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+#video-index .video-metadata-actions :is(button,a){display:inline-flex;align-items:center;min-height:36px;padding:0 14px;border:1px solid var(--card-border);border-radius:var(--r-pill);background:transparent;color:var(--text);font:600 var(--fs-13)/1 "Source Sans",sans-serif;text-decoration:none;cursor:pointer}
+#video-index .video-metadata-actions :is(button,a):is(:hover,:focus-visible){border-color:var(--card-hover-border)}
+#video-index .video-metadata-actions .remove{color:var(--error)}
+#video-index .video-cover-grid>.video-show .video-seasons{margin-top:6px}
+
+/* Title details stay separate from the play button and scroll on narrow cards. */
+#video-index .video-title-details{min-width:0;max-width:100%;color:var(--muted)}
+#video-index .video-title-details>summary{cursor:pointer;min-height:44px;display:flex;align-items:center;font-size:var(--fs-14)}
+#video-index .video-title-details>summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+#video-index .video-seasons>.video-title-details{grid-column:1/-1}
+#video-index .video-cast h3{margin:8px 0;font-size:var(--fs-14);color:var(--text)}
+#video-index .video-cast ul{display:flex;gap:12px;overflow-x:auto;overscroll-behavior-inline:contain;list-style:none;padding:0 0 10px;margin:0}
+#video-index .video-cast li{flex:0 0 104px;min-width:0;display:flex;flex-direction:column;gap:4px;overflow-wrap:anywhere;font-size:var(--fs-12)}
+#video-index .video-cast li strong{color:var(--text)}
+#video-index .video-cast li small{color:var(--muted)}
+#video-index .video-cast-portrait{position:relative;display:grid;place-items:center;width:100%;aspect-ratio:2/3;overflow:hidden;border-radius:var(--r-12);background:var(--card-bg);color:var(--muted);font-size:36px}
+#video-index .video-cast-portrait img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+#video-index .video-episode-synopsis{display:block;white-space:normal;line-height:1.4;color:var(--muted);font-size:var(--fs-12)}
+
+/* Preview and playback are separate actions in both layouts. */
+#video-index .video-episode-overview{grid-column:1/-1;min-width:0;margin:10px 0 14px;padding:18px 20px;border:1px solid var(--card-border);border-radius:var(--r-12);background:var(--surface)}
+#video-index .video-episode-overview>span{color:var(--accent);font-size:var(--fs-12);font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+#video-index .video-episode-overview h3{height:2.4em;margin:4px 0;font:650 21px/1.2 Newsreader,Georgia,serif;overflow:hidden;overflow-wrap:anywhere}
+#video-index .video-episode-overview p{max-width:75ch;margin:8px 0 0;color:var(--muted);font-size:var(--fs-14);line-height:1.55;white-space:pre-wrap;overflow-wrap:anywhere;height:4.65em;overflow:hidden}
+#video-index .video-episode-overview.is-expanded p{height:auto;overflow:visible}
+#video-index .video-episode-overview [data-episode-toggle]{display:inline-flex;align-items:center;justify-content:center;min-width:28px;min-height:28px;padding:0;border:0;background:transparent;color:var(--accent);cursor:pointer;border-radius:var(--r-8)}
+#video-index .video-episode-overview [data-episode-toggle] svg{width:20px;height:20px}
+#video-index .video-episode-overview.is-expanded [data-episode-toggle] svg{transform:rotate(180deg)}
+#video-index .video-episode-overview [data-episode-toggle].is-hidden{visibility:hidden}
+#video-index :is(.video-episode-select,[data-episode-toggle]):focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+#video-index .video-season-episodes .video-episode-card{content-visibility:visible;min-width:0;display:flex;flex-direction:column;padding:8px;border:1px solid var(--card-border);border-radius:var(--r-12);background:var(--card-bg)}
+#video-index .video-episode-select{width:100%;flex:1;display:flex;flex-direction:column;gap:8px;padding:0;border:0;background:transparent;color:var(--text);text-align:left;cursor:pointer}
+#video-index .video-episode-select[aria-pressed=true]{color:var(--accent)}
+#video-index .video-episode-select .video-art{width:100%;aspect-ratio:16/9;overflow:hidden}
+#video-index .video-episode-select .video-copy{width:100%;padding:0}
+#video-index .video-episode-select .video-copy strong{display:-webkit-box;white-space:normal;overflow:hidden;-webkit-box-orient:vertical;-webkit-line-clamp:2;font:650 var(--fs-14)/1.25 'Source Sans',sans-serif;overflow-wrap:anywhere}
+#video-index .video-episode-unavailable{padding:10px;color:var(--muted);font-size:var(--fs-13)}
+#video-index .video-season-episodes:not(.video-cover-grid) .video-episode-card{flex-direction:row;align-items:center;gap:12px;margin-bottom:8px}
+#video-index .video-season-episodes:not(.video-cover-grid) .video-episode-select{flex-direction:row;align-items:center;min-height:60px}
+#video-index .video-season-episodes:not(.video-cover-grid) .video-episode-select .video-art{width:96px;flex:none}
+#video-index .video-episode-card .video-episode-synopsis{display:none}
+@media(max-width:600px){
+  #video-index .video-season-episodes.video-cover-grid{grid-template-columns:minmax(0,1fr);gap:0}
+  #video-index .video-season-episodes .video-episode-card,#video-index .video-season-episodes:not(.video-cover-grid) .video-episode-card{display:flex;flex-direction:column;align-items:stretch;gap:0;margin:0;padding:14px 0;border:0;border-bottom:1px solid var(--card-border);border-radius:0;background:transparent}
+  #video-index .video-season-episodes .video-episode-select,#video-index .video-season-episodes:not(.video-cover-grid) .video-episode-select{flex-direction:row;align-items:flex-start;gap:12px;min-height:0}
+  #video-index .video-season-episodes .video-episode-select .video-art,#video-index .video-season-episodes:not(.video-cover-grid) .video-episode-select .video-art{width:36%;max-width:132px;flex:none}
+  #video-index .video-season-episodes .video-episode-select .video-copy{min-width:0;width:auto;flex:1;padding:0}
+  #video-index .video-episode-card .video-episode-synopsis{display:block;overflow:visible;overflow-wrap:anywhere}
+}
+
+/* An episode title is what identifies the row, so it wraps to two lines instead of being cut
+   mid-word; the hover text still carries the whole title. */
+.video-episode-card .video-copy strong{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;white-space:normal;line-height:1.3}

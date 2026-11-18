@@ -1,0 +1,137 @@
+/* Mochil theme palettes: Espresso (dark) with its Parchment light twin, Kiln,
+   Paper, and the e-ink device palette. Espresso is the default.
+   Mode-agnostic themes carry no [data-theme=light] block, so they keep their values
+   whatever the OS reports; [data-theme] only raises specificity above app.css.
+   The selector lists also carry the ids saved by older builds: dusk/twilight/tide/
+   manjaro/material resolve to Kiln, ember/rosewood/ubuntu to Espresso. */
+
+:root[data-palette="bobobooks"][data-theme="dark"],
+:root[data-palette="ember"][data-theme="dark"],
+:root[data-palette="rosewood"][data-theme="dark"],
+:root[data-palette="ubuntu"][data-theme="dark"],
+[data-swatch][data-palette="bobobooks"][data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #171513;
+  --surface: #211e1b;
+  --raised: #2a2622;
+  --line: #3a342e;
+  --text: #f4eee6;
+  --muted: #b8aea3;
+  --accent: #f09a72;
+  --accent-ink: #2a1510;
+  --wash: #6b4a38;
+  --error: #f28b7b;
+  --accent-video: #b470f0;
+  --accent-music: #70f0b8;
+  --accent-podcast: #f070a5;
+  --accent-comics: #f0e770;
+  --shadow: 0 16px 38px #0008;
+}
+
+:root[data-palette="bobobooks"][data-theme="light"],
+:root[data-palette="ember"][data-theme="light"],
+:root[data-palette="rosewood"][data-theme="light"],
+:root[data-palette="ubuntu"][data-theme="light"],
+[data-swatch][data-palette="bobobooks"][data-theme="light"] {
+  color-scheme: light;
+  --bg: #f4ede3;
+  --surface: #fffbf4;
+  --raised: #eadfd1;
+  --line: #d8c9b8;
+  --text: #221c16;
+  --muted: #6a5e52;
+  --accent: #9c4522;
+  --accent-ink: #fff8f2;
+  --wash: #e0c6ae;
+  --error: #a4382c;
+  --accent-video: #62229b;
+  --accent-music: #1b7e58;
+  --accent-podcast: #9b2266;
+  --accent-comics: #79731a;
+  --shadow: 0 14px 35px #6b50351f;
+}
+
+:root[data-palette="kiln"][data-theme],
+:root[data-palette="dusk"][data-theme],
+:root[data-palette="twilight"][data-theme],
+:root[data-palette="tide"][data-theme],
+:root[data-palette="manjaro"][data-theme],
+:root[data-palette="material"][data-theme],
+[data-swatch][data-palette="kiln"][data-theme] {
+  color-scheme: dark;
+  --bg: #26262b;
+  --surface: #303037;
+  --raised: #3a3a43;
+  --line: #4a4a55;
+  --text: #ede7de;
+  --muted: #b0a79b;
+  --accent: #e0a458;
+  --accent-ink: #241c12;
+  --wash: #8a6440;
+  --error: #ff9a94;
+  --accent-video: #bb87e9;
+  --accent-music: #57e0a5;
+  --accent-podcast: #e67aac;
+  --accent-comics: #e0d757;
+  --shadow: 0 16px 38px #10101499;
+}
+
+:root[data-palette="paper"][data-theme],
+[data-swatch][data-palette="paper"][data-theme] {
+  color-scheme: light;
+  --bg: #f7f7f5;
+  --surface: #ffffff;
+  --raised: #edede9;
+  --line: #c9c9c3;
+  --text: #1a1a18;
+  --muted: #5d5d57;
+  --accent: #1a1a18;
+  --accent-ink: #ffffff;
+  --wash: #dadad4;
+  --error: #a73535;
+  --accent-video: #7e43b1;
+  --accent-music: #307e73;
+  --accent-podcast: #b1436c;
+  --accent-comics: #856f32;
+  --shadow: 0 14px 35px #2a2a241c;
+}
+
+:root[data-palette="eink"][data-theme="dark"],
+[data-swatch][data-palette="eink"][data-theme="dark"] {
+  --bg:#000;
+  --surface:#000;
+  --raised:#171717;
+  --text:#fff;
+  --muted:#c9c9c9;
+  --line:#8a8a8a;
+  /* A card edge has to read as a line on e-ink: solid, not a tinted mix, and
+     the same grey as separators so both clear 3:1 against the page. */
+  --card-border: var(--line);
+  --accent:#fff;
+  --accent-ink:#000;
+  --accent-video:#fff;
+  --accent-music:#fff;
+  --accent-podcast:#fff;
+  --accent-comics:#fff;
+  --error:#fff;
+  --shadow:none;
+}
+
+:root[data-palette="eink"][data-theme="light"],
+[data-swatch][data-palette="eink"][data-theme="light"] {
+  --bg:#fff;
+  --surface:#fff;
+  --raised:#eee;
+  --text:#111;
+  --muted:#4a4a4a;
+  --line:#767676;
+  --card-border: var(--line);
+  --accent:#111;
+  --accent-ink:#fff;
+  --accent-video:#111;
+  --accent-music:#111;
+  --accent-podcast:#111;
+  --accent-comics:#111;
+  --error:#111;
+  --shadow:none;
+}
