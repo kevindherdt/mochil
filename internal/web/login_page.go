@@ -1,0 +1,7 @@
+package web
+
+import "text/template"
+
+var loginPageTemplate = template.Must(template.New("login").Parse(`<!doctype html>
+<html lang="en" data-theme="dark"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="color-scheme" content="dark light"><title>Sign in · Mochil</title><link rel="stylesheet" href="/assets/design-tokens.css"><link rel="stylesheet" href="/assets/login.css?v=4"></head>
+<body><main><section aria-labelledby="login-title"><a class="wordmark" href="/login" aria-label="Mochil"><span>B</span> Mochil</a><div><h1 id="login-title">Welcome back</h1><p class="intro">Sign in to open your books and media.</p></div><form method="post" action="/login"><input type="hidden" name="csrf" value="{{.CSRF}}"><input type="hidden" name="next" value="{{.Next}}"><label>Username<input name="username" required maxlength="128" autocapitalize="none" autocomplete="username" spellcheck="false"></label><label>Password<input name="password" type="password" required maxlength="256" autocomplete="current-password"></label><label class="remember"><input type="checkbox" name="remember" value="1" checked><span>Keep me signed in on this device</span></label>{{if .Message}}<p class="error" role="alert">{{.Message}}</p>{{end}}<button type="submit">Sign in</button></form><small>Staying signed in lasts up to a month. Use a private window on shared devices; signing out ends it.</small></section></main></body></html>`))

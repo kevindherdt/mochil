@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en" data-theme="dark" data-palette="bobobooks">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="color-scheme" content="dark light">
+  <title>Hermes · Mochil</title>
+  <link rel="icon" type="image/png" href="/assets/icons/favicon-32.png">
+  <link rel="stylesheet" href="/assets/design-tokens.css?v=1">
+  <link rel="stylesheet" href="/assets/theme-tokens.css?v=10">
+  <link rel="stylesheet" href="/assets/hermes.css?v=23">
+  <link rel="stylesheet" href="/assets/library-menu.css?v=5">
+</head>
+<body>
+  <div class="hm-shell">
+    <aside class="hm-side" id="hm-side" aria-label="Conversations">
+      <div class="hm-side-head">
+        <a class="hm-back" href="/" aria-label="Back to Mochil"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 5-7 7 7 7"/></svg></a>
+        <span class="hm-avatar" id="hm-avatar-side" aria-hidden="true">H</span>
+        <strong id="hm-brand">Hermes</strong>
+      </div>
+      <button type="button" id="hm-new" class="hm-new"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>New chat</button>
+      <nav id="hm-list" class="hm-groups" aria-label="Conversations"></nav>
+      <button type="button" id="hm-mem-open" class="hm-memlink" hidden aria-expanded="false" aria-controls="hm-memory"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 11c0 5.6-7 10-7 10z"/></svg>What she remembers</button>
+    </aside>
+    <div class="hm-scrim" id="hm-scrim" hidden></div>
+    <main class="hm-main">
+      <header class="hm-bar">
+        <button type="button" id="hm-menu" class="hm-icon hm-menu" aria-label="Conversations"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+        <span class="hm-avatar" id="hm-avatar" aria-hidden="true">H</span>
+        <div class="hm-head">
+          <strong id="hm-title">New chat</strong>
+          <span class="hm-state" id="hm-state" role="status"><i class="hm-dot"></i><span id="hm-state-text">Connecting…</span></span>
+        </div>
+        <button type="button" id="hm-full" class="hm-icon" hidden aria-label="Voice mode (full screen)" title="Voice mode (full screen)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
+        <button type="button" id="hm-voice-btn" class="hm-icon" aria-expanded="false" aria-controls="hm-voice" aria-label="Chat settings: voice and avatar" title="Chat settings: voice and avatar"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg></button>
+      </header>
+      <section class="hm-voice" id="hm-voice" hidden aria-label="Chat settings">
+        <h2>Settings</h2>
+        <label class="hm-opt on"><span><strong>Read replies aloud</strong><small id="hm-voice-name">Speaks each sentence as it arrives.</small></span><input type="checkbox" id="hm-speak" role="switch"></label>
+        <label class="hm-opt" id="hm-voice-pick-opt"><span><strong>Voice</strong><small id="hm-voice-pick-note">Applies right away.</small></span><select id="hm-voice-pick" aria-label="Voice"></select></label>
+        <label class="hm-opt"><span><strong>Hands-free conversation</strong><small id="hm-hands-note">Keeps listening after each answer. Say "stop" to end it.</small></span><input type="checkbox" id="hm-hands" role="switch"></label>
+        <label class="hm-opt"><span><strong>Interrupt when I speak</strong><small>She stops talking the moment you start. Use headphones so she does not hear herself.</small></span><input type="checkbox" id="hm-barge" role="switch"></label>
+        <label class="hm-opt" id="hm-avatar-opt" hidden><span><strong>Show avatar</strong><small id="hm-avatar-note">Her face moves with her voice. Change the model in Settings, Avatar.</small></span><input type="checkbox" id="hm-avatar-on" role="switch"></label>
+        <label class="hm-opt" id="hm-scene-opt" hidden><span><strong>Background</strong><small id="hm-scene-note">What is behind her.</small></span><select id="hm-scene-pick" aria-label="Background"></select></label>
+        <div class="hm-opt hm-look" id="hm-look-opt" hidden>
+          <span><strong>Position</strong><small>Size and place of her in the frame, kept for this avatar.</small></span>
+          <div class="hm-look-rows">
+            <label>Size<input type="range" id="hm-look-zoom" min="0.3" max="2.2" step="0.05" aria-label="Size"></label>
+            <label>Left / right<input type="range" id="hm-look-x" min="-1" max="1" step="0.02" aria-label="Left or right"></label>
+            <label>Up / down<input type="range" id="hm-look-y" min="-1" max="1" step="0.02" aria-label="Up or down"></label>
+          </div>
+          <div class="hm-look-buttons"><button type="button" id="hm-look-reset">Reset position</button><button type="button" id="hm-bg-upload">My picture…</button><button type="button" id="hm-bg-remove" hidden>Remove picture</button><input type="file" id="hm-bg-file" accept="image/jpeg,image/png,image/webp" hidden></div>
+          <small id="hm-look-status" role="status"></small>
+        </div>
+        <label class="hm-opt" id="hm-avatar-pick-opt" hidden><span><strong>Avatar</strong><small id="hm-avatar-voice-note"></small></span><select id="hm-avatar-pick" aria-label="Avatar"></select></label>
+      </section>
+      <section class="hm-stage" id="hm-stage" hidden aria-label="Avatar"><div id="hm-stage-host" class="hm-stage-host"></div>
+        <div class="hm-vm" id="hm-vm" hidden>
+          <button type="button" id="hm-vm-cog" class="hm-icon hm-vm-cog" aria-label="Chat settings" title="Chat settings"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg></button>
+          <button type="button" id="hm-vm-exit" class="hm-icon hm-vm-exit" aria-label="Leave voice mode" title="Leave voice mode (Esc)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+          <p class="hm-caption" id="hm-caption" aria-live="polite"></p>
+          <div class="hm-vm-bar"><span id="hm-vm-state" role="status">Tap to talk</span><button type="button" id="hm-vm-mic" class="hm-vm-mic" aria-label="Talk"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button></div>
+        </div></section>
+      <section class="hm-memory" id="hm-memory" hidden aria-label="What she remembers">
+        <h2>What she remembers <span><button type="button" id="hm-mem-refresh" class="hm-linkbtn">Refresh</button><button type="button" id="hm-mem-close" class="hm-linkbtn">Close</button></span></h2>
+        <p id="hm-mem-note" class="hm-mem-note"></p>
+        <ul id="hm-mem-list" class="hm-mem-list"></ul>
+      </section>
+      <div id="hm-log" class="hm-log" aria-live="polite"></div>
+      <form id="hm-form" class="hm-form" autocomplete="off">
+        <div class="hm-composer">
+          <button type="button" id="hm-quick" class="hm-icon hm-quickbtn" aria-label="Quick actions" aria-haspopup="true" aria-expanded="false" title="Quick actions"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
+          <div id="hm-quickmenu" class="hm-quickmenu" hidden role="menu"></div>
+          <textarea id="hm-input" rows="1" placeholder="Message" aria-label="Message"></textarea>
+          <button type="button" id="hm-mic" class="hm-icon" hidden aria-label="Talk" title="Talk"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
+          <button type="submit" id="hm-send" class="hm-sendbtn" aria-label="Send"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V6M6 11l6-6 6 6"/></svg></button>
+          <button type="button" id="hm-stop" class="hm-sendbtn hm-stopbtn" aria-label="Stop" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="7" width="10" height="10" rx="2"/></svg></button>
+        </div>
+        <p class="hm-hint">Enter to send · Shift+Enter for a new line</p>
+      </form>
+    </main>
+  </div>
+  <script type="module" src="/assets/hermes.js?v=35"></script>
+  <script type="module" src="/assets/hermes-nav.js?v=1"></script>
+</body>
+</html>

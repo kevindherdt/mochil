@@ -1,0 +1,152 @@
+# Release: a tag is a promise. Pushing `v0.1.0` publishes that number everywhere — the container
+# tags, the binary archives, and the version the server prints — and refuses to run if the tag and
+# the VERSION file disagree, so a release can never be labelled with a number it is not.
+#
+# Image tags a release produces on ghcr.io/OWNER/mochil:
+#   :0.1.0   the exact release — use this to pin
+#   :0.1     follows patch releases of the same minor — use this for "safe updates"
+#   :latest  the newest release, for people who do not want to think about it
+# A push to main publishes :edge instead, which is never a release.
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: npm
+      # A tag that disagrees with VERSION would publish binaries and an image labelled with one
+      # number but built from another. Fail here, before anything is pushed.
+      - name: The tag matches VERSION
+        run: |
+          want="v$(tr -d '[:space:]' < VERSION)"
+          if [ "$want" != "${GITHUB_REF_NAME}" ]; then
+            echo "tag ${GITHUB_REF_NAME} does not match VERSION (${want})" >&2
+            exit 1
+          fi
+      - run: npm ci
+      - run: go test ./...
+      - run: go vet ./...
+      - run: npm run test:frontend
+      - run: ./scripts/check-store-readiness.sh
+      - run: ./scripts/check-module-sizes.sh
+
+  binaries:
+    needs: verify
+    strategy:
+      matrix:
+        include:
+          - { goos: linux, goarch: amd64, archive: tar.gz }
+          - { goos: linux, goarch: arm64, archive: tar.gz }
+          - { goos: windows, goarch: amd64, archive: zip }
+          - { goos: darwin, goarch: amd64, archive: tar.gz }
+          - { goos: darwin, goarch: arm64, archive: tar.gz }
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+      - name: Build
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: "0"
+        run: |
+          version=$(tr -d '[:space:]' < VERSION)
+          suffix=""
+          if [ "$GOOS" = windows ]; then suffix=".exe"; fi
+          mkdir dist
+          go build -trimpath \
+            -ldflags="-s -w -X mochil/internal/version.Version=${version} -X mochil/internal/version.Commit=${GITHUB_SHA::7}" \
+            -o "dist/mochil${suffix}" ./cmd/mochil
+          cp README.md DESIGN.md LICENSE dist/
+          if [ -f example/compose.yaml ]; then cp example/compose.yaml dist/; fi
+      - name: Package
+        run: |
+          version=$(tr -d '[:space:]' < VERSION)
+          name="mochil-${version}-${{ matrix.goos }}-${{ matrix.goarch }}"
+          if [ "${{ matrix.archive }}" = zip ]; then
+            (cd dist && zip -r "../${name}.zip" .)
+          else
+            tar -C dist -czf "${name}.tar.gz" .
+          fi
+      - uses: actions/upload-artifact@v7
+        with:
+          name: mochil-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: mochil-*
+
+  container:
+    needs: verify
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: docker/setup-qemu-action@v4
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Version tags
+        id: tags
+        run: |
+          version=$(tr -d '[:space:]' < VERSION)
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+          echo "minor=${version%.*}" >> "$GITHUB_OUTPUT"
+      - uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: Containerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          build-args: |
+            VERSION=${{ steps.tags.outputs.version }}
+          tags: |
+            ghcr.io/${{ github.repository }}:${{ steps.tags.outputs.version }}
+            ghcr.io/${{ github.repository }}:${{ steps.tags.outputs.minor }}
+            ghcr.io/${{ github.repository }}:latest
+          labels: |
+            org.opencontainers.image.version=${{ steps.tags.outputs.version }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+      # The published image is the thing users install, so prove that exact tag boots from empty
+      # volumes before the release is announced — not a rebuild of the same source.
+      - name: Prove the published image installs
+        run: |
+          IMAGE="ghcr.io/${{ github.repository }}:${{ steps.tags.outputs.version }}" \
+            ./scripts/install-smoke.sh --no-build
+
+  publish:
+    needs: [binaries, container]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          path: artifacts
+          merge-multiple: true
+      - name: Checksums
+        run: cd artifacts && sha256sum mochil-* > SHA256SUMS
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version=$(tr -d '[:space:]' < VERSION)
+          gh release create "${GITHUB_REF_NAME}" artifacts/* \
+            --title "Mochil ${version}" --generate-notes --verify-tag

@@ -1,0 +1,17 @@
+@media (min-width:681px){
+  :is(.audio-item,.book,.document-card,.document-row).viewport-menu-owner{
+    content-visibility:visible!important;
+    contain:none!important;
+    z-index:90!important;
+    transform:none!important;
+  }
+  :is(.audio-more,.book-more,.document-more).viewport-menu>div{
+    position:fixed!important;
+    z-index:91!important;
+    inset:var(--menu-top) auto auto var(--menu-left)!important;
+    width:var(--menu-width)!important;
+    max-height:calc(100dvh - 20px);
+    overflow:auto;
+    overscroll-behavior:contain;
+  }
+}
