@@ -1,0 +1,135 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  # So the edge image can depend on the same checks instead of duplicating them: a red commit must
+  # never publish an installable tag.
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  server:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+      - run: go test -race ./...
+      - run: go vet ./...
+      - run: ./scripts/check-store-readiness.sh
+      - run: ./scripts/check-module-sizes.sh
+      - run: CGO_ENABLED=0 go build -trimpath ./...
+
+  install:
+    # The install contract: the image builds, boots with empty volumes and no configuration,
+    # and serves a usable app that survives a restart. Everything else in "easy to install"
+    # can be measured against this.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - run: ./scripts/install-smoke.sh
+      - name: Show container logs on failure
+        if: failure()
+        run: docker ps -a && docker volume ls
+
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npm run test:frontend
+      - name: Install browser for isolated interaction checks
+        run: npx playwright install --with-deps chromium
+      - name: Verify playlist form recovery without a live server
+        run: npm run test:browser:playlists
+      - name: Verify audio chapter keyboard navigation
+        run: npm run test:browser:audio-chapters
+
+  android:
+    runs-on: ubuntu-latest
+    # A hung lint or daemon used to sit here for hours: this job is verification only, so fail it
+    # quickly and let the release jobs carry on rather than burning a runner slot.
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "21"
+      # The runner image already ships an Android SDK; the setup action tried to install the
+      # `tools` package, which no longer exists in the SDK repository, and failed the job. Install
+      # exactly what the build needs instead.
+      - name: Android SDK packages
+        run: |
+          sdk_root="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-/usr/local/lib/android/sdk}}"
+          sdkmanager="$(ls -d "$sdk_root"/cmdline-tools/*/bin/sdkmanager 2>/dev/null | tail -1)"
+          test -x "$sdkmanager" || { echo "no sdkmanager under $sdk_root" >&2; exit 1; }
+          yes | "$sdkmanager" --licenses > /dev/null
+          "$sdkmanager" "platform-tools" "platforms;android-37.0" "build-tools;37.0.0"
+      - uses: gradle/actions/setup-gradle@v6
+      # Verification only: never import the private installation/update key.
+      # These ephemeral-key APKs are not uploaded or published by this job.
+      - name: Create temporary CI-only signing identity
+        env:
+          CI_SIGNING_KEY: ${{ runner.temp }}/mochil-ci.keystore
+        run: |
+          test ! -e "$CI_SIGNING_KEY"
+          umask 077
+          keytool -genkeypair -noprompt -keystore "$CI_SIGNING_KEY" \
+            -storepass android -keypass android -alias androiddebugkey \
+            -keyalg RSA -keysize 2048 -validity 2 \
+            -dname "CN=Mochil CI verification only"
+      - name: Verify mobile, TV, direct, and store variants
+        working-directory: android
+        env:
+          MOCHIL_OPTIMIZED_KEYSTORE_PATH: ${{ runner.temp }}/mochil-ci.keystore
+          GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx3g -Dkotlin.daemon.jvm.options=-Xmx1g"
+        run: ./gradlew --no-daemon testDirectDebugUnitTest testStoreDebugUnitTest assembleDirectOptimized assembleStoreOptimized
+      - name: Verify packaged store-readiness boundary
+        run: ./scripts/check-store-readiness.sh android/app/build/outputs/apk/direct/optimized/app-direct-optimized.apk android/app/build/outputs/apk/store/optimized/app-store-optimized.apk
+
+  android-lint:
+    # Lint holds the whole module graph and is the slowest thing here. Kept out of the job above so a
+    # stalled lint can never mask a test result, and bounded so it cannot sit on a runner for hours.
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "21"
+      - name: Android SDK packages
+        run: |
+          sdk_root="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-/usr/local/lib/android/sdk}}"
+          sdkmanager="$(ls -d "$sdk_root"/cmdline-tools/*/bin/sdkmanager 2>/dev/null | tail -1)"
+          test -x "$sdkmanager" || { echo "no sdkmanager under $sdk_root" >&2; exit 1; }
+          yes | "$sdkmanager" --licenses > /dev/null
+          "$sdkmanager" "platform-tools" "platforms;android-37.0" "build-tools;37.0.0"
+      - uses: gradle/actions/setup-gradle@v6
+      # The optimized variants assert on a signing key at configuration time, so lint needs the same
+      # ephemeral CI identity as the build job -- without it Gradle fails before linting anything.
+      - name: Create temporary CI-only signing identity
+        env:
+          CI_SIGNING_KEY: ${{ runner.temp }}/mochil-ci.keystore
+        run: |
+          test ! -e "$CI_SIGNING_KEY"
+          umask 077
+          keytool -genkeypair -noprompt -keystore "$CI_SIGNING_KEY" \
+            -storepass android -keypass android -alias androiddebugkey \
+            -keyalg RSA -keysize 2048 -validity 2 \
+            -dname "CN=Mochil CI verification only"
+      - name: Lint both flavours
+        working-directory: android
+        env:
+          MOCHIL_OPTIMIZED_KEYSTORE_PATH: ${{ runner.temp }}/mochil-ci.keystore
+          GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx3g -Dkotlin.daemon.jvm.options=-Xmx1g"
+        run: ./gradlew --no-daemon lintDirectOptimized lintStoreOptimized

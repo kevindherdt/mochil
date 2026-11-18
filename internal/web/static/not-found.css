@@ -1,0 +1,5 @@
+/* Not found page (404): reuses the sign-in card's wordmark and layout, adds one home link. */
+.not-found-home{display:inline-flex;align-items:center;justify-content:center;width:100%;height:46px;margin-top:5px;border:0;border-radius:var(--r-10);background:var(--accent);color:var(--accent-ink);font:700 15px 'Source Sans','Segoe UI',sans-serif;text-decoration:none;cursor:pointer;transition:transform .15s ease,filter .15s ease}
+.not-found-home:hover{filter:brightness(1.07);transform:translateY(-1px)}
+.not-found-home:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+@media(prefers-reduced-motion:reduce){.not-found-home{transition:none}.not-found-home:hover{transform:none}}
