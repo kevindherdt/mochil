@@ -1,0 +1,8 @@
+# Adds the Narration runtime. Combine with the base files:
+#   docker compose -f compose.yaml -f compose.override.yaml -f compose.narration.yaml up -d --build
+# then set "narration" in config.json (see docs/NARRATION.md) and switch the module on.
+services:
+  mochil:
+    build:
+      dockerfile: Containerfile.narration
+    image: mochil:narration

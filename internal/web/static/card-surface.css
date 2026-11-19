@@ -1,0 +1,111 @@
+/* The boxed-card look shared by every cover grid. Two things to know:
+   - To give another grid the look, add its card selector to the ONE list below; nothing else changes.
+   - To tune the look (or give one page a different one), set the --card-* tokens on that page; no selector is touched. */
+:root {
+  --card-pad: 12px;
+  --card-radius: var(--r-16);
+  --card-border: color-mix(in srgb, var(--line) 70%, transparent);
+  /* A card is a raised object, not a tinted patch of the page: a touch of text colour lifts it off
+     the background so the cover sits in something, and a lit top edge gives it a direction. */
+  --card-bg: color-mix(in srgb, var(--surface) 90%, var(--text) 5%);
+  --card-edge: inset 0 1px 0 color-mix(in srgb, var(--text) 7%, transparent);
+  --card-hover-shadow: 0 14px 28px -16px #0009;
+  --card-hover-border: color-mix(in srgb, var(--accent) 45%, var(--line));
+  --card-lift: -3px;
+  /* Chip colours per kind of media, each with its own text colour so every pair reads on any palette.
+     Warm cinema: the accent is amber, so books take the amber hue instead of a blue that fought it;
+     video stays violet, music teal, podcasts magenta. Each ink is dark enough for the chip it sits on. */
+  --kind-book: #e0a458;      --kind-book-ink: #2a1a06;
+  --kind-video: #b69cfb;     --kind-video-ink: #1d1038;
+  --kind-audio: #4fd1b8;     --kind-audio-ink: #062e27;
+  --kind-podcast: #f48fb8;   --kind-podcast-ink: #3a0b20;
+}
+
+:is(
+  .book-grid .book:not(.book-list-item),
+  .series-cover-grid .series-card,
+  .music-group-grid:not(.list) .music-group-card,
+  .podcast-card,
+  .audiobook-series-card,
+  .music-track-card
+) {
+  padding: var(--card-pad);
+  border: 1px solid var(--card-border);
+  border-radius: var(--card-radius);
+  background: radial-gradient(120% 78% at 4% 0%, color-mix(in srgb, var(--art-tint, var(--accent)) 15%, transparent), transparent 62%), var(--card-bg);
+  box-shadow: var(--card-edge);
+  transition: background-color .18s ease, border-color .18s ease, transform .18s ease, box-shadow .18s ease;
+}
+
+
+@media (hover: hover) and (pointer: fine) {
+  :is(
+    .book-grid .book:not(.book-list-item),
+    .series-cover-grid .series-card,
+    .music-group-grid:not(.list) .music-group-card,
+    .podcast-card,
+    .audiobook-series-card
+  ):hover {
+    border-color: var(--card-hover-border);
+    background: color-mix(in srgb, var(--surface) 86%, var(--text) 8%);
+    box-shadow: var(--card-edge), var(--card-hover-shadow);
+  }
+  :root:not([data-motion=reduced]):not([data-palette=eink]) :is(
+    .book-grid .book:not(.book-list-item),
+    .series-cover-grid .series-card,
+    .music-group-grid:not(.list) .music-group-card,
+    .podcast-card,
+    .audiobook-series-card
+  ):hover { transform: translateY(var(--card-lift)); }
+}
+
+/* ONE cover grid for every library kind (books, light novels, manga, comics, mixed/Calibre), for the series
+   grid, a series' own books and a collection's books: no per-kind or per-library override exists or is needed.
+   From 761px the column minimum scales with the viewport (216px on laptops, up to 240px on very wide screens) and
+   the columns stretch with 1fr, so the row always fills the width instead of leaving a gutter of up to a whole
+   column; the gap is tighter than before (18-28px). Phones keep their two columns (app.css). List mode is excluded. */
+@media (min-width: 761px) {
+  .book-grid:not(.book-list), .series-cover-grid, .series-books .grid:not(.book-list), .series-focus-books .grid:not(.book-list), .collection-index>.grid:not(.book-list) {
+    grid-template-columns: repeat(auto-fill, minmax(clamp(216px, 9vw, 240px), 1fr));
+    gap: clamp(18px, 1.6vw, 28px);
+  }
+  /* Four results or fewer would stretch into huge cards (or pin left with a wide empty gap): cap the card and centre the row. */
+  .book-grid:not(.book-list):not(:has(> :nth-child(5))), .series-cover-grid:not(:has(> :nth-child(5))), .series-books .grid:not(.book-list):not(:has(> :nth-child(5))), .series-focus-books .grid:not(.book-list):not(:has(> :nth-child(5))), .collection-index>.grid:not(.book-list):not(:has(> :nth-child(5))) {
+    grid-template-columns: repeat(auto-fit, minmax(196px, 240px));
+    justify-content: center;
+  }
+}
+/* Titles: full text colour, a touch heavier, always two lines of room (series titles used to collapse to one line and ragged the rows). Authors stay muted. */
+.book-grid .book strong, .series-books .book strong, .series-focus-books .grid .book strong, .series-cover-grid .series-card h2 { font-weight: 650; color: var(--text); }
+.series-cover-grid .series-card h2 { min-height: 2.48em; }
+/* A small format badge on the corner of a book cover. */
+.cover-tag{position:absolute;top:8px;left:8px;z-index:2;padding:3px 8px;border-radius:var(--r-6);background:var(--kind-book);color:var(--kind-book-ink);font-size:var(--fs-11,11px);font-weight:700;letter-spacing:.04em;pointer-events:none}
+:root:not([data-palette=eink]) .cover-tag{box-shadow:0 2px 8px #0006}
+/* On hover a cover darkens and a round button shows what a click does: open (book), layers (series), play (music).
+   The same idea as the Gemini samples, drawn with one pseudo-element so each card module stays untouched. */
+@media (hover:hover) and (pointer:fine){
+  :root:not([data-palette=eink]) :is(.book-grid .book:not(.book-list-item) .cover-frame, .series-cover-grid .series-card .cover-frame, .music-track-card .music-track-art){position:relative}
+  :root:not([data-palette=eink]) :is(.book-grid .book:not(.book-list-item) .cover-frame, .series-cover-grid .series-card .cover-frame, .music-track-card .music-track-art)::after{content:"";position:absolute;inset:0;z-index:3;background:center/46px no-repeat;background-color:transparent;opacity:0;pointer-events:none;transition:opacity .2s ease,background-color .2s ease}
+  :root:not([data-palette=eink]):not([data-motion=reduced]) :is(.book-grid .book .cover-frame, .series-cover-grid .series-card .cover-frame, .music-track-card .music-track-art)::after{transition:opacity .2s ease,background-color .2s ease}
+  :root:not([data-palette=eink]) :is(.book-grid .book:not(.book-list-item):hover .cover-frame, .series-cover-grid .series-card:hover .cover-frame, .music-track-card:hover .music-track-art)::after{opacity:1;background-color:#0006}
+  :root:not([data-palette=eink]) .book-grid .book:not(.book-list-item) .cover-frame::after{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 44 44'%3E%3Ccircle cx='22' cy='22' r='22' fill='%237fb2f7'/%3E%3Cpath d='M22 15.5c-2-1.4-5-1.9-8-1.4v14c3-.5 6 0 8 1.4 2-1.4 5-1.9 8-1.4v-14c-3-.5-6 0-8 1.4ZM22 15.5v14' fill='none' stroke='%230d2243' stroke-width='1.8' stroke-linejoin='round'/%3E%3C/svg%3E")}
+  :root:not([data-palette=eink]) .series-cover-grid .series-card .cover-frame::after{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 44 44'%3E%3Ccircle cx='22' cy='22' r='22' fill='%237fb2f7'/%3E%3Cpath d='m22 13 10 5-10 5-10-5ZM12 24l10 5 10-5' fill='none' stroke='%230d2243' stroke-width='1.8' stroke-linejoin='round'/%3E%3C/svg%3E")}
+  :root:not([data-palette=eink]) .music-track-card .music-track-art::after{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 44 44'%3E%3Ccircle cx='22' cy='22' r='22' fill='%234fd1b8'/%3E%3Cpath d='M18.5 14.5v15l12-7.5Z' fill='%23062e27'/%3E%3C/svg%3E")}
+}
+/* Music cards: fewer, roomier columns like the sample; the card's own padding replaces the old negative margin. */
+.music-track-grid{grid-template-columns:repeat(auto-fill,minmax(188px,1fr));gap:20px}
+.music-track-card{margin:0}
+.music-track-card>.audio-open>strong{display:block;margin-top:10px;font-size:var(--fs-15,15px)}
+.music-track-card>.audio-open>small{display:block;margin-top:2px;font-size:var(--fs-13,13px);opacity:.7}
+.music-track-grid{align-items:stretch}.music-track-card{align-content:start}
+/* Not-yet-drawn music cards and rows reserve their real height, so the page does not change length (and jump) as they scroll into view. */
+#audio-index[data-kind="music"] .audio-item.music-track-card{contain-intrinsic-size:auto 230px}
+@media (min-width:900px){#audio-index[data-kind="music"] #audio-items>.audio-item:has(.audio-col){contain-intrinsic-size:auto 65px}}
+/* Favorites, the built-in playlist: a heart tile in the accent colour, first in Playlists. */
+.music-playlist-card .music-favorites-art{display:grid;place-items:center;background:linear-gradient(145deg,color-mix(in srgb,var(--accent) 70%,#000),color-mix(in srgb,var(--accent) 35%,#7c5cff))}
+.music-playlist-card .music-favorites-art svg{width:44%;height:44%;fill:var(--accent-ink);stroke:none}
+.music-favorites-entry{margin-bottom:18px}
+.music-favorites-heading{margin-bottom:12px}
+@media (max-width:899px){#audio-index[data-kind="music"] #audio-items>.audio-item:not(.music-track-card){contain-intrinsic-size:auto 58px}}
+/* Rows that are skipped while off screen have to guess their height, and every wrong guess moves the page under your finger. Music lists are paged and covers load lazily, so they render in full. */
+#audio-index[data-kind="music"] #audio-items>.audio-item{content-visibility:visible}
