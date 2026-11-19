@@ -1,0 +1,17 @@
+{
+  "listen": "0.0.0.0:8080",
+  "public_url": "",
+  "scan_every": "10m",
+  "cache_directory": "/data/catalogs",
+  "libraries": [
+    {
+      "id": "removed-library",
+      "name": "Removed library",
+      "kind": "books",
+      "source": {
+        "type": "filesystem",
+        "path": "/media/this-path-does-not-exist"
+      }
+    }
+  ]
+}

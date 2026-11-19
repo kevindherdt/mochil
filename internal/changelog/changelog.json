@@ -1,0 +1,2988 @@
+{
+ "entries": [
+  {
+   "component": "web",
+   "version": "0.1.18",
+   "date": "2026-11-19",
+   "changes": [
+    "Settings → Libraries now has a top-level \"Import…\" link to the existing Calibre-style import page — copy files from a drop folder straight into any writable library (Calibre libraries are correctly excluded as targets, since Mochil never writes to those). The page already existed but was hidden behind an unrelated \"Library editor\" module toggle that was off by default, so it was effectively undiscoverable."
+   ]
+  },
+  {
+   "component": "web",
+   "version": "0.1.17",
+   "date": "2026-11-19",
+   "changes": [
+    "Manga, comics and light novel cards on the Discover and All grids now name their series under the title, so a grid mixing several series no longer reads as an unlabeled wall of chapter numbers."
+   ]
+  },
+  {
+   "component": "server",
+   "version": "0.1.16",
+   "date": "2026-11-19",
+   "changes": [
+    "A requested server restart now replaces the running process in place instead of asking the container or systemd unit to notice it died and start a new one — a restart policy of \"on-failure\" never restarted it after a clean shutdown, which could leave the server down until someone started it by hand.",
+    "Movies and TV shows on Home now show their own icon instead of a book badge: the server was never telling the page what kind of library a watched item belonged to."
+   ]
+  },
+  {
+   "component": "web",
+   "version": "0.1.15",
+   "date": "2026-11-19",
+   "changes": [
+    "An upgraded server now reaches a browser that had the app open before: the offline shell is cached under a name that changes with each build, so the old page cannot be served back, and the app reloads itself once when a new version takes over."
+   ]
+  },
+  {
+   "component": "web",
+   "version": "0.1.14",
+   "date": "2026-11-19",
+   "changes": [
+    "The library switcher no longer falls back to the browser's own grey dropdown. A page served by an older shell handed the script a switcher without its wrapper, the themed menu was skipped, and the plain select showed through; it now works either way and hides the system control itself."
+   ]
+  },
+  {
+   "component": "server",
+   "version": "0.1.13",
+   "date": "2026-11-19",
+   "changes": [
+    "An updated server no longer leaves an open tab showing the app unstyled: a page asking for the previous build's stylesheet or script is answered with the current one instead of a 404.",
+    "The in-app update check finds mochil-android.apk in the data volume as well as the cache directory, so hosting the app needs nothing but the file.",
+    "The README screenshots are now taken on a demo library of public-domain titles with generated covers, built by scripts/demo-library.py.",
+    "Standard Ebooks and other EPUBs that mark one author with several roles no longer show \"Unknown\" as the author; the last role used to win.",
+    "The README screenshots are taken on a demo library of Standard Ebooks editions, whose text and covers are public domain."
+   ]
+  },
+  {
+   "component": "server",
+   "version": "0.1.12",
+   "date": "2026-11-19",
+   "changes": [
+    "Updating the server no longer leaves a browser showing the app unstyled until a hard refresh: a page still asking for the previous build's stylesheet or script is answered with the current one instead of a 404.",
+    "A server finds an app build in its data volume as well as its cache directory, so dropping mochil-android.apk in /data is enough for the in-app update check to work."
+   ]
+  },
+  {
+   "component": "android",
+   "version": "0.1.11",
+   "date": "2026-11-19",
+   "changes": [
+    "The app no longer asks for your server address every time you open it. A crash report used to keep it on the sign-in screen for good; it now steps aside after the first start, once you have had the report in front of you."
+   ]
+  },
+  {
+   "component": "server",
+   "version": "0.1.10",
+   "date": "2026-11-19",
+   "changes": [
+    "A server now serves an app build dropped into its data directory as mochil-android.apk, so an install that hosts the app does not need an environment variable to answer the update check. Servers that host nothing still answer plainly that no app is configured."
+   ]
+  },
+  {
+   "component": "android",
+   "version": "0.1.9",
+   "date": "2026-11-19",
+   "changes": [
+    "Choosing a palette no longer throws you out of Settings. Crossing into (or out of) e-ink rebuilt the whole screen instead of recolouring it, so the app forgot which screen was open and fell back to Home."
+   ]
+  },
+  {
+   "component": "android",
+   "version": "0.1.8",
+   "date": "2026-11-19",
+   "changes": [
+    "Signing in no longer closes the app. The podcasts screen was built by reflection through a constructor the app did not actually have, so the first signed-in screen threw \"Cannot create an instance of class PodcastViewModel\" and the process died.",
+    "A build-time check now fails if any screen's view model loses the constructor that reflection asks for, so this cannot come back unnoticed."
+   ]
+  },
+  {
+   "component": "android",
+   "version": "0.1.7",
+   "date": "2026-11-18",
+   "changes": [
+    "The crash report on the sign-in screen can now be shared (or selected and copied) instead of only read, so it can be sent on without retyping it."
+   ]
+  },
+  {
+   "component": "android",
+   "version": "0.1.6",
+   "date": "2026-11-18",
+   "changes": [
+    "If Mochil closes unexpectedly, the next launch stays on the sign-in screen and shows the crash report instead of resuming the screen that crashed and closing again."
+   ]
+  },
+  {
+   "component": "android",
+   "version": "0.1.5",
+   "date": "2026-11-18",
+   "changes": [
+    "Signing in no longer closes the app. The device token was encrypted on the main thread right after a successful sign-in, outside the error handling, so a Keystore failure there took the process down.",
+    "If the app does close unexpectedly, the next launch shows the crash report on the sign-in screen, where it can be copied. It used to be reachable only from Settings, which needs the sign-in that just failed."
+   ]
+  },
+  {
+   "component": "web",
+   "version": "0.1.4",
+   "date": "2026-11-18",
+   "changes": [
+    "Signing a phone in on a home server no longer fails with \"temporarily unavailable\". The Android login refused to run unless public_url was set in the configuration, which a fresh install does not have; it now uses the address the app itself connected to, the same way pairing already did."
+   ]
+  },
+  {
+   "component": "android",
+   "version": "0.1.3",
+   "date": "2026-11-18",
+   "new": [
+    "The magenta and cream mark you picked is the app icon, the sign-in screen and the TV banner."
+   ],
+   "changes": [
+    "The app can reach a server on your own network or over Tailscale. Plain http now works for private addresses; a public address still has to use https.",
+    "A Home the app could not open is fixed: the connect screen no longer refuses a perfectly good local address."
+   ]
+  },
+  {
+   "component": "web",
+   "version": "0.1.2",
+   "date": "2026-11-18",
+   "changes": [
+    "An install with no libraries opens Settings instead of looping. The server answered a browser's GET / with 303 to /#/settings, but a fragment never reaches the server, so every hop was the same request: Chrome gave up with ERR_TOO_MANY_REDIRECTS after signing in. The shell is now served and the app opens Settings itself. curl never saw it because it sends Accept: */*.",
+    "HEAD /login no longer redirects to itself (0.1.1 could not be pulled under the :0.1 tag)."
+   ]
+  },
+  {
+   "component": "web",
+   "version": "0.1.1",
+   "date": "2026-11-18",
+   "changes": [
+    "HEAD /login no longer redirects to itself. A HEAD request matched neither the GET nor the POST case, fell through to the sign-in redirect and looped until the client gave up (50 redirects from `curl -I /` against an install with no account). Browsers report that as ERR_TOO_MANY_REDIRECTS."
+   ]
+  },
+  {
+   "component": "android",
+   "version": "0.1.0",
+   "date": "2026-11-18",
+   "new": [
+    "First public release of Mochil: your own library of books, comics, audiobooks, podcasts and video, read on a Kobo or this app, served by the Mochil container on your own machine.",
+    "The app, the server and the reading plugin are all Mochil now, in one version line."
+   ],
+   "changes": [
+    "Pair the server once after installing: the app's saved settings and tokens carry the new name, so this build asks for the server again."
+   ]
+  },
+  {
+   "component": "android",
+   "version": "2026.11.144",
+   "date": "2026-11-18",
+   "changes": [
+    "The app is Mochil end to end: its saved settings, decrypted credentials, session names and the update file all use the new name instead of the old one."
+   ],
+   "fixed": [
+    "Nothing on the device still calls itself Mochil, so the rename does not leave a second set of keys behind. Because the names changed, this build signs the device in once more."
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.132",
+   "date": "2026-11-18",
+   "changes": [
+    "Every shelf that wears the shared card look now takes its glow from its own artwork, not just books and series: series hubs, collections, audiobooks, podcasts and music all match.",
+    "The smallest text in the app moved half a step up (11px to 11.5, 12px to 12.5) so card metadata stops being the thing you squint at on a laptop."
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.131",
+   "date": "2026-11-18",
+   "fixed": [
+    "The settings index painted a solid block behind its cards: the nav keeps the app shell's opaque background and a shadow of the same colour for the sticky tab bar it used to be, which showed as a black rectangle in dark mode and a white one in light mode across a page that now has a glow behind it. The index paints nothing."
+   ],
+   "changes": [
+    "The settings cards have more room to breathe: 18px padding inside and 14px between them."
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.130",
+   "date": "2026-11-18",
+   "changes": [
+    "The settings cards are translucent now instead of solid: they take the same hairline border and lit top edge as the book and series cards, at about half the surface opacity, so the page's glow reads through them and the menu blends into the background instead of sitting on top of it.",
+    "The cards sit four across on a laptop, so all ten areas fit on one screen without scrolling."
+   ],
+   "fixed": [
+    "The list-of-rows settings index is gone again — the cards were better, they only needed to stop being solid boxes."
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.129",
+   "date": "2026-11-18",
+   "changes": [
+    "The settings index is a menu, not a wall of cards: two quiet columns of rows — icon, name, one line saying what the page holds, and a chevron — in ten rows that fit on one screen without scrolling. No boxes, no shadows; hairlines do the work."
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.128",
+   "date": "2026-11-18",
+   "fixed": [
+    "Settings was still laid out as the old two-column shell — a 220px menu beside the panels — so the new index was squeezed into one narrow stack of cards while the panels sat a third of a page to the right, with Save floating above everything. It is one centred column now: the index fills it with three card columns on a laptop, and a page shows the way back and Save on one row, the page's own title under them, then its content.",
+    "A card's hint no longer leaves a single word alone on a second line."
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.127",
+   "date": "2026-11-18",
+   "changes": [
+    "Cards are objects now, not tinted patches: every cover card and every Jump back in card sits a step off the page with a lit top edge, and takes a soft glow from the dominant colour of its own artwork instead of a blurred copy of it. Only cards that reach the screen are sampled, and a cover that cannot be read leaves the plain surface.",
+    "Hovering a card lifts it onto a real shadow instead of only shifting it a few pixels."
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.126",
+   "date": "2026-11-18",
+   "fixed": [
+    "With the 'On this page' outline open, the tab strip of an open note was laid out after the article instead of above it, so the document's tab sat at the very bottom and note text ran through the 38px gap above the breadcrumb. The strip now owns the first row of the note pane and the outline layout starts one row lower.",
+    "The breadcrumb row is opaque again: text scrolling under it used to read through the breadcrumb and Publish/Edit labels."
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.125",
+   "date": "2026-11-18",
+   "fixed": [
+    "The tab strip of an open note no longer covers the breadcrumb row: the note bar was pinning itself to the top of the pane, where the tabs drew over its top half and cut the location and Publish/Edit in two.",
+    "A note no longer loses its last lines: the note pane is a <main>, so it was taking a full-window height inside a smaller box and hanging about 20px past the bottom edge, where the workspace clipped it. The tab strip now stays visible at the top of the note at every scroll position, and the end of the text is reachable."
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.124",
+   "date": "2026-11-18",
+   "changes": [
+    "Books wear the amber of the new warm direction instead of a blue that fought the accent; video, music and podcasts keep violet, teal and pink, and every chip is checked for 4.5:1 contrast."
+   ],
+   "fixed": [
+    "A row of Jump back in cards stays level: a book with its own recording used to add a line and push its card taller than the rest.",
+    "Episode titles are readable in full — they wrap to two lines on the episode card and carry their whole text on hover.",
+    "An empty or failed shelf centres its panel in the space it has instead of hanging near the top, and its body copy is no longer the faintest grey on the page."
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.123",
+   "date": "2026-11-18",
+   "fixed": [
+    "Jump back in is ordered by recent activity again: a reading position is stamped in milliseconds while video and audio progress is stamped in seconds, so comparing the raw numbers put every book ahead of an episode watched a minute ago.",
+    "An earlier page of the Series list that arrives after you change shelf, bucket or search is now dropped instead of prepending the old shelf's rows, which also left the next page skipping rows."
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.122",
+   "date": "2026-11-17",
+   "changes": [
+    "Settings is now a page per area instead of eight tabs over one long scroll: the tab strip is an index of cards that says what each page is for, and opening one shows only that page with a way back. Save appears only where there are fields to save."
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.121",
+   "date": "2026-11-17",
+   "new": [
+    "A plugin update now ends with a \"Restart now\" button that restarts KOReader, so the new version is actually loaded instead of needing a manual restart. Plugin 1.26.0."
+   ],
+   "fixed": [
+    "The restart prompt after an update went through KOReader's Restart event handler, which silently does nothing on a device that does not install that handler — the update landed with no prompt at all."
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.120",
+   "date": "2026-11-17",
+   "performance": [
+    "The KOReader plugin no longer holds a response of any size in memory: a status, progress or comic page reply is capped (8 MB for API answers, 24 MB for a page), so a misbehaving server cannot exhaust a reader's RAM. Plugin 1.25.0."
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.119",
+   "date": "2026-11-17",
+   "fixed": [
+    "Scrolling back up in the Authors or Series list no longer leaves blank space: the rows the window dropped are loaded again when you reach the top, and the list keeps working after the trim."
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.118",
+   "date": "2026-11-17",
+   "performance": [
+    "Covers no longer write to disk on every view: the file's timestamp is only refreshed once an hour, which is all the cache eviction order needs.",
+    "Jellyfin playback and progress requests no longer copy whole video and music catalogues to find one item; they compare ids and copy only the item they return."
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.117",
+   "date": "2026-11-17",
+   "fixed": [
+    "Scrolling back up inside a long collection no longer shows blank space: the books the window dropped are fetched again as you reach the top, and the count follows the window as before."
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.116",
+   "date": "2026-11-17",
+   "fixed": [
+    "A Jellyfin client now gets its cover art: the artwork route used to redirect into the browser sign-in, so a player holding a valid Jellyfin token was sent to a login page instead of an image.",
+    "Replacing an audio file and rescanning no longer mixes old browser-cached segments with the new one: the compatibility stream's segment URLs now carry the file's revision.",
+    "An author with more than one page of books can now reach the rest: the detail loads a page at a time and offers the remainder instead of silently stopping.",
+    "An account disabled or reset while settings were being saved could stay active in the newly published server. Account and device state is now one set per process, shared by both handler generations."
+   ],
+   "performance": [
+    "Embedding metadata in an EPUB copies unchanged entries in their stored form, so a small archive can no longer make the worker decompress and recompress gigabytes.",
+    "Subtitle extraction is limited to two concurrent jobs, so repeated requests for the same video can no longer start an ffmpeg process each."
+   ]
+  },
+  {
+   "component": "android",
+   "version": "2026.11.143",
+   "date": "2026-11-17",
+   "fixed": [
+    "A book opened from an OPDS catalogue or a WebDAV folder now actually opens: those downloads were cached outside the folder the readers accept, so the reader closed the moment it started.",
+    "Two WebDAV files could share a cache name and the second one showed the first one's content. Names are now derived from the whole address and the file's version.",
+    "A download whose index could not be saved now reports an error instead of claiming success and then losing the book from the offline shelf after a restart."
+   ],
+   "performance": [
+    "Downloading several books no longer re-reads the offline shelf four times a second: the progress line updates on its own and the shelf refreshes once when a download completes."
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.115",
+   "date": "2026-11-17",
+   "fixed": [
+    "Closing a security hole: on an install set up through the first-run page without configured credentials, a blank sign-in was accepted as the administrator.",
+    "A password reset now also invalidates a sign-in or a reader's saved credentials that were being checked at that moment, so a reset cannot be followed by a session or device token for the old password.",
+    "A failed revocation no longer leaves an old password working from the credential cache.",
+    "Each account reads its own KoSync progress on the book sync screen; a configured KoSync username is used only by the account it belongs to.",
+    "Saving settings no longer risks losing reading progress acknowledged during the reload: the replacement server continues the same progress store instead of opening a second copy, and a reload stops if the pending progress cannot be written.",
+    "A page that fails to load no longer retries by itself forever — it waits for the Retry button, so an outage stops being a request storm.",
+    "Loading earlier books can no longer paste the previous library's books into the one on screen after you switch libraries, searches or sorts.",
+    "Two Home rails sharing one request no longer cancel each other when one of them stops loading.",
+    "Repeatedly regenerating a cover thumbnail no longer counts its size twice against the cover cache budget."
+   ],
+   "performance": [
+    "Reading lists with thousands of entries no longer spend quadratic time sorting under the progress lock.",
+    "A sick podcast feed subscription reports the failure and leaves nothing half-applied in memory, so retrying actually saves it."
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.114",
+   "date": "2026-11-17",
+   "fixed": [
+    "Switching between Covers and List inside a collection keeps the pages you have already loaded; it used to reopen at the first page and throw the rest away."
+   ]
+  },
+  {
+   "component": "android",
+   "version": "2026.11.142",
+   "date": "2026-11-16",
+   "changes": [
+    "Downloading a book no longer makes the shelf stutter: the progress bar updates on its own, instead of redrawing the whole library several times a second while something downloads.",
+    "A finished download still updates the shelf immediately, so Downloaded and the queue behave as before."
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.113",
+   "date": "2026-11-16",
+   "changes": [
+    "A collection with thousands of books opens the same way a library does: one page at a time, loading more as you scroll, instead of drawing everything at once.",
+    "\"Select all\" is now \"Select loaded (N)\" and says in its tooltip that it takes only the books loaded on screen.",
+    "Saving reading progress no longer interrupts the rest of the app: the position is kept in memory and written once every second and a half, so browsing a large library stays responsive while you read (a hard stop can lose at most that second and a half, and a normal shutdown writes everything first)."
+   ]
+  },
+  {
+   "component": "android",
+   "version": "2026.11.141",
+   "date": "2026-11-16",
+   "changes": [
+    "Rotating the phone keeps the film you had open instead of dropping you back to the grid.",
+    "A TV show with many seasons can be scrolled to its last season, and season 0 is called Specials, as on the phone.",
+    "Closing the reader no longer throws away the position it was sending, so another device resumes where you stopped.",
+    "Video search keeps what you type while the keyboard settles and searches when you press search, as the book and music screens already did.",
+    "Home no longer shows the pull-to-refresh spinner by itself when you come back to it.",
+    "TV posters decode their artwork once instead of twice.",
+    "The book and music search panels stay open when the phone rotates, and the music shelf is no longer blanked by a background refresh."
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.112",
+   "date": "2026-11-16",
+   "changes": [
+    "Sorting by author, series or date no longer disables the A–Z rail; a letter picked under those sorts filters the shelf.",
+    "Closing the search panel no longer runs the search you just dismissed, and it puts the unfiltered shelf back.",
+    "Switching between Covers and List keeps the book you were looking at on screen instead of jumping to the top.",
+    "Alphabet jumps land on the row you picked, not a row or two above it, and the first row is no longer hidden behind the top bar.",
+    "Home loads fewer bytes: the blurred backdrop no longer pulls a full-size cover, and the three shelves share one request each.",
+    "Card buttons name the book, its count and its author for screen readers; the Save to collection dialog has a name; artwork without a cover now falls back like a book cover.",
+    "The e-ink palette has visible card edges and separators (they were below 3:1 against the page).",
+    "Scrolling a long shelf reads a few card positions per frame instead of hundreds.",
+    "The sort control is a 44 px tap target on a phone, and a finished scan stops polling the server.",
+    "Server: the OPDS landing page no longer copies the whole catalogue to count it (tens of milliseconds and tens of megabytes per request), the search index rebuilds once per change instead of once per concurrent request, HTTP Basic readers stop re-hashing their password on every cover (63 ms each), the book counts file is written crash-safely, and a damaged counts or columns file is moved aside instead of stopping the server from starting.",
+    "Server: a streamed comic no longer re-sorts every archive entry for each page."
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.111",
+   "date": "2026-11-16",
+   "changes": [
+    "Adding a library now starts with picking its folder. Mochil recognises a Calibre library by its database, works out what is inside (books, comics, video, audio or a Markdown vault) and suggests a name, so you can check one card instead of filling in five fields.",
+    "Online metadata is no longer a per-library choice: books, comics and manga use Hardcover when its token is saved and Open Library otherwise, movies, TV and anime use TMDB, and a vault or audio library gets none. Libraries you set by hand keep their choice.",
+    "Modules has one Hardcover switch instead of three, with reading progress and ratings as options inside it. The two Hardcover/ISBN questions the Library editor can ask moved to Hermes → What she can do.",
+    "Library cards are shorter: preferred formats and folder layout sit under Advanced, while the switches that let Mochil write to your files stay visible.",
+    "Changing a library’s Content also clears an online-metadata choice that no longer fits it, so the change always saves.",
+    "The Metadata panel’s \"Used by\" line now names every library that will really use that provider, including libraries that let Mochil choose.",
+    "With no browsable folders configured on the server, \"Add a folder…\" falls back to a card whose path you can type instead of closing with nothing.",
+    "A Hardcover option that is disabled because the main switch is off no longer announces itself as on to a screen reader."
+   ]
+  },
+  {
+   "component": "android",
+   "version": "2026.11.140",
+   "date": "2026-11-16",
+   "changes": [
+    "Settings → Libraries: OPDS catalogues and WebDAV libraries are now one \"Add a source\" entry.",
+    "Covers or List is now one setting for books, music, podcasts and video. Your existing choice carries over, and changing it anywhere changes it everywhere.",
+    "Podcast download settings are clearer: one \"On this device\" section (keep the newest N, Wi-Fi only) and one \"On the server\" section. The misleading \"manual downloads\" sentence is gone, and the switch rows are fully tappable.",
+    "EPUB reader: Progress bar, Chapter time left and Book time left are now one \"Reading progress\" choice (None, Bar or Time), in the Appearance tab with Status icons; the Display tab is gone. Your old settings carry over.",
+    "Sharper text is now simply Off or On (it was Off, Light, Medium or Strong) and starts on for e-ink devices until you choose otherwise.",
+    "Comics: manga opens right to left and other comics left to right, as on the web. A direction you set is remembered for that book."
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.110",
+   "date": "2026-11-16",
+   "changes": [
+    "Settings has fewer tabs: Metadata now sits under Libraries, and the Editor options sit under Modules. Remembered or bookmarked tabs open in the new place.",
+    "Removed the duplicate Reading defaults page from Settings. Text size, font, spacing, margins, pages and theme are set in the reader's own settings panel, the same saved values as before.",
+    "A book library no longer repeats the \"Currently reading\" strip on its Discover tab; Continue reading stays on Home.",
+    "KOReader plugin 1.24.0: the Automatic push choices are back: when closing, after changing chapter, after every page, or manual only. Pushing per page or per chapter waits two seconds after the last page turn."
+   ]
+  },
+  {
+   "component": "android",
+   "version": "2026.11.139",
+   "date": "2026-11-16",
+   "changes": [
+    "Four theme families: Espresso, Kiln, Paper and e-ink. Nocturne is retired and a saved Nocturne becomes Kiln.",
+    "The comic reader's page fit is now Fit or Width. Stretch distorted pages and is gone; a saved Stretch opens as Fit.",
+    "Tap zones in the EPUB reader now start on Edges for new installs, matching the web. Anything you chose before is kept."
+   ],
+   "fixed": [
+    "Removed the \"Connection not checked\" line from Settings, which never changed."
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.109",
+   "date": "2026-11-16",
+   "changes": [
+    "Theme families are now four: Espresso, Kiln, Paper and e-ink. A saved Nocturne becomes Kiln.",
+    "Removed the Background picker. Espresso and Kiln keep the soft glow; Paper and e-ink stay flat.",
+    "Removed the Sign-in background setting. The sign-in screen always shows the glow, and old config files that still mention it keep loading.",
+    "Removed the duplicate tap-zone setting from Settings → Appearance. Tap zones are set in the reader, where they already were.",
+    "Hid the Book reader (Readium/Classic) setting. Readium is the default, and adding ?engine=classic to a reader address still opens the classic reader.",
+    "KOReader plugin 1.23.0: the update check always runs once a day and its switch is gone, \"Test connection\" lives under Plugin, and the separate Search shortcut in settings is removed. (This version also dropped the per-page and per-chapter push choices; 1.24.0 brings them back.)"
+   ]
+  },
+  {
+   "component": "android",
+   "version": "2026.11.138",
+   "date": "2026-11-16",
+   "fixed": [
+    "Offline downloads from different libraries or servers can no longer be mixed up: two books with the same title or id no longer open each other's file. Books you already downloaded are left exactly as they are.",
+    "Removing an offline book no longer deletes a file another entry still uses, and no longer leaves a stray file behind when the entry changed in the meantime.",
+    "Books from a feed that gives no ids are told apart by their full address, so one can no longer replace another in your offline list. Such a book already downloaded is fetched again once."
+   ]
+  },
+  {
+   "component": "android",
+   "version": "2026.11.137",
+   "date": "2026-11-16",
+   "fixed": [
+    "EPUB reading position no longer jumps back to an older page when a slow sync finishes after you have turned pages, and a sync that failed or was interrupted is retried instead of being forgotten.",
+    "Resuming a paused audiobook or podcast queue keeps each track's length, so progress and remaining time are right after the app restarts.",
+    "Downloading several books at once no longer drops some of them from the offline list, and a damaged offline index is kept instead of being overwritten.",
+    "Streamable comics queued for download are downloaded in full."
+   ]
+  },
+  {
+   "component": "android",
+   "version": "2026.11.136",
+   "date": "2026-11-16",
+   "fixed": [
+    "Switching a manga or comic between Paged and Webtoon keeps your place instead of unexpectedly changing the saved page while images load.",
+    "In Paged mode, Width lets you scroll tall pages vertically, while Fit keeps the whole page visible."
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.108",
+   "date": "2026-11-16",
+   "changes": [
+    "The book, series, series-detail and collection grids now use the screen width better on wide and mid-size screens: the same covers (about 200–250px wide) sit with tighter gaps and no wide empty margins, so 1920px fits seven columns and 1024px four. Every library kind (books, light novels, manga) uses the one rule.",
+    "Book and series titles are a little bolder in full text colour, and series titles keep room for two lines like book titles so card rows line up. Authors stay muted."
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.107",
+   "date": "2026-11-16",
+   "fixed": [
+    "Backlinks and the vault graph no longer miss wiki links after stray or escaped backticks, invent links across code, or reject links whose display text contains brackets.",
+    "Code examples spanning multiple lines or using multiple backticks no longer appear as wiki links. Malformed notes with many nested link openers are scanned more efficiently."
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.106",
+   "date": "2026-11-16",
+   "fixed": [
+    "A [[link]] written as an example inside a code block or inline code no longer counts as a mention: the note appeared in the linked page's backlinks and drew an edge in the graph. Code is now skipped the same way tags already skip it.",
+    "A link after an unmatched [[ is no longer swallowed: in “oops [[broken then [[Good]]” the scan resumes at the inner opener, so Good now lists the note that links to it."
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.105",
+   "date": "2026-11-15",
+   "fixed": [
+    "KOReader plugin 1.22.0: opening a book's details no longer risks freezing the reader when the server is slow (the cover now gives up after a few seconds), and the download queue stops repainting a closed window.",
+    "A match suggested by the metadata lookup can no longer run code in the administrator's session: the publication year was written into the page as-is, and it now goes through the same escaping as the title.",
+    "Switching library or changing the search while a long list is still loading no longer leaves you looking at the previous library's rows when the slower answer arrives."
+   ]
+  },
+  {
+   "component": "android",
+   "version": "2026.11.135",
+   "date": "2026-11-15",
+   "fixed": [
+    "A download finishing in the background can no longer wipe out what you were doing on screen, such as a search or an open dialog: the queue used to write the whole screen state back at once from the download thread.",
+    "The library no longer keeps showing its spinner for ever if a collection is edited while the first page of books is still loading.",
+    "The app no longer does disk work on the interface thread at start-up and after every finished download, so a large downloaded library opens more smoothly."
+   ]
+  },
+  {
+   "component": "android",
+   "version": "2026.11.134",
+   "date": "2026-11-15",
+   "fixed": [
+    "A book added to the download queue again after it had already arrived now downloads. Before, it stayed at the end of the queue for ever while the finished copy was marked as downloading a second time, so a book you re-fetched after deleting it never landed."
+   ]
+  },
+  {
+   "component": "android",
+   "version": "2026.11.133",
+   "date": "2026-11-15",
+   "new": [
+    "Books can now be lined up for download. \"Add to download queue\" on a book's details fetches it one at a time in the order you added them, so three books for a trip can be collected while you keep browsing instead of waiting through each download. The banner at the top shows which book is arriving, how much of it has arrived and how many are still queued, and keeps showing while you move around the app. A book that fails is marked with its reason and the queue carries on with the rest."
+   ],
+   "changes": [
+    "Android versionCode 416."
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.104",
+   "date": "2026-11-15",
+   "new": [
+    "KOReader: books can be added to a download queue instead of waiting for each one to finish. The queue fetches them one at a time in the order you added them, shows how much of the current book has arrived in megabytes, lets a book that has not started yet be taken out again, and opens a finished one with a tap. A book the server refuses is marked failed and the queue carries on with the rest."
+   ],
+   "changes": [
+    "KOReader plugin 1.21.0: the download path reports progress to the queue through an optional callback and a counting sink, so the plain Download button behaves exactly as before."
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.103",
+   "date": "2026-11-15",
+   "new": [
+    "KOReader: a book that belongs to a series now offers the next volume in its dialog, by title and number, so finishing one book and starting the next no longer means going back to the library to hunt for it. The order comes from the catalogue's own series metadata, the answer is remembered per book while the dialog lives, and a book outside a series asks nothing at all."
+   ],
+   "changes": [
+    "KOReader plugin 1.20.0: new device route GET /api/koreader/v1/series/<library>/<book> returning the neighbouring volumes; a book whose index is unknown is never promoted above a numbered one."
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.102",
+   "date": "2026-11-15",
+   "new": [
+    "KOReader: the book dialog now shows the cover above the title, so you can tell two editions of the same book apart before opening either. The image is fetched once and cached beside the downloads; a book the server has no artwork for is remembered for a month instead of being asked again on every open, and any failure - no artwork, an expired pairing, a KOReader too old for the widgets - falls back to the plain text dialog."
+   ],
+   "changes": [
+    "KOReader plugin 1.19.0: a cover that arrives as an HTML login page is rejected rather than cached as a broken image."
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.101",
+   "date": "2026-11-15",
+   "new": [
+    "KOReader: Library now has an \"On hold and dropped\" shelf, so a book parked from the device stays reachable from the device. It lists what the web and the Android app already showed, with the status next to each title, and tapping one opens its dialog."
+   ],
+   "changes": [
+    "KOReader plugin 1.18.0: the device continue route takes ?held=true, using the same parked list the other two clients read."
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.100",
+   "date": "2026-11-15",
+   "new": [
+    "KOReader: the book dialog can set a book's status - Reading, On hold, Dropped, Read or Unread - and the dialog shows the status it currently has. On hold and dropped books leave the continue shelf and come back when you set them to Reading, so parking a book is now something you can do from the device instead of only from the web."
+   ],
+   "changes": [
+    "KOReader plugin 1.17.0: setting a status is a PUT to the device's own status endpoint, so it works with the paired-device token the plugin already uses."
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.99",
+   "date": "2026-11-15",
+   "fixed": [
+    "Continue Reading (OPDS): the feed and its navigation entry only list books that are actually being read. A book opened on page one to look at it, and one you parked as on hold or dropped, no longer appear there with \"0% read\" or a stale position, and the root feed no longer offers the entry at all when nothing is in progress.",
+    "KOReader: the statistics panel's \"Books in progress\" count now uses the same rule as the continue shelf, so it no longer counts books that were only opened or that you put aside as on hold or dropped. Pages read still counts what was read in every unfinished book."
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.98",
+   "date": "2026-11-14",
+   "new": [
+    "KOReader: the plugin's settings are now one grouped page instead of a growing flat list - Syncing, Library, This device and Plugin, with every row showing the value it currently has (sync timing, download layout, download folder, designed home, notes and wiki, update checks), so you can read the setup without opening each entry."
+   ],
+   "changes": [
+    "KOReader plugin 1.16.0: a switch flips in place and a group of choices opens inside the page, so the settings screen stays open while you change several things.",
+    "KOReader: the row that shows the server address is a label now, not something you can tap."
+   ]
+  },
+  {
+   "component": "android",
+   "version": "2026.11.132",
+   "date": "2026-11-14",
+   "new": [
+    "Reader: reading speed in the Stats panel - about how many pages a minute you read, next to the average time a page takes. Turn on Chapter time or Book time in the reader menu and the floating progress label also shows how long is left in this chapter and in the book."
+   ],
+   "fixed": [
+    "Reader: the time-left estimate no longer collapses when you skim. Flicking through ten pages in a few seconds used to make half a book look like four minutes of reading, because every turn was folded into a running average. The estimate is now the middle of your recent turns, and a turn far faster or slower than your usual pace, a jump to the table of contents, or a pause over two minutes is left out of it entirely."
+   ],
+   "changes": [
+    "Reader: a pace that was already learnt on a device is kept after this update rather than relearnt from scratch."
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.97",
+   "date": "2026-11-14",
+   "new": [
+    "KOReader: page bookmarks now sync. A bookmark is a page rather than a highlighted range, so it never appeared on another device or on the web; it is now uploaded and downloaded alongside highlights, and deleting one tells the other devices which page to un-bookmark."
+   ],
+   "fixed": [
+    "KOReader: a deletion no longer loses what the annotation was. The tombstone used to be sent as a plain highlight with no locator, so a bookmark's page - its whole identity - was unrecoverable on the receiving device."
+   ],
+   "changes": [
+    "KOReader plugin 1.15.0. Bookmarks made on any device appear on the others; an unchanged bookmark is never toggled, because toggling a bookmarked page removes it."
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.96",
+   "date": "2026-11-14",
+   "new": [
+    "KOReader: a Reading statistics panel in the plugin menu - books in progress, books finished, finished this month and pages read across every device, plus the books finished most recently, with today's reading and this book's totals from KOReader's own statistics when that plugin is running. Answers GET /api/koreader/v1/stats.",
+    "KOReader: Search all libraries from the plugin menu, instead of only being able to search inside the list you are already looking at."
+   ],
+   "fixed": [
+    "KOReader: highlights made on one reader never appeared on another. Every highlight this plugin uploads is stored under a koreader:<hash> id, and the import step dropped exactly those ids, silently and for good - the cursor then advanced past them so they were never retried.",
+    "KOReader: a highlight deleted elsewhere came back. The deletion could not be matched to a highlight made on this device (which only has a derived id), so the item stayed on screen and was then re-uploaded against the deletion's own revision, re-creating it on every device.",
+    "KOReader: highlight sync died with a Lua error on PDFs and CBZs whenever a remote id also existed locally, because the bookkeeping it reads is only created for reflowable books. No highlight, note or deletion from that book ever left the device.",
+    "KOReader: a highlight edited on two devices conflicted again on every single sync, showing the same message each time. The newer edit now wins once, against the conflicting revision, so the two sides agree afterwards.",
+    "KOReader: a download interrupted by a power cut left its staging folder behind, and that book could then never be downloaded again - every retry failed at mkdir."
+   ],
+   "changes": [
+    "KOReader plugin 1.14.0. A book that is barely started now reads as <1% instead of 0%, the Continue reading row no longer describes the server's page limit, marking a book finished updates the dialog straight away, and an installed-but-not-running plugin version is described plainly."
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.95",
+   "date": "2026-11-14",
+   "fixed": [
+    "On a Calibre-managed library the Library Editor refused a Series change but accepted the volume number beside it (the # cell, and the Renumber tool that sends one for every selected book), along with the title and author sort keys. Those fields are Calibre's own metadata, so the override was shadowed by Calibre's database - exactly what the guard exists to prevent. The guard now names the fields Calibre owns instead of reusing the list a Hardcover lookup is built from; rating, tags and publisher stay editable.",
+    "Creating a collection of picked books was two writes - the empty collection, then its members - so a failure in the second left an empty collection behind that the retry duplicated as a second one with the same name. It is now a single write."
+   ]
+  },
+  {
+   "component": "android",
+   "version": "2026.11.131",
+   "date": "2026-11-14",
+   "fixed": [
+    "Returning to the app no longer blanks the Video tab or a show's episode list. The progress refresh that runs on resume replaced the visible grid with a full-screen spinner - or with the error panel when the request failed - and the list came back scrolled to the top. A refresh now only takes over the screen when there is nothing on it, and a new search still shows its own loading and error state.",
+    "On a slow OPDS catalogue, a folder tap, a search or Back pressed while the first page was still loading was thrown away. Back even reported that it had handled the press, so the arrow looked dead - and with nothing on the back stack it closed the whole catalogue browser instead of leaving the folder. The newest navigation now wins, and Back records where a page load is going as it starts.",
+    "Dismissing the reader's search sheet while it was still scanning reopened it seconds later with the results of the search that had just been cancelled. A dismissed or superseded search can no longer publish its result."
+   ]
+  },
+  {
+   "component": "android",
+   "version": "2026.11.130",
+   "date": "2026-11-14",
+   "fixed": [
+    "On a TV Home screen that is short for its text size, the remote brought only the artwork of a Continue watching or Continue listening tile into view: the title and artist underneath stayed below the fold and the focus ring lost its room, so a focused shelf looked like a picture with no name. Focusing a tile now brings the whole tile - artwork, title, artist and the slack the ring grows into - into view."
+   ]
+  },
+  {
+   "component": "android",
+   "version": "2026.11.129",
+   "date": "2026-11-14",
+   "fixed": [
+    "On a TV the full description over a show or film could not be closed: the remote's arrows were still resolved against the page underneath, so the ring jumped to Play or an episode while the text was open and Close was unreachable. The description now answers every direction itself - down reads the text, the end of the text, Left or Right moves to Close, and Enter on Close puts it away.",
+    "TV Settings no longer reads as magnified. The category list, the group headings and the update changelog keep their own denser type scale instead of the ten-foot shelf scale, and the release notes sit in a bounded panel that the remote scrolls instead of pushing Check for updates off the screen."
+   ]
+  },
+  {
+   "component": "android",
+   "version": "2026.11.128",
+   "date": "2026-11-14",
+   "new": [
+    "On Android TV a show or anime description that does not fit can now be read in full: the description is one focus stop with a Read more label, and pressing Enter opens the whole synopsis over the page with Back returning to it. Movies get the same when their synopsis is cut off."
+   ],
+   "fixed": [
+    "TV show and anime pages no longer lose the cast below the screen: title, description, Play and the seasons, the episode rail and the cast are laid out in one measured band, the way the film page already was. When a window is too short for all of it the cast steps below the first screen as one whole section instead of showing a heading with half its portraits cut off.",
+    "Episode cards on a show page are now sized from the window they are drawn in: a taller screen gets bigger episode stills, and a short one keeps a whole card on screen instead of a cropped row. The description keeps its line count when you move along the rail, so the episode row no longer jumps as each episode's synopsis loads."
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.94",
+   "date": "2026-11-14",
+   "fixed": [
+    "A rescan now publishes metadata that changed only in a sidecar file: tags, publisher, rating, identifiers, title sort and read-along were left out of the comparison, so a Calibre tag or rating edit showed nothing until the server restarted.",
+    "Taking back a library transfer restores only the corrections it moved, instead of the whole override store, so corrections made in between are no longer discarded.",
+    "A disabled account's KOReader device token now stops working. Chat ownership in the Hermes screen no longer comes from a string prefix, so one account can no longer open another's conversations.",
+    "Pausing a movie or audio conversion no longer leaves the session stuck: a queued job cancelled before it started used to make every later attempt answer \"still stopping\", and its source file was never closed.",
+    "Book files are now flushed to disk before the library move unlinks the original, and an interrupted cross-device move finishes instead of being refused for ever.",
+    "Hardcover now receives the last pages of a session; the throttled progress it held back was never sent because the same rule was applied twice.",
+    "Read-aloud now produces sentences for Chinese, Japanese, Korean, Thai and Cyrillic books instead of an empty chapter, and a replaced EPUB no longer plays the previous recording's audio.",
+    "Opening a publication from the cache no longer re-sends the whole file on every open, and album downloads now fail visibly instead of delivering a truncated archive.",
+    "Smaller fixes: epub series-index and title repair, ComicInfo.xml handling, ISBN-10 check digits, the import screen's filter selection, the theme flash on first paint, the Continue reading page length, and the Android device diagnostics upload."
+   ]
+  },
+  {
+   "component": "android",
+   "version": "2026.11.127",
+   "date": "2026-11-14",
+   "fixed": [
+    "On Android TV the navigation panel no longer opens by itself when a movie's page opens or when you go back to the shelf. Opening a film now puts focus on its Play or Resume button, and going back returns to the poster you left."
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.93",
+   "date": "2026-11-14",
+   "fixed": [
+    "A note saved as .markdown is now editable in the wiki editor, like a .md note. It used to open read-only and refuse edits, and its text was not read byte-for-byte, so the editor could not tell a real conflict from its own normalisation.",
+    "The same notes now appear in the offline notes bundle KOReader downloads and can be polished like any other note; both checks asked for exactly \"md\" while the rest of the app has treated both extensions as Markdown for a while.",
+    "There is one definition of \"is this Markdown\" now — the catalogue's own extension table — so a read, a write and a bundle cannot disagree about it again."
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.92",
+   "date": "2026-11-14",
+   "fixed": [
+    "A KOReader catalog page opened with an offset past the end of the list (a stale resume point, or a hand-edited link) could crash the request instead of showing an empty page: the paging math added the offset and the limit before clamping them, so a very large offset overflowed to a negative number and the slice panicked. The collections list and the TMDB matching run now share one overflow-proof window helper with the rest of the KOReader paging."
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.91",
+   "date": "2026-11-14",
+   "fixed": [
+    "A read-along book whose chapter or narration file name contains a \"#\" played no narration for that chapter: the overlay unescaped the href before splitting off the fragment, so \"track%232.mp3\" was looked up as \"track\", every clip in the chapter was dropped, and the chapter href no longer matched the reading order. Build, the overlay and the text-only download now share one resolver.",
+    "Notes saved as .markdown were missing from the link graph: the graph filtered pages on the bare \"md\" extension while the rest of the store treats .markdown as Markdown, so those notes never appeared as nodes and their [[links]] produced no edges."
+   ]
+  },
+  {
+   "component": "android",
+   "version": "2026.11.126",
+   "date": "2026-11-14",
+   "fixed": [
+    "TV show and movie details now measure the actual title, actions, synopsis and episode cards inside the available screen, including the playback dock, instead of estimating their heights. This fixes reproduced title clipping on constrained screens and after returning from Cast.",
+    "The Cast heading and portraits are kept together: the complete section is visible when it fits, or starts below the fold and is revealed with the remote.",
+    "Movie Play/Resume and watched controls have smaller visuals while retaining 48dp remote targets. Home uses a smaller heading and landscape Continue watching cards to leave more room for the next section."
+   ]
+  },
+  {
+   "component": "android",
+   "version": "2026.11.125",
+   "date": "2026-11-13",
+   "fixed": [
+    "A highlighted episode card grows slightly and wears a halo, and that growth was not part of the space the page reserved - so the page still shifted by a few millimetres and clipped the title. It is counted now, at every text size.",
+    "The synopsis is a step smaller, the Play/Resume and season buttons are smaller, and the cast row sits lower, which gives the episodes the room they need without pushing the title off the top.",
+    "The movie page follows the same rules: its title and its Play/Mark watched buttons stay inside the screen instead of relying on a scroll nobody asked for."
+   ]
+  },
+  {
+   "component": "android",
+   "version": "2026.11.124",
+   "date": "2026-11-13",
+   "fixed": [
+    "A show's title is no longer cut off at the top once you start browsing episodes: the page now measures the window and the text size it is actually running at, and shortens the episode synopsis - or gives up the year line - rather than scrolling the title out of sight.",
+    "The movie page had the same dead space and the same problem: the cast row could spill past the bottom edge with no way to reach it. It scrolls now, and both pages put the cast row clearly below the episode cards."
+   ]
+  },
+  {
+   "component": "android",
+   "version": "2026.11.123",
+   "date": "2026-11-13",
+   "fixed": [
+    "Browsing episodes no longer scrolls the show's title, year line and synopsis off the top of the screen: the page kept 96dp of empty space at the bottom for a bar that is not there, which is what forced the scroll. The header and the episode rail now fit, so they stay put.",
+    "The cast row sits below the fold instead of crowding the episode cards, and stepping back up into the episodes puts the page back exactly where it was."
+   ]
+  },
+  {
+   "component": "android",
+   "version": "2026.11.122",
+   "date": "2026-11-13",
+   "fixed": [
+    "A show's page showed two long synopses at once - the show's on the left and the focused episode's on the right - so they read as one paragraph printed twice, and the right-hand one ran off the screen. There is now one synopsis, in one place: focusing an episode swaps it for that episode's.",
+    "Wide list rows - an episode in Continue watching, a season's entries - no longer cut off their own titles: the row grows with its text instead of clipping at a fixed height.",
+    "The screen stopped wobbling while moving around, because the text that used to appear and disappear beside the rail was changing the row's height.",
+    "On a short window, or with large text, the story now takes two lines instead of three so the episode rail still fits above the bottom bar, and stepping back up from the cast row returns the page to the story instead of leaving it scrolled out of sight."
+   ]
+  },
+  {
+   "component": "android",
+   "version": "2026.11.121",
+   "date": "2026-11-13",
+   "changes": [
+    "TV posters now carry a hairline edge. The tile fill sits barely above the page colour, so without it a shelf read as captions floating on black rather than as objects."
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.90",
+   "date": "2026-11-13",
+   "changes": [
+    "Covers and tiles now carry a hairline edge and lift slightly on hover instead of relying on their fill, so a shelf reads as objects rather than captions floating on the page. On e-ink the edge is drawn in the text colour, and the hover lift is a plain brightness step rather than a shadow."
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.89",
+   "date": "2026-11-13",
+   "changes": [
+    "Themes are now Mochil' own instead of named after operating systems: Espresso (default, with a warm light twin), Kiln, Nocturne, Paper and the e-ink device palette. Kiln, Nocturne and Paper look the same in light and dark mode because they define one look; Espresso keeps a daytime twin for anyone who wants the device switch to matter.",
+    "A theme saved by an older version is not lost: it wears the nearest of the five (Dusk, Twilight, Tide, Manjaro and Material become Kiln; Ember, Rosewood and Ubuntu become Espresso) instead of falling back to a blank look."
+   ]
+  },
+  {
+   "component": "android",
+   "version": "2026.11.120",
+   "date": "2026-11-13",
+   "changes": [
+    "The app now ships Mochil' own themes instead of ones named after operating systems: Espresso (the default, warm and dark, with a warm light twin for daytime), Kiln (a mid-tone that looks the same in any device mode), Nocturne (cool ink with violet) and Paper (flat and high contrast). E-ink keeps its own device palette."
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.88",
+   "date": "2026-11-13",
+   "new": [
+    "Each area of the app now carries its own accent colour inside whichever theme you picked: video leans violet, music teal, podcasts rose and comics gold, while books keep the theme's own accent. Every value was contrast-checked against its theme's surface, and the e-ink theme keeps everything at the text colour."
+   ]
+  },
+  {
+   "component": "android",
+   "version": "2026.11.119",
+   "date": "2026-11-13",
+   "fixed": [
+    "The TV backdrop no longer washes the screen in Material's default pink: every palette now contributes its own tint, so the glow behind the artwork belongs to the theme you picked.",
+    "Keyboard focus on TV is easier to find from the sofa: the focus ring gained a soft halo so it stays visible against busy artwork."
+   ]
+  },
+  {
+   "component": "android",
+   "version": "2026.11.118",
+   "date": "2026-11-13",
+   "changes": [
+    "The TV app has a type scale built for a sofa rather than a phone: synopsis text and captions are noticeably larger and the title-to-body steps are a real ramp, so nothing on screen is unreadable from three metres. The list rows grew to match."
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.87",
+   "date": "2026-11-13",
+   "fixed": [
+    "Moving books between libraries can no longer leave a half-finished transfer that reports success: the move is written down before anything changes, every step is recorded as it lands, and a step that fails answers with which step stopped instead of claiming the whole thing worked.",
+    "An interrupted transfer finishes itself: the recorded move is replayed at startup and with the ten-minute rescan, so reading positions, metadata and custom columns end up with the books that moved rather than staying behind in the old library."
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.86",
+   "date": "2026-11-13",
+   "fixed": [
+    "The note bar's alignment is limited to the reading view: opening a note for editing brings its formatting toolbar back to full width instead of squeezing fourteen buttons into a 148px strip."
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.85",
+   "date": "2026-11-13",
+   "fixed": [
+    "Closing your player no longer stops the stream somebody else is watching: one encoder serves everyone viewing the same episode, so a stop request now only cancels it when no other account has fetched it in the last half minute."
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.84",
+   "date": "2026-11-13",
+   "fixed": [
+    "A Word document saved as RTF opens in the web reader even when it contains a picture: the size check now measures the text it produces instead of the uncompressed file, so a two-line note with an embedded photo is no longer refused or left out of search.",
+    "A book with thousands of large chapters can no longer make the reader spend gigabytes of memory: letting a scroll through image-only pages stops after a fixed amount of probing, so the pages it does not reach simply read normally."
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.83",
+   "date": "2026-11-13",
+   "fixed": [
+    "One unreadable or just-deleted file no longer empties the whole note library: the scan skips it and keeps the pages it did read, instead of failing the refresh that followed a save.",
+    "A page saved as .markdown now appears in the backlinks of the pages it links to, like .md notes already did.",
+    "Switching the graph from everything to a single page no longer freezes it on the old picture or throws when the pointer is still over a node.",
+    "Opening a tag while a note is loading no longer replaces the note you just opened, and a tag list that fails says so instead of doing nothing.",
+    "On a phone, opening a note now closes the sidebar properly, so the menu button stops announcing the wrong state and the drawer no longer springs open again on the next refresh.",
+    "A season that failed to load can be reopened instead of staying broken until the page is reloaded.",
+    "Finding a book's reading position on a KOReader device can no longer offer a position from a different book, and the offer is looked up for the signed-in reader.",
+    "Editing a book's identifiers now counts as an ISBN change, so Calibre-owned ISBNs are refused like the rest of Calibre's metadata and cached matches are re-queried."
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.82",
+   "date": "2026-11-13",
+   "fixed": [
+    "A KOReader position that arrives while the book index is finishing no longer waits a full minute to appear in the reader: the pass that missed it asks for another pass straight away, and an update that genuinely belongs to a different copy of a book is still retried only when the library changes."
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.81",
+   "date": "2026-11-13",
+   "fixed": [
+    "A note's backlink list no longer comes back a version behind: when another note is indexed while the list is being rebuilt, the rebuild now repeats instead of answering from the previous index and hiding the newly linked notes."
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.80",
+   "date": "2026-11-13",
+   "fixed": [
+    "A reading position saved twice in the same second, or while the server clock stepped backwards, is now kept: the newest save always wins instead of being dropped behind a success reply while the device believed it had synced.",
+    "Text inside a Word text box is no longer doubled when a document's text is extracted: Word stores the same text twice, once for modern renderers and once for legacy ones, and only the first copy is read now."
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.79",
+   "date": "2026-11-13",
+   "changes": [
+    "The bar above a note now lines up with the note: the breadcrumb sits over the title it names and the actions end where the text ends, instead of drifting to the window edges. On a narrow window the same bar keeps a small margin at the edge."
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.78",
+   "date": "2026-11-13",
+   "fixed": [
+    "A chapter whose file name contains a hash - stored percent-encoded in the EPUB package file - no longer disappears from the reading order.",
+    "Progress from a book that was deleted or moved stops matching its old content hash, so KOReader progress goes to the book that is actually there instead of a leftover entry."
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.77",
+   "date": "2026-11-13",
+   "fixed": [
+    "Previews near the end of a video still render: the keyframe-only decode is used only where a keyframe can follow the seek, and the last buckets keep the slower full decode so scrubbing to the very end does not lose its preview."
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.76",
+   "date": "2026-11-13",
+   "performance": [
+    "Video timeline previews generate about three times faster: a first preview took 2.4s on a 1080p episode and now takes about 0.8s, so scrubbing a timeline no longer stalls.",
+    "Previews decode only the keyframe at the requested position and skip audio and subtitle streams, instead of buffering a hundred frames to choose one."
+   ]
+  },
+  {
+   "component": "android",
+   "version": "2026.11.117",
+   "date": "2026-11-13",
+   "fixed": [
+    "On TV, the focused cover's title and metadata now show in the header. Every grid already reported them, but the header never read them, so a viewer only saw a truncated caption under each cover.",
+    "The TV grid no longer reserves 130dp of empty space at the bottom; the shell already makes room for the playback dock only while it is visible, so a shelf shows a full second row again.",
+    "TV screens keep a shared 24dp clear margin from the panel edge, so the navigation rail, dock and content survive a TV that overscans.",
+    "The TV backdrop dissolves instantly when reduced motion is on, instead of restarting a 400ms full-screen crossfade on every D-pad step."
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.75",
+   "date": "2026-11-13",
+   "fixed": [
+    "The play button in the music playback bar now sits on the bar's centre line. Its close button used to be the sixth control in the transport group, which pushed play 21px left of centre and made the bar look off."
+   ]
+  },
+  {
+   "component": "android",
+   "version": "2026.11.116",
+   "date": "2026-11-13",
+   "fixed": [
+    "Library kind icons are readable on light themes: each kind now has a darker twin used when the surface behind it is light, instead of a pastel that measured about 1.2:1 against a near-white background.",
+    "The phone header now shows the library name next to its icon, so two libraries of the same kind no longer look identical.",
+    "An album or audiobook header keeps its title: play, shuffle and the action menu moved to a second row, so the name is no longer ellipsized away on a 320-360dp phone.",
+    "Music and audiobooks explain an empty Discover shelf instead of showing blank space."
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.74",
+   "date": "2026-11-13",
+   "fixed": [
+    "The music and audiobook sorting panel now opens inside the window: it aligns to its button instead of running 79px past the right edge on a desktop width."
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.73",
+   "date": "2026-11-13",
+   "fixed": [
+    "RTF documents are read in the code page they declare, so Cyrillic and other non-Western text no longer comes out as Windows-1252 mojibake.",
+    "RTF binary picture payloads are skipped instead of being parsed as document structure, so a readable document no longer fails to open because it contains an image.",
+    "KOReader progress waiting for a book to be indexed is queued per reader, so two people syncing the same document both reach the dashboard.",
+    "The Library Editor forgets a cached Hardcover lookup when a title, author, series or ISBN changes, so a corrected book is looked up again instead of reusing the old candidate."
+   ],
+   "changes": [
+    "The Library Editor no longer writes metadata that Calibre owns. Title, authors, series, ISBN and whole-book resets are refused for a Calibre library with an explanation, while other fields and libraries are unchanged."
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.72",
+   "date": "2026-11-13",
+   "fixed": [
+    "An EPUB table-of-contents label keeps text that follows inline markup, so \"Chapter One continued\" is no longer shortened to \"Chapter One\".",
+    "Table-of-contents links that point inside the navigation document itself (#section) are kept instead of vanishing from the list.",
+    "RTF text keeps emoji and other supplementary characters instead of replacing each half of them with a replacement glyph."
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.71",
+   "date": "2026-11-13",
+   "fixed": [
+    "Notes refuse to save a state file larger than the store can read back, so a restart no longer opens an empty notes store after a large save.",
+    "Undoing a Library Editor batch keeps its token when the undo fails, so retrying works instead of reporting the change as no longer undoable."
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.70",
+   "date": "2026-11-13",
+   "fixed": [
+    "Vault tags no longer drop .markdown notes; every Markdown extension is indexed.",
+    "A code fence is closed only by its own marker, so a ~~~ line inside a backtick block cannot hide later tags.",
+    "ODT text:s keeps its declared space count instead of collapsing to one space.",
+    "RTF em dashes, en dashes, bullets and curly quotes are converted instead of dropped.",
+    "Document search snippets keep the matched word when lower-casing changes the text's byte length."
+   ],
+   "performance": [
+    "An image-only chapter that appears twice in a spine is split once, and generated pages are capped per archive."
+   ],
+   "changes": [
+    "Images inside an HTML comment no longer become phantom pages in image-only EPUBs."
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.69",
+   "date": "2026-11-13",
+   "fixed": [
+    "Opening a show now always moves its hero to the top of the grid, instead of leaving it in its original position beside or below closed cards"
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.68",
+   "date": "2026-11-13",
+   "changes": [
+    "Episode preview cards no longer show a 'Preview description' button; the description is revealed inline by selecting the card",
+    "The expand/collapse control is a compact icon shown only when the episode description overflows its box"
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.67",
+   "date": "2026-11-13",
+   "fixed": [
+    "Episode previews stay stable while browsing and can be expanded for the full description"
+   ],
+   "changes": [
+    "Select an episode card to play directly without a separate Play button under each card"
+   ]
+  },
+  {
+   "component": "android",
+   "version": "2026.11.115",
+   "date": "2026-11-13",
+   "changes": [
+    "Phone video show details feature a poster-led header and readable episode rows; Continue Watching remains on Home instead of repeating in video libraries"
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.66",
+   "date": "2026-11-13",
+   "changes": [
+    "Video episodes use clearer descriptions and mobile-friendly rows with separate preview and play actions"
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.65",
+   "date": "2026-11-13",
+   "fixed": [
+    "Replaying a finished video starts at the beginning and saves the new position without overwriting newer playback progress"
+   ]
+  },
+  {
+   "component": "android",
+   "version": "2026.11.114",
+   "date": "2026-11-13",
+   "fixed": [
+    "Selecting a finished episode starts it from the beginning instead of potentially skipping straight to the next episode",
+    "TV show descriptions retain a stable height when navigating episodes, and cast focus outlines fit their portraits"
+   ]
+  },
+  {
+   "component": "android",
+   "version": "2026.11.113",
+   "date": "2026-11-12",
+   "changes": [
+    "TV show details place episodes above cast and use more compact Play, Next and season controls"
+   ]
+  },
+  {
+   "component": "android",
+   "version": "2026.11.112",
+   "date": "2026-11-12",
+   "new": [
+    "TV and mobile: matched movies and shows can display TMDB cast portraits, names and roles, with a fallback when no portrait is available",
+    "Mobile movies open a details screen with a synopsis, cast and playback controls"
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.64",
+   "date": "2026-11-12",
+   "new": [
+    "Video libraries can show cast portraits and roles for matched movies and shows, and episode synopses when available"
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.63",
+   "date": "2026-11-12",
+   "changes": [
+    "Library settings clarify that opening matched video titles can fetch TMDB details, cast and episode information"
+   ]
+  },
+  {
+   "component": "android",
+   "version": "2026.11.111",
+   "date": "2026-11-12",
+   "new": [
+    "TV: show and movie details can display cast from a matched TMDB title, and focusing an episode shows its description when available"
+   ],
+   "changes": [
+    "TV movie details now place the poster alongside a larger title, synopsis and playback controls on wide screens"
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.62",
+   "date": "2026-11-12",
+   "fixed": [
+    "Music and audiobook streaming (compatibility mode): seeking far ahead in a long track could fail with \"Compatibility stream is not ready\" after a 20 second wait, because the server never started preparing the part of the track you jumped to; it now starts encoding at the point you seek to, so long tracks, audiobooks and podcast episodes can be scrubbed to any position"
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.61",
+   "date": "2026-11-12",
+   "fixed": [
+    "Video streaming cache: when two transcodes finished at the same moment, the cache size counter could be reduced twice for the same cleaned-up session, so it under-counted real disk use and the cache could grow past its size limit before old sessions were cleaned up"
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.60",
+   "date": "2026-11-12",
+   "fixed": [
+    "Managed ingest discovery: paging through a source folder could silently skip a file whose name sorts just before a sibling folder's contents (for example \"Album!.mp3\" next to an \"Album\" folder), so it never appeared on any page; the listing is now ordered the same way the page cursor compares names"
+   ]
+  },
+  {
+   "component": "android",
+   "version": "2026.11.110",
+   "date": "2026-11-10",
+   "fixed": [
+    "PDF/comic reader: the saved page position is now written atomically (temp file + rename, fsync'd before replacing the previous version) instead of via SharedPreferences.commit(), so an app kill, crash, or power loss mid-save can no longer leave a truncated progress file that broke all further saves for that reader; a corrupt or missing file now just reopens at the start of the book"
+   ]
+  },
+  {
+   "component": "android",
+   "version": "2026.11.109",
+   "date": "2026-11-10",
+   "fixed": [
+    "TV: the subtitle-appearance text-size and background-opacity sliders, the library search box, and the TV pairing screen's server-address field now show the same focus ring every other TV control uses, instead of Material's faint default outline at 10-foot viewing distance",
+    "Music/Audiobooks browse-mode button (the sort icon above the list) now shows which mode is active (Albums, Tracks, Favorites, etc.) as on-screen text, not only in a screen-reader-only description"
+   ]
+  },
+  {
+   "component": "android",
+   "version": "2026.11.108",
+   "date": "2026-11-10",
+   "changes": [
+    "Dependency updates: AGP 9.2.0→9.5.1, Kotlin 2.3.21→2.4.21, Gradle 9.4.1→9.9.0, Compose BOM 2026.08.00→2026.09.00, fragment-ktx 1.8.9→1.9.1, media3 1.11.0→1.11.1, Coil 3.5.0→3.6.3, OkHttp 5.4.0→5.5.1, kotlinx-serialization-json 1.11.0→1.12.0, Readium 3.3.0→3.4.0"
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.59",
+   "date": "2026-11-10",
+   "performance": [
+    "KOReader plugin: the library picker's series/author counts no longer build and discard a full list of series or author names per library just to take its length"
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.58",
+   "date": "2026-11-10",
+   "performance": [
+    "KOReader plugin: browsing a library's series or author list (and, for a search with over 500 matching groups, every page of search results) no longer re-scans the library once per 500-group chunk just to assemble one list before paging it; it now asks for the whole list in a single pass"
+   ]
+  },
+  {
+   "component": "android",
+   "version": "2026.11.107",
+   "date": "2026-11-10",
+   "fixed": [
+    "Podcasts/Music: resolving a downloaded track's offline playback URL (a disk/Binder-backed check) no longer runs on the UI thread when playing, queuing next, or adding to the queue; local-device and WebDAV playback (which need no such lookup) are unaffected",
+    "A rapid double-tap on play/play-next/add-to-queue could, after the above fix made that work asynchronous, apply out of the order it was triggered; queue-mutating actions on the same player now serialize in call order",
+    "Podcasts: the device download-policy dialog's settings were re-read from disk on every unrelated recomposition of the podcast screen while the dialog was open, instead of once when it opened"
+   ]
+  },
+  {
+   "component": "android",
+   "version": "2026.11.106",
+   "date": "2026-11-10",
+   "fixed": [
+    "Podcasts: downloaded-episode lookup (a disk/Binder-backed check) no longer runs on the UI thread when opening Podcasts, toggling a download, or after an automatic download finishes; it is fetched off-thread and the screen updates once it resolves",
+    "Read-along/narration: backing out of a book while its playback service was still connecting could, once the connection completed late, revive a released player and (for read-along) restart its repeating position-tracking loop forever, leaking the connection and the reader screen behind it"
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.57",
+   "date": "2026-11-10",
+   "performance": [
+    "Bulk-import review step no longer re-scans the whole list of server-confirmed-ready files for every chosen row (twice); a one-time lookup set keeps this linear even for a batch of thousands of files"
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.56",
+   "date": "2026-11-10",
+   "fixed": [
+    "bookstats/bookcheck/filefacts stores: Save() released its lock before writing to disk, so two concurrent saves (e.g. counting/quality-check/ISBN jobs for two different libraries) could finish their writes out of order and silently revert the persisted file to older data, even though the newer data was still correct in memory",
+    "Music 'File names' button: its DOM-mutation watcher was scoped to the whole document and ran forever after the first visit to the music view, re-scanning on every unrelated app-wide DOM change for the rest of the session; now scoped to the music view's own item container"
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.55",
+   "date": "2026-11-10",
+   "new": [
+    "KOReader plugin 1.13.0: your existing Obsidian 'vault' library (the real, live, server-scanned folder you already had configured) can now be read directly on a paired device, rendered server-side into one self-contained HTML file per vault",
+    "New Bearer-gated KOReader endpoint: GET /api/koreader/v1/vault/{library}.html",
+    "KOReader's home response now lists vault-kind libraries so the plugin can offer them without a separate fetch per menu open",
+    "Reading a vault is gated behind the same 'enable notes & wiki reading' device toggle added for the account's own Notes pages"
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.54",
+   "date": "2026-11-09",
+   "new": [
+    "KOReader plugin 1.12.0: the book dialog now offers a mark/unmark-finished toggle before ever downloading or opening a book, reflecting the account's current finished status from the catalog",
+    "New Bearer-gated KOReader endpoint: PUT /api/koreader/v1/finished/{library}/{id}",
+    "KOReader browse/download responses now report whether each book is marked finished"
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.53",
+   "date": "2026-11-09",
+   "new": [
+    "KOReader plugin 1.11.0: a background (non-interactive) highlight sync that hits a conflict now shows a non-blocking toast instead of a modal dialog, avoiding an unnecessary full-screen repaint on e-ink while reading; interactive syncs still show the full message",
+    "KOReader plugin: the highlight popup now offers a 'Sync to Mochil' button to push that highlight's change immediately, without waiting for the usual debounce or background sync"
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.52",
+   "date": "2026-11-09",
+   "new": [
+    "KOReader plugin 1.10.0: 'Read my notes & wiki on this device' renders every one of your Notes/wiki pages (Markdown) to a single self-contained HTML document server-side and opens it directly in KOReader's own reader -- unlike raw Markdown, which KOReader cannot render on its own, this uses the same HTML engine EPUB/TXT already use",
+    "New Bearer-gated KOReader endpoint: GET /api/koreader/v1/wiki.html"
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.51",
+   "date": "2026-11-09",
+   "new": [
+    "KOReader plugin 1.9.0: a library's own page now offers a Continue-reading list scoped to just that library; push, pull and sync-highlights are registered as gesture-bindable Dispatcher actions so a swipe/tap-zone/button can trigger them without opening the menu; new menu actions export a book's highlights to the server's Notes feature and back up every highlight to a local JSON file",
+    "KOReader plugin: a failed streamed comic/manga page now shows a one-time-per-page notice instead of a silent generic placeholder",
+    "New Bearer-gated KOReader endpoints: GET /api/koreader/v1/annotations/export (full account highlight backup) and POST /api/koreader/v1/annotations/{digest}/notes (render a linked book's highlights into the server's Notes feature)"
+   ],
+   "fixed": [
+    "KOReader plugin: downloadBook no longer treats a successfully-fetched but empty (0-byte) response as a valid book; fetchRaw correctly reports an oversized response instead of silently returning an empty string"
+   ]
+  },
+  {
+   "component": "android",
+   "version": "2026.11.105",
+   "date": "2026-11-09",
+   "fixed": [
+    "Hands-free microphone lifecycle changes are serialized so rapid or overlapping start/stop calls cannot strand a recorder; delayed audio from earlier sessions is ignored, and microphone startup failures release the recorder and audio effects"
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.50",
+   "date": "2026-11-09",
+   "performance": [
+    "After a one-time full sync on upgrade, the KOReader plugin uses a safely applied annotation revision cursor to fetch only newer changes; unresolved highlights and conflicts remain eligible for retry"
+   ],
+   "fixed": [
+    "KOReader browse pagination now handles extremely large offsets without integer overflow or a request-time panic"
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.49",
+   "date": "2026-11-09",
+   "performance": [
+    "Background cover-cache maintenance now decodes and resizes covers outside the cache lock, and skips a full eviction scan when the cache is already within its limit",
+    "Episodes loaded from multiple TV/anime seasons are deduplicated by ID without repeatedly scanning the growing list"
+   ],
+   "fixed": [
+    "A season response that arrives after changing the video view no longer overwrites the current shelf"
+   ]
+  },
+  {
+   "component": "android",
+   "version": "2026.11.104",
+   "date": "2026-11-09",
+   "fixed": [
+    "Media-type icons on Home, library navigation and collection covers now use the e-ink theme's high-contrast monochrome ink instead of pale category colors that faded in grayscale"
+   ]
+  },
+  {
+   "component": "android",
+   "version": "2026.11.103",
+   "date": "2026-11-09",
+   "fixed": [
+    "E-ink devices no longer animate loading indicators across OPDS, WebDAV, local folders, book details, podcasts and music when Reduce animations is enabled; existing indicator sizes and styles are preserved"
+   ]
+  },
+  {
+   "component": "android",
+   "version": "2026.11.102",
+   "date": "2026-11-09",
+   "fixed": [
+    "Fixed a crash that could kick you straight back to the library while Hermes was reading a reply aloud: an audio-engine race between stopping the voice and the sound still playing could throw an error that killed the whole app instead of just stopping quietly"
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.48",
+   "date": "2026-11-09",
+   "fixed": [
+    "The Hermes voice assistant's \"listening\" mic ring no longer disappears on e-ink: its decorative glow is now hidden there, but the crisp ring that actually signals voice input is active stays visible on every palette"
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.47",
+   "date": "2026-11-09",
+   "fixed": [
+    "The Library Editor now has one, permanent appearance (removed the fuzzier \"Modern\" look and its toggle button, which used blur and low-contrast transparent borders)",
+    "Data-quality status badges (the colored labels showing a book's issues) now pass accessibility contrast standards in every theme; the most critical \"bad\" status was as hard to read as 2.21:1 contrast in some themes, now at least 4.6:1 everywhere"
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.46",
+   "date": "2026-11-09",
+   "fixed": [
+    "Decorative drop shadows on cards, dialogs, menus and panels across the app no longer render on the e-ink palette, where they only showed up as a muddy gray smear; shadows that carry real meaning (focus rings, drag indicators) are unchanged"
+   ]
+  },
+  {
+   "component": "android",
+   "version": "2026.11.101",
+   "date": "2026-11-09",
+   "fixed": [
+    "The loading spinners on the PDF, comic, chat, wiki, music and collections screens no longer spin continuously when e-ink's reduce-animations setting is on; they show a static ring instead, matching the fix already applied to the main loading indicator"
+   ]
+  },
+  {
+   "component": "android",
+   "version": "2026.11.100",
+   "date": "2026-11-09",
+   "fixed": [
+    "The loading spinner shown while content loads across the app no longer spins continuously when e-ink's reduce-animations setting is on; it shows a static ring instead"
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.45",
+   "date": "2026-11-09",
+   "fixed": [
+    "The Continue reading card's hover glow no longer renders on the e-ink palette, matching every other hover effect in the app"
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.44",
+   "date": "2026-11-09",
+   "new": [
+    "The Mochil KOReader plugin can now stream a comic or manga chapter page by page, without downloading the archive first, using the same OPDS-PSE mechanism KOReader's own built-in OPDS browser uses: a Stream option appears next to Download when a library has page streaming enabled, and reopening a streamed book resumes at the last page read"
+   ]
+  },
+  {
+   "component": "android",
+   "version": "2026.11.99",
+   "date": "2026-11-08",
+   "fixed": [
+    "Comic and manga page streaming now actually works on the device: it was calling a server path that device tokens can't authenticate, which failed on every real phone or tablet",
+    "Removed the duplicate Audio track and Subtitle track entries from the video player's three-dot menu; use the bottom bar's buttons instead",
+    "Comic, EPUB and PDF reader toolbars no longer fade in and out when e-ink's reduce-motion setting is on, avoiding needless screen refreshes"
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.43",
+   "date": "2026-11-08",
+   "fixed": [
+    "KOReader continue-reading cards are now a fixed height, so a long multi-author title no longer grows taller than its neighbors and throws off the row",
+    "KOReader continue-reading cards: solid black text throughout (no more faint grey author text that looks dithered on e-ink), title and percentage combined on one row, and a thinner minimal progress indicator"
+   ],
+   "new": [
+    "Added a device-token-authenticated endpoint for streaming individual comic pages, so the Android app's manga streaming feature has a working, secure path to fetch pages"
+   ]
+  },
+  {
+   "component": "android",
+   "version": "2026.11.98",
+   "date": "2026-11-08",
+   "changes": [
+    "Made the collapsed TV rail smaller, streamlined TV Settings, clarified metered and unmetered streaming quality, and separated player audio/subtitles from other options"
+   ]
+  },
+  {
+   "component": "android",
+   "version": "2026.11.97",
+   "date": "2026-11-08",
+   "changes": [
+    "Made the Android TV rail smaller and centered, with more compact icons and labels"
+   ],
+   "fixed": [
+    "The selected TV library is prepared for focus even after changing or reordering libraries"
+   ]
+  },
+  {
+   "component": "android",
+   "version": "2026.11.96",
+   "date": "2026-11-08",
+   "changes": [
+    "Android TV navigation now uses a more compact translucent rail that expands over the content"
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.42",
+   "date": "2026-11-08",
+   "fixed": [
+    "Cleaned up mobile settings spacing, removed an empty Editor card, and clarified the separate avatar save action"
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.41",
+   "date": "2026-11-08",
+   "fixed": [
+    "Changing EPUB page margins now visibly adjusts the text width on wide screens"
+   ]
+  },
+  {
+   "component": "android",
+   "version": "2026.11.95",
+   "date": "2026-11-08",
+   "fixed": [
+    "The reader settings panel is now organized into Layout, Text, Appearance and Display tabs instead of one crowded row of buttons"
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.40",
+   "date": "2026-11-08",
+   "fixed": [
+    "The Read-aloud settings panel no longer overlaps the Text panel the first time the reader settings dialog is opened"
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.39",
+   "date": "2026-11-08",
+   "fixed": [
+    "The reader settings tab row now fades at the edge on mobile to show more tabs are scrollable"
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.38",
+   "date": "2026-11-08",
+   "fixed": [
+    "Reader settings (Text, Layout, Appearance, Page turning, Read aloud) are now organized as tabs instead of one long scroll",
+    "The Library Editor's 14 filter chips are now grouped into a Filters menu, with zero-count filters hidden",
+    "The Music Discover 'Recently added' rail no longer duplicates artist/album/duration text on wide screens"
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.37",
+   "date": "2026-11-08",
+   "fixed": [
+    "The 404 page now matches the app's look instead of showing raw server text",
+    "The Appearance background dropdown no longer clips its own text",
+    "Home, Discover and search results no longer leave large blank columns on wide screens",
+    "The mobile A-Z jump bar now fades at the edges to show more letters are scrollable",
+    "Mobile navigation icons (Discover, Series, Authors, All, Collections) show their labels instead of icons alone",
+    "Jump back in now labels read-along entries so they are not mistaken for duplicate books"
+   ]
+  },
+  {
+   "component": "android",
+   "version": "2026.11.94",
+   "date": "2026-11-08",
+   "fixed": [
+    "Android TV restores the previously focused library item even when it is off-screen"
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.36",
+   "date": "2026-11-08",
+   "fixed": [
+    "Reader contents, settings and search dialogs now have accessible names"
+   ]
+  },
+  {
+   "component": "android",
+   "version": "2026.11.93",
+   "date": "2026-11-08",
+   "fixed": [
+    "Reader settings button has a clear accessible label for screen readers"
+   ]
+  },
+  {
+   "component": "android",
+   "version": "2026.11.92",
+   "date": "2026-11-08",
+   "fixed": [
+    "Android TV library cards no longer steal focus from Search as they load",
+    "TV video menu actions now show which option is focused"
+   ]
+  },
+  {
+   "component": "android",
+   "version": "2026.11.91",
+   "date": "2026-11-08",
+   "fixed": [
+    "Home displays available results while refreshing instead of remaining on a loading screen",
+    "Library offline mode now shows a safer explanation and retries requests more reliably"
+   ]
+  },
+  {
+   "component": "android",
+   "version": "2026.11.90",
+   "date": "2026-11-08",
+   "fixed": [
+    "Home and library screens recover more reliably after temporary connection failures",
+    "Settings no longer claims the server is connected without checking"
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.35",
+   "date": "2026-11-08",
+   "fixed": [
+    "Library loading retries after a temporary server outage and preserves navigation"
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.34",
+   "date": "2026-11-08",
+   "fixed": [
+    "KOReader sync better protects unsent highlights and reports progress failures accurately",
+    "KOReader series browsing includes volumes beyond the first 500 and avoids opening another book when download names collide"
+   ]
+  },
+  {
+   "component": "android",
+   "version": "2026.11.89",
+   "date": "2026-11-08",
+   "fixed": [
+    "Video playback recognizes more Android TV devices and uses TV controls",
+    "TV home no longer requests focus on an unavailable retry button while loading"
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.33",
+   "date": "2026-11-08",
+   "new": [
+    "Readium: import custom fonts and adjust a warm reading tint on this browser"
+   ],
+   "fixed": [
+    "Reader settings and navigation fit better on small screens",
+    "Reader search excerpts keep spaces around highlighted words and between paragraphs"
+   ]
+  },
+  {
+   "component": "android",
+   "version": "2026.11.88",
+   "date": "2026-11-08",
+   "fixed": [
+    "Reader controls, navigation tabs, and reading statistics fit better on narrow screens",
+    "Local library source controls take up less space, and folder file counts use the correct singular or plural"
+   ]
+  },
+  {
+   "component": "android",
+   "version": "2026.11.87",
+   "date": "2026-11-08",
+   "fixed": [
+    "Readium EPUB reader preferences now save without overwriting other recently changed settings"
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.32",
+   "date": "2026-11-08",
+   "new": [
+    "Readium EPUB reader: choose text size and font, line spacing, page margins, page or scroll layout, and light, sepia or night reading themes"
+   ],
+   "fixed": [
+    "Jump back in now shows the manga series name alongside chapter titles"
+   ]
+  },
+  {
+   "component": "android",
+   "version": "0.18.118",
+   "date": "2026-11-07",
+   "fixed": [
+    "The app now properly signs you out of background activity (downloads, playback, progress sync) once a device is revoked, instead of quietly retrying forever",
+    "Closed a minor path-traversal gap in the Hermes avatar view"
+   ],
+   "performance": [
+    "Comic pages no longer redecode every time the screen redraws",
+    "The Hermes chat screen scrolls more smoothly and decrypts messages less often",
+    "WebDAV browsing and video scrubbing feel snappier"
+   ],
+   "changes": [
+    "Cleaned up duplicated code and inconsistent library categorization behind the scenes"
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.31",
+   "date": "2026-11-07",
+   "performance": [
+    "Reading, listening, and watching progress now save much faster on large libraries",
+    "Book covers generate faster when several are missing from cache at once",
+    "The library feed and collections load faster by not rebuilding the catalogue multiple times per request",
+    "Transcoded video and podcast caches clean up old data faster",
+    "Importing from a folder no longer slows down the more files it has already seen"
+   ],
+   "fixed": [
+    "Author and series lists no longer slow down the longer you scroll",
+    "Series and progress info in list view is now read correctly by screen readers"
+   ],
+   "changes": [
+    "Removed several small pieces of unused code"
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.30",
+   "date": "2026-11-07",
+   "fixed": [
+    "Signing out when the server briefly can't save sessions no longer silently claims success; you get a clear retry message instead",
+    "Signing in can no longer slip through while a sign-out from another device is still being recorded",
+    "A podcast download that failed right as a retry started no longer gets mislabeled as 'still stopping'"
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.29",
+   "date": "2026-11-07",
+   "fixed": [
+    "Library editor: choosing it from the menu now opens it in the same tab, like Hermes, instead of a separate window, so the app feels like one place"
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.28",
+   "date": "2026-11-07",
+   "fixed": [
+    "Ask Hermes about ISBNs and Hardcover matches: one run now goes through every eligible book, one small question each (no more limit of 40; Stop keeps what is done), and a book Hermes could not settle is not asked about again on the next run"
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.27",
+   "date": "2026-11-07",
+   "new": [
+    "Library editor: while Hermes is asked about ISBNs or Hardcover matches, the status line shows a spinner and which book it is on (question 3 of up to 40), so a slow answer no longer looks like nothing is happening; a tool that cannot start (for example no helper model set in Settings, Hermes) now says so in a highlighted box"
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.26",
+   "date": "2026-11-07",
+   "fixed": [
+    "Updates and restarts: the server now waits for requests in progress (such as a saved reading position) to finish before it stops"
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.25",
+   "date": "2026-11-07",
+   "fixed": [
+    "Security: signing in through the Jellyfin-compatible route now locks out an address after ten wrong passwords, like the normal sign-in"
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.24",
+   "date": "2026-11-07",
+   "fixed": [
+    "Podcasts: removing a feed while another refresh is running no longer risks a crash or overwriting a different feed, and a retention policy changed during a refresh is no longer lost"
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.23",
+   "date": "2026-11-07",
+   "fixed": [
+    "Video and audio streaming: asking for a part far beyond the end of a file no longer starts a conversion at a position that does not exist"
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.22",
+   "date": "2026-11-07",
+   "fixed": [
+    "Narration: renaming or deleting a voice on a server without a voice folder now answers 'no such voice' instead of failing"
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.21",
+   "date": "2026-11-07",
+   "fixed": [
+    "Read-aloud: leaving a page in the middle of a sentence no longer leaves the speech worker behind as a stuck process"
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.20",
+   "date": "2026-11-06",
+   "new": [
+    "Narration voices: ordinary accounts no longer see the buttons to make, rename or delete a voice or to set the default voice; administrators keep them"
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.19",
+   "date": "2026-11-06",
+   "new": [
+    "Vault: ordinary accounts see the shared vault read-only (no edit controls); the wiki stays each person's own notes, open to everyone"
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.18",
+   "date": "2026-11-06",
+   "new": [
+    "Metadata repair: a repaired EPUB keeps its file permissions (it became owner-only before, which could lock other programs out of the library) and is swapped in with a single atomic step"
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.17",
+   "date": "2026-11-06",
+   "new": [
+    "Shared notes and voices: only administrators can change the wiki and vault pages or make a new narration voice from a recording; everyone can still read and listen"
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.16",
+   "date": "2026-11-06",
+   "new": [
+    "Security: podcast artwork and episodes from a feed are only served as pictures or audio/video, so a hostile feed cannot make the server hand out a script or page"
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.15",
+   "date": "2026-11-06",
+   "new": [
+    "KOReader plugin: reading progress now saves for every account, not only the first one",
+    "Collections: a failed save or a book from another library now shows the right message instead of \"not found\""
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.14",
+   "date": "2026-11-06",
+   "new": [
+    "KOReader sync: repeated wrong keys for one user from one address are now blocked for 15 minutes, as on the website login"
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.13",
+   "date": "2026-11-06",
+   "new": [
+    "Security: phones signed in to ordinary accounts can no longer change server-wide settings (podcast feeds, narration voices); only administrators can, as on the website",
+    "Sign-in: a client that has not sent a password yet no longer counts as a failed attempt, so it cannot lock everyone out",
+    "Accounts: passwords are limited to 72 characters, with a clear message"
+   ]
+  },
+  {
+   "component": "android",
+   "version": "0.18.117",
+   "date": "2026-11-06",
+   "new": [
+    "Hermes chat: leaving to a library that no longer exists no longer jumps the app around later",
+    "Cleanup: unused code removed"
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.12",
+   "date": "2026-11-06",
+   "new": [
+    "Hermes avatar: changing the background or size on two devices at once can no longer lose a change",
+    "Hermes avatar: a size change made just before switching avatars is saved to the right one",
+    "Music: if a file-name change fails part-way and some files cannot be put back, Undo can still retry",
+    "Cleanup: unused code removed"
+   ]
+  },
+  {
+   "component": "android",
+   "version": "0.18.116",
+   "date": "2026-11-06",
+   "new": [
+    "Hermes avatar: four new cosy scenes, Rainy window, Desk at night, Bookshop loft and Balcony dusk"
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.11",
+   "date": "2026-11-06",
+   "new": [
+    "Hermes avatar: four new cosy scenes, Rainy window, Desk at night, Bookshop loft and Balcony dusk"
+   ]
+  },
+  {
+   "component": "android",
+   "version": "0.18.115",
+   "date": "2026-11-06",
+   "new": [
+    "Hermes avatar: the Size slider goes much smaller"
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.10",
+   "date": "2026-11-06",
+   "new": [
+    "Hermes avatar: the Size slider goes much smaller"
+   ]
+  },
+  {
+   "component": "android",
+   "version": "0.18.114",
+   "date": "2026-11-06",
+   "new": [
+    "Hermes chat: with the Transparent background she stands in the chat itself, in front of the messages, with no box around her",
+    "Hermes avatar: big models like Alexia and Sparkle now show up on the phone"
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.09",
+   "date": "2026-11-06",
+   "new": [
+    "Hermes chat: with the Transparent background she stands in the chat itself, in front of the text, with no box or border",
+    "Hermes avatar: models with huge pictures (Alexia, Sparkle, Ice girl) are served smaller, so they show on phones; the originals are untouched"
+   ]
+  },
+  {
+   "component": "android",
+   "version": "0.18.113",
+   "date": "2026-11-06",
+   "new": [
+    "Hermes chat: the Home / library switcher is in the top bar",
+    "Hermes avatar: the saved background now shows (it was invisible)",
+    "Hermes avatar: the backgrounds are drawn scenes, the Cosy room is a room",
+    "Hermes avatar: a Transparent background, so she lives inside the chat"
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.08",
+   "date": "2026-11-06",
+   "new": [
+    "Hermes chat: a Home / library switcher in the top bar, so there is a way out",
+    "Hermes avatar: the backgrounds are drawn scenes, the Cosy room is a room",
+    "Hermes avatar: a Transparent background, so she lives inside the chat"
+   ]
+  },
+  {
+   "component": "android",
+   "version": "0.18.112",
+   "date": "2026-11-05",
+   "new": [
+    "Hermes avatar: shows the background and position saved on the website, and Chat settings can change both"
+   ]
+  },
+  {
+   "component": "android",
+   "version": "0.18.111",
+   "date": "2026-11-05",
+   "new": [
+    "Hermes chat follows the new Voice and Quick actions switches from Settings, Hermes"
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.07",
+   "date": "2026-11-05",
+   "new": [
+    "Hermes chat: Remember now sits under your own message, like hers",
+    "Settings, Hermes: Voice and Quick actions switches",
+    "Wiki: on wide screens the page text no longer drops into the outline column",
+    "Hermes chat: pick a background behind the avatar (six built-in scenes or your own picture) and zoom and move her in the frame"
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.06",
+   "date": "2026-11-05",
+   "new": [
+    "Settings, Hermes: switch single abilities on or off (play from library, home control, radio and speakers, memory)",
+    "The Hermes and Avatar tabs now appear and disappear as soon as you flip their module switch",
+    "Settings, Hermes: a read-only list of the plugins, skills and tool servers she has installed (needs the small helper in tools/hermes-inventory)",
+    "Settings, Hermes, Find more: search the Hermes plugin and skill catalogs and install official or verified ones, added switched off; community ones are shown but not installable here"
+   ]
+  },
+  {
+   "component": "android",
+   "version": "0.18.110",
+   "date": "2026-11-05",
+   "new": [
+    "Tapping Play on a song that is already loaded pauses or resumes it, and all the songs of an answer are queued so you can skip between them"
+   ]
+  },
+  {
+   "component": "android",
+   "version": "0.18.109",
+   "date": "2026-11-05",
+   "new": [
+    "Play cards stay in the chat, so a song can be played again later, and they show the cover",
+    "Finding a song forgives a typo and ignores words like 'library'"
+   ]
+  },
+  {
+   "component": "android",
+   "version": "0.18.108",
+   "date": "2026-11-05",
+   "new": [
+    "Asking the assistant to play something from your library is answered at once, even on the slow night model, and tapping Play stops her voice"
+   ]
+  },
+  {
+   "component": "android",
+   "version": "0.18.107",
+   "date": "2026-11-04",
+   "new": [
+    "Ask the assistant to play a song, audiobook or podcast and a Play card appears under her answer; tap it to play in the app's own player"
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.05",
+   "date": "2026-11-04",
+   "new": [
+    "Ask the assistant to play a song, audiobook or podcast and she finds it in your library: a Play card appears under her answer"
+   ]
+  },
+  {
+   "component": "android",
+   "version": "0.18.106",
+   "date": "2026-11-04",
+   "new": [
+    "The assistant chat now says what she is doing at home in plain words: 'Controlling the home', 'Checking a device', 'Looking at the home's devices'"
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.04",
+   "date": "2026-11-04",
+   "new": [
+    "The Hermes chat shows what she is doing at home in plain words (Controlling the home, Checking a device) while she works"
+   ]
+  },
+  {
+   "component": "android",
+   "version": "0.18.105",
+   "date": "2026-11-04",
+   "fixed": [
+    "Talking with the assistant: if the microphone is taken away while you talk (a call, a Bluetooth change, another app), the app now stops listening and says so, instead of possibly closing and sending you to the home screen"
+   ]
+  },
+  {
+   "component": "android",
+   "version": "0.18.104",
+   "date": "2026-11-04",
+   "fixed": [
+    "The assistant chat could close and throw you back to the home screen while she was speaking. The avatar's page could be stopped by the phone for memory, and that closed the whole app. Now the app stays open, the avatar switches itself off and a note says how to turn it back on"
+   ]
+  },
+  {
+   "component": "android",
+   "version": "0.18.103",
+   "date": "2026-11-04",
+   "new": [
+    "Chat settings: the gear in the assistant chat now holds everything in one sheet. New: choose which character appears above the chat (the same choice as on the website). The avatar switch, reading aloud, voice, hands-free and interrupt settings are there too"
+   ]
+  },
+  {
+   "component": "android",
+   "version": "0.18.102",
+   "date": "2026-11-04",
+   "new": [
+    "Quick actions in the assistant chat: the + button next to the message box offers What's new in my library, What should I read next, Tell me about a book (pick one from a search), and Polish my text. A new chat also shows the first two as buttons",
+    "Each one sends your question together with what your library knows (recent books, what you are reading or finished, one book's description). The context is folded under the message as 'Library context sent with this', so you can always see exactly what she was given"
+   ]
+  },
+  {
+   "component": "android",
+   "version": "0.18.101",
+   "date": "2026-11-04",
+   "fixed": [
+    "Assistant chat: deleting or renaming a chat that fails now says so instead of doing nothing",
+    "Deleting the chat she is still answering now ends the reply first and checks again a minute later, because Hermes saves a chat when its reply finishes and could bring it back"
+   ]
+  },
+  {
+   "component": "android",
+   "version": "0.18.100",
+   "date": "2026-11-04",
+   "new": [
+    "Her avatar in the chat: the same Live2D character as on the website, above the conversation. She blinks, sways, shows a mood from what she says, and her mouth moves with her voice as it plays. It steps aside while you type, and 'Show her avatar' in the voice settings switches it off",
+    "The avatar and its files come from your own server and are only for administrator devices; the app never loads anything from other sites. Very large models (8192-pixel textures) can fail on weaker phones"
+   ]
+  },
+  {
+   "component": "android",
+   "version": "0.18.99",
+   "date": "2026-11-04",
+   "fixed": [
+    "Chat with your assistant: when the connection drops while she is answering (for example 'Software caused connection abort'), the app now waits for the reply the server saved and shows it, instead of ending with an error"
+   ]
+  },
+  {
+   "component": "android",
+   "version": "0.18.98",
+   "date": "2026-11-03",
+   "new": [
+    "Talk with your assistant in the app: the microphone button listens, your speech is turned into text on your own server, and she answers out loud, sentence by sentence as the reply is written. The app asks for the microphone only when you tap it",
+    "Hands-free conversation listens again after each answer (say 'stop' to end it), with an option to interrupt her by speaking. Listening and speech stop when you leave the screen",
+    "Voice settings in the chat: read replies aloud, choose her voice, hands-free and interrupt. A Read aloud button sits under each of her messages"
+   ]
+  },
+  {
+   "component": "android",
+   "version": "0.18.97",
+   "date": "2026-11-03",
+   "new": [
+    "Chat with your assistant in the app: open it from the library menu (named after her, for example Lyana). Replies stream in, with a Waiting note while she is slow, a list of your chats to reopen, rename or delete, and a Remember button on any message",
+    "What she remembers: the heart in the chat shows what she has picked up about you",
+    "Only an administrator's device is offered the chat, and it needs the Hermes module switched on in the server"
+   ]
+  },
+  {
+   "component": "web",
+   "version": "2026.11.03",
+   "date": "2026-11-03",
+   "new": [
+    "Hermes chat (optional module): talk to your Hermes Agent from the website at /hermes, with streaming replies, stop, and a list of conversations. Hermes keeps the memory; Mochil only relays the chat and keeps the Hermes key on the server",
+    "Switch it on in Settings → Modules after adding hermes.url and hermes.key to the config",
+    "Only administrators can use the Hermes chat, and it talks to a separate Hermes profile (its own memory, no terminal or file tools) so your main Hermes is unaffected",
+    "Settings has a Hermes tab: address, key (write-only), model, the assistant's name, and a persona you can start from a template and edit, with a Test connection button",
+    "Chats are saved on the server (as Hermes sessions): start a chat on one device and open it on another; rename or delete from the list. A reply that finishes after you close the tab is still saved",
+    "Hermes can read replies aloud with Pocket TTS: switch on 'Read replies aloud' in the voice options, or press Read aloud under any message. Speech starts after the first sentence and keeps going while the rest is written, and she answers in short spoken sentences while it is on",
+    "Settings, Narration has a Default voice with its own Save button: used by the Hermes chat and as the starting voice in the reader",
+    "Talk to Hermes: the microphone button records you, the server turns your speech into text with a local Whisper model (nothing leaves your server), and she answers out loud. Optional hands-free conversation that listens again after each answer (say 'stop' to end it), and an option to interrupt her by speaking",
+    "Avatar module (Settings, Modules): a Live2D character beside the Hermes chat that blinks, sways, shows blush or love from her words and moves her mouth with her voice. Add model folders to the avatar folder and choose one in Settings, Avatar",
+    "Hermes chat shows what she is doing before she answers (searching the web, reading a page, remembering) as small live steps above her reply",
+    "Avatar: switch avatars from the chat's voice options, give each avatar its own voice (Settings, Avatar), and a full-screen voice mode with a big avatar, small captions and one microphone button",
+    "Hermes chat has a settings cogwheel: change her voice, switch avatars and turn on reading aloud, hands-free and interrupt on the fly (also inside the full-screen voice mode)",
+    "Faster speech in the Hermes chat: her voice now streams, so you hear the first sound about half a second after a sentence is ready instead of waiting for the whole sentence",
+    "Hermes quick actions: the + button next to the message box sends a question together with library context (what's new, what to read next, details of a book you pick), and a Polish my text starter. The context is shown folded under your message so you can see what she was given",
+    "Hermes chat: a slow answer no longer breaks the connection. While she is still working, the page shows a Waiting step with the seconds, and a failure after that point is shown in the chat instead of as a broken stream",
+    "Hermes chat: \"What she remembers\" in the sidebar lists what she has picked up about you, and a Remember button on any message saves it to her memory (needs hermes.memory_bank in the config; memories stay on your server)"
+   ],
+   "changes": [
+    "The Hermes menu entry opens in the same window, and the back arrow returns to where you were",
+    "Hermes chat redesigned: avatar and name, grouped conversation list (Today, Yesterday, Earlier), typing indicator, copy button, lists and links in replies, a growing message box, and voice options shown as 'coming next'"
+   ],
+   "fixed": [
+    "The Hermes page is no longer cached for a day, so updates show up straight away; the status line now says what is wrong when it cannot connect"
+   ]
+  },
+  {
+   "component": "android",
+   "version": "0.18.96",
+   "date": "2026-11-03",
+   "new": [
+    "A changelog: the update card in Settings lists what each release changed, and the server keeps the full history at /api/changelog"
+   ],
+   "fixed": [
+    "The update card now shows release notes (they were not being read)"
+   ]
+  },
+  {
+   "component": "android",
+   "version": "0.18.95",
+   "date": "2026-11-03",
+   "changes": [
+    "Diagnostics upload in small batches",
+    "A batch the server refuses is dropped instead of blocking every later send"
+   ]
+  },
+  {
+   "component": "android",
+   "version": "0.18.94",
+   "date": "2026-11-03",
+   "changes": [
+    "Header icons (layout, search, view) are passed as data, so the cover/list button always shows and applies the current choice",
+    "Reproduced and verified on the emulator"
+   ]
+  },
+  {
+   "component": "android",
+   "version": "0.18.93",
+   "date": "2026-11-03",
+   "changes": [
+    "Back from Settings returns to Collections or Sources when Settings was opened from there"
+   ]
+  },
+  {
+   "component": "android",
+   "version": "0.18.92",
+   "date": "2026-11-03",
+   "changes": [
+    "The Collections cover/list button flips whatever is current at the moment of the tap"
+   ]
+  },
+  {
+   "component": "android",
+   "version": "0.18.91",
+   "date": "2026-11-03",
+   "changes": [
+    "The combined Collections place puts its cover/list button beside the switcher, like the libraries"
+   ]
+  },
+  {
+   "component": "android",
+   "version": "0.18.90",
+   "date": "2026-11-03",
+   "changes": [
+    "Long-press a collection to rename or delete it",
+    "Smart and series-held collections are labelled instead of offering Add",
+    "One covers/list choice for every Collections view, and changing it no longer empties an open collection"
+   ]
+  },
+  {
+   "component": "android",
+   "version": "0.18.89",
+   "date": "2026-11-03",
+   "changes": [
+    "TV nav panel opens as a rounded Plex-style panel with a Libraries heading and a light pill on the focused entry",
+    "Round Mark watched button on movies"
+   ]
+  },
+  {
+   "component": "android",
+   "version": "0.18.88",
+   "date": "2026-11-03",
+   "changes": [
+    "Saved is removed everywhere (screen, view model, repository, start-screen button, OPDS bookmark icon)"
+   ]
+  },
+  {
+   "component": "android",
+   "version": "0.18.87",
+   "date": "2026-11-02",
+   "changes": [
+    "Movies, shows and anime share one card and one flat list row",
+    "Progress lines end without the stray dot",
+    "The header layout button always reads the current state"
+   ]
+  },
+  {
+   "component": "android",
+   "version": "0.18.86",
+   "date": "2026-11-02",
+   "changes": [
+    "Back from a collection opened in the combined Collections place returns to all collections"
+   ]
+  },
+  {
+   "component": "android",
+   "version": "0.18.85",
+   "date": "2026-11-02",
+   "changes": [
+    "Saved is gone from the menu",
+    "Collections is one place listing every collection from every library, each marked with its library's icon"
+   ]
+  },
+  {
+   "component": "android",
+   "version": "0.18.84",
+   "date": "2026-11-02",
+   "changes": [
+    "A library always opens on a full view",
+    "In progress and Collections are no longer remembered as the place to start"
+   ]
+  },
+  {
+   "component": "android",
+   "version": "0.18.83",
+   "date": "2026-11-02",
+   "changes": [
+    "The plain book list is dense (small cover, title, author, percent)",
+    "Books inside a series or under an author are a table led by the series number"
+   ]
+  },
+  {
+   "component": "android",
+   "version": "0.18.82",
+   "date": "2026-11-02",
+   "changes": [
+    "Collections show stacked covers like the web",
+    "The View sheet groups by series, authors or none, with an in-progress filter",
+    "Collections moves to the switcher menu"
+   ]
+  },
+  {
+   "component": "android",
+   "version": "0.18.81",
+   "date": "2026-11-02",
+   "changes": [
+    "The View menu is a small sheet of chips",
+    "The list layout is flat rows with hairlines",
+    "Collections follow the covers/list switch"
+   ]
+  },
+  {
+   "component": "android",
+   "version": "0.18.80",
+   "date": "2026-11-02",
+   "changes": [
+    "Book libraries lose the tab row",
+    "One View menu picks series, authors, in progress, collections or all books by title, author, series or recently added"
+   ]
+  },
+  {
+   "component": "android",
+   "version": "0.18.79",
+   "date": "2026-11-02",
+   "changes": [
+    "Swipe left and right between the book tabs"
+   ]
+  },
+  {
+   "component": "android",
+   "version": "0.18.78",
+   "date": "2026-11-02",
+   "changes": [
+    "Book screens put search and options beside the library switcher, the tabs get the whole row below, and the switcher row is shorter"
+   ]
+  },
+  {
+   "component": "android",
+   "version": "0.18.77",
+   "date": "2026-11-02",
+   "changes": [
+    "TV show and movie art sits upper right with the facts (year, runtime, genres, age rating, TMDB score) on the left",
+    "Media screens put search and layout in the switcher row"
+   ]
+  },
+  {
+   "component": "android",
+   "version": "0.18.76",
+   "date": "2026-11-02",
+   "changes": [
+    "The theme family chips wrap instead of squeezing the last one into a thin column"
+   ]
+  },
+  {
+   "component": "android",
+   "version": "0.18.75",
+   "date": "2026-11-02",
+   "changes": [
+    "Holding Select on a TV card opens the menu without the release starting playback"
+   ]
+  },
+  {
+   "component": "android",
+   "version": "0.18.74",
+   "date": "2026-11-02",
+   "changes": [
+    "Library counts in the switcher menu use thousands separators"
+   ]
+  },
+  {
+   "component": "android",
+   "version": "0.18.73",
+   "date": "2026-11-02",
+   "changes": [
+    "The library pill row is one compact icon switcher with a menu of Home, libraries, Saved, Sources and Settings",
+    "Every theme but e-ink gets the soft accent glow"
+   ]
+  },
+  {
+   "component": "android",
+   "version": "0.18.68",
+   "date": "2026-11-02",
+   "changes": [
+    "Cover cards in a row are the same height (title two lines, one detail line)"
+   ]
+  },
+  {
+   "component": "android",
+   "version": "0.18.67",
+   "date": "2026-11-02",
+   "changes": [
+    "Home mixes reading, watching and listening in one Jump back in list with a coloured type icon",
+    "Finished stays last"
+   ]
+  },
+  {
+   "component": "android",
+   "version": "0.18.66",
+   "date": "2026-11-02",
+   "changes": [
+    "Back to the bordered show cards on the phone, matching the rest of the app"
+   ]
+  },
+  {
+   "component": "android",
+   "version": "0.18.65",
+   "date": "2026-11-02",
+   "changes": [
+    "Phone show grid is borderless posters with an unwatched count badge and year and season count beneath"
+   ]
+  },
+  {
+   "component": "android",
+   "version": "0.18.64",
+   "date": "2026-11-02",
+   "changes": [
+    "Browse views (Continue, Series, Authors…) are tabs in the header instead of a hidden menu"
+   ],
+   "tv": true
+  },
+  {
+   "component": "android",
+   "version": "0.18.63",
+   "date": "2026-11-02",
+   "changes": [
+    "Now Playing sits on the cover's backdrop with rounded artwork and a quieter header"
+   ],
+   "tv": true
+  },
+  {
+   "component": "android",
+   "version": "0.18.62",
+   "date": "2026-11-02",
+   "changes": [
+    "Book screens get the focused-cover backdrop and tighter cover tiles"
+   ],
+   "tv": true
+  },
+  {
+   "component": "android",
+   "version": "0.18.61",
+   "date": "2026-11-02",
+   "changes": [
+    "Podcast screens get the focused-art backdrop and smaller show tiles"
+   ],
+   "tv": true
+  },
+  {
+   "component": "android",
+   "version": "0.18.60",
+   "date": "2026-11-02",
+   "changes": [
+    "Podcasts play through the device stream route instead of the web route that rejects the device token"
+   ]
+  },
+  {
+   "component": "android",
+   "version": "0.18.59",
+   "date": "2026-11-02",
+   "changes": [
+    "Video player seek bar in the TV accent, thicker with a larger handle"
+   ],
+   "tv": true
+  },
+  {
+   "component": "android",
+   "version": "0.18.58",
+   "date": "2026-11-02",
+   "changes": [
+    "A TMDB backdrop fills the screen instead of being drawn as a poster card"
+   ],
+   "tv": true
+  },
+  {
+   "component": "android",
+   "version": "0.18.57",
+   "date": "2026-11-02",
+   "changes": [
+    "Show and movie pages open on the title's backdrop with a compact title, story, Play and season buttons, and a rail of episode cards"
+   ],
+   "tv": true
+  },
+  {
+   "component": "android",
+   "version": "0.18.56",
+   "date": "2026-11-02",
+   "changes": [
+    "Library order rows in Settings are plain rows with Up, Down and Shown/Hidden buttons the remote can reach"
+   ],
+   "tv": true
+  },
+  {
+   "component": "android",
+   "version": "0.18.54",
+   "date": "2026-11-02",
+   "changes": [
+    "No Rotate or Picture in picture in the TV video menu",
+    "Music borrows the focused cover's colours as a glow, and screens without art get a soft ambient glow"
+   ],
+   "tv": true
+  },
+  {
+   "component": "android",
+   "version": "0.18.53",
+   "date": "2026-11-02",
+   "changes": [
+    "Reorder the rail's libraries in Settings",
+    "Home cards use the same poster-and-caption card as the shelves"
+   ],
+   "tv": true
+  },
+  {
+   "component": "android",
+   "version": "0.18.52",
+   "date": "2026-11-02",
+   "changes": [
+    "Full-screen blurred backdrop of the focused title behind Home and the video shelves, compact title and synopsis, unfocused cards step back"
+   ],
+   "tv": true
+  },
+  {
+   "component": "android",
+   "version": "0.18.51",
+   "date": "2026-11-02",
+   "changes": [
+    "Poster walls use smaller cards, about seven to a row like Plex"
+   ],
+   "tv": true
+  },
+  {
+   "component": "android",
+   "version": "0.18.50",
+   "date": "2026-11-02",
+   "changes": [
+    "Movies, TV and Anime are always a poster wall, matched or not",
+    "Episodes inside a show stay wide"
+   ],
+   "tv": true
+  },
+  {
+   "component": "android",
+   "version": "0.18.49",
+   "date": "2026-11-02",
+   "changes": [
+    "A shelf of matched TMDB posters becomes a poster wall (tall cards, title and year beneath) like Plex and Emby"
+   ],
+   "tv": true
+  },
+  {
+   "component": "android",
+   "version": "0.18.48",
+   "date": "2026-11-02",
+   "changes": [
+    "Tall TMDB posters sit whole on wide tiles instead of being cropped",
+    "Video shelves drop the library title and let the spotlight art run behind the top bar"
+   ],
+   "tv": true
+  },
+  {
+   "component": "android",
+   "version": "0.18.47",
+   "date": "2026-11-02",
+   "changes": [
+    "Spotlight scrolls with the shelf instead of clipping cards, more room above the now-playing bar",
+    "Playback failures report their error code, exception type and HTTP status"
+   ],
+   "tv": true
+  },
+  {
+   "component": "android",
+   "version": "0.18.46",
+   "date": "2026-11-02",
+   "changes": [
+    "Warm amber accent on the near-black TV theme",
+    "Home tiles back to their size"
+   ],
+   "tv": true
+  },
+  {
+   "component": "android",
+   "version": "0.18.45",
+   "date": "2026-11-02",
+   "changes": [
+    "Home drops the repeated Continue watching label and gives the room to larger tiles",
+    "Audio playback diagnostics name parsing, track and unspecified errors"
+   ],
+   "tv": true
+  },
+  {
+   "component": "android",
+   "version": "0.18.44",
+   "date": "2026-11-02",
+   "changes": [
+    "Wide cards for video, captions under audio/book covers, frosted rail and dock, slim progress bars, TV action buttons, grid no longer wobbles when moving focus"
+   ],
+   "tv": true
+  },
+  {
+   "component": "android",
+   "version": "0.18.42",
+   "date": "2026-11-02",
+   "changes": [
+    "Near-black cinema colours on TV (artwork carries the colour, theme accent kept)"
+   ],
+   "tv": true
+  },
+  {
+   "component": "android",
+   "version": "0.18.41",
+   "date": "2026-11-02",
+   "changes": [
+    "Movie and show shelves open with a spotlight over the focused poster (art, title, year, length, synopsis)"
+   ],
+   "tv": true
+  },
+  {
+   "component": "android",
+   "version": "0.18.40",
+   "date": "2026-11-02",
+   "changes": [
+    "No repeated or 0% watched lines on Home",
+    "Synopsis shows under the focused tile when known"
+   ],
+   "tv": true
+  },
+  {
+   "component": "android",
+   "version": "0.18.39",
+   "date": "2026-11-02",
+   "changes": [
+    "Home backdrop follows the focused tile with title and progress over it",
+    "Continue rows as wide art tiles",
+    "Release leftovers (Bluray-1080p, tags) and '1 episodes' cleaned from TV titles",
+    "Settings update buttons keep focus while checking and the install button takes focus"
+   ],
+   "tv": true
+  },
+  {
+   "component": "android",
+   "version": "0.18.38",
+   "date": "2026-11-02",
+   "changes": [
+    "Poster-first cards with the title on a shade over the art and animated focus",
+    "The focused item's length no longer sits in the header",
+    "Rail and content clear of TV overscan"
+   ],
+   "tv": true
+  },
+  {
+   "component": "android",
+   "version": "0.18.37",
+   "date": "2026-11-02",
+   "changes": [
+    "Show screen (poster, story, Play/Resume, season pills, episode rows with progress) and movie detail page",
+    "No stray focus rectangles on pills and rail"
+   ],
+   "tv": true
+  },
+  {
+   "component": "android",
+   "version": "0.18.36",
+   "date": "2026-11-02",
+   "changes": [
+    "Focus grows and settles with a short animation, rail opens smoothly, full-screen glow off on TV for smoother navigation, Settings fits the screen and follows focus, slimmer playback dock"
+   ],
+   "tv": true
+  },
+  {
+   "component": "android",
+   "version": "0.18.35",
+   "date": "2026-11-02",
+   "changes": [
+    "Persistent left navigation rail (Home, every library, Settings) replaces the top pills and the per-screen back rail",
+    "Left reaches it from anywhere and lands on the current screen",
+    "Back from the rail goes Home",
+    "Focus lands on the first card when a library loads"
+   ],
+   "tv": true
+  },
+  {
+   "component": "android",
+   "version": "0.18.31",
+   "date": "2026-11-02",
+   "changes": [
+    "Media tiles fill their cell with true poster/square/16:9 art, larger type, finished badge, wider spacing",
+    "Singular book counts",
+    "Episode tiles drop the repeated show name"
+   ],
+   "tv": true
+  },
+  {
+   "component": "android",
+   "version": "0.18.30",
+   "date": "2026-11-02",
+   "changes": [
+    "Sign-in screen scrolls on small screens",
+    "Selected browse pill scrolls into view",
+    "Maestro emulator flows and debug-only test certificate"
+   ]
+  },
+  {
+   "component": "android",
+   "version": "0.18.28",
+   "date": "2026-11-02",
+   "changes": [
+    "Tighter browse pills so Collections is not clipped"
+   ]
+  },
+  {
+   "component": "android",
+   "version": "0.18.27",
+   "date": "2026-11-01",
+   "changes": [
+    "Stacked series covers sit centred in their card"
+   ]
+  },
+  {
+   "component": "android",
+   "version": "0.18.26",
+   "date": "2026-11-01",
+   "changes": [
+    "Series stack shows the cover itself, tilted and darkened, behind the front one"
+   ]
+  },
+  {
+   "component": "android",
+   "version": "0.18.25",
+   "date": "2026-11-01",
+   "changes": [
+    "All four browse pills fit",
+    "Layout switch moves into the menu",
+    "Stacked series covers show more of the pile"
+   ]
+  },
+  {
+   "component": "android",
+   "version": "0.18.24",
+   "date": "2026-11-01",
+   "changes": [
+    "Settings grouped into titled cards",
+    "Series covers stacked and tilted"
+   ]
+  },
+  {
+   "component": "android",
+   "version": "0.18.23",
+   "date": "2026-11-01",
+   "changes": [
+    "Settings tabs as pills, server row with Connected label, theme swatches"
+   ]
+  },
+  {
+   "component": "android",
+   "version": "0.18.22",
+   "date": "2026-10-31",
+   "changes": [
+    "Authors, Collections, Music, Podcast and Video grids as bordered cards"
+   ]
+  },
+  {
+   "component": "android",
+   "version": "0.18.21",
+   "date": "2026-10-31",
+   "changes": [
+    "Books browse as Series/Authors/All/Collections pills",
+    "Bordered cover cards with a collect button"
+   ]
+  },
+  {
+   "component": "android",
+   "version": "0.18.20",
+   "date": "2026-10-31",
+   "changes": [
+    "Book and video lists as cards, shimmer on covers, on hold/dropped label"
+   ]
+  },
+  {
+   "component": "android",
+   "version": "0.18.19",
+   "date": "2026-10-31",
+   "changes": [
+    "Wiki recent list is computed once per tree, not on every redraw"
+   ]
+  },
+  {
+   "component": "android",
+   "version": "0.18.18",
+   "date": "2026-10-31",
+   "changes": [
+    "Home cards, loading shimmer and a rounded settings surface"
+   ]
+  },
+  {
+   "component": "android",
+   "version": "0.18.17",
+   "date": "2026-10-31",
+   "changes": [
+    "Wiki lists the pages edited last above the tree"
+   ]
+  },
+  {
+   "component": "android",
+   "version": "0.18.16",
+   "date": "2026-10-31",
+   "changes": [
+    "Finished list on Home with Restore"
+   ]
+  },
+  {
+   "component": "android",
+   "version": "0.18.15",
+   "date": "2026-10-31",
+   "changes": [
+    "Reading status in the book options (reading, read, on hold, dropped, unread) and an On hold & dropped list on Home with Resume"
+   ]
+  },
+  {
+   "component": "android",
+   "version": "0.18.13",
+   "date": "2026-10-29",
+   "changes": [
+    "Podcast shows say when their feed could not be refreshed"
+   ]
+  },
+  {
+   "component": "android",
+   "version": "0.18.12",
+   "date": "2026-10-29",
+   "changes": [
+    "Audio and subtitle pickers in the video player no longer crash (AppCompat dialog theme)"
+   ]
+  },
+  {
+   "component": "android",
+   "version": "0.18.11",
+   "date": "2026-10-29",
+   "changes": [
+    "Fix the new video player layout failing to load (play/pause must be an ImageButton)"
+   ]
+  },
+  {
+   "component": "android",
+   "version": "0.18.10",
+   "date": "2026-10-29",
+   "changes": [
+    "Video player reports why the new layout could not load"
+   ]
+  },
+  {
+   "component": "android",
+   "version": "0.18.9",
+   "date": "2026-10-29",
+   "changes": [
+    "New phone video player layout"
+   ]
+  },
+  {
+   "component": "android",
+   "version": "0.18.8",
+   "date": "2026-10-29",
+   "changes": [
+    "Video player title follows the episode",
+    "Release notes and version"
+   ]
+  },
+  {
+   "component": "android",
+   "version": "0.18.7",
+   "date": "2026-10-28",
+   "changes": [
+    "Failed converted stream falls back to the original",
+    "Small songs are not re-encoded"
+   ]
+  },
+  {
+   "component": "android",
+   "version": "0.18.6",
+   "date": "2026-10-28",
+   "changes": [
+    "Music always starts from the beginning"
+   ]
+  },
+  {
+   "component": "android",
+   "version": "0.18.5",
+   "date": "2026-10-28",
+   "changes": [
+    "Tidy Settings categories, read-aloud speed defaults"
+   ]
+  },
+  {
+   "component": "android",
+   "version": "0.18.4",
+   "date": "2026-10-27",
+   "changes": [
+    "One-hand tap zones keep a menu strip",
+    "Tap zones and sharper text in Settings"
+   ]
+  },
+  {
+   "component": "android",
+   "version": "0.18.3",
+   "date": "2026-10-27",
+   "changes": [
+    "Instant swipes, tap zones, read from here"
+   ]
+  },
+  {
+   "component": "android",
+   "version": "0.18.2",
+   "date": "2026-10-27",
+   "changes": [
+    "Home badges, reduce animations, sharper text"
+   ]
+  },
+  {
+   "component": "android",
+   "version": "0.18.1",
+   "date": "2026-10-27",
+   "changes": [
+    "Mark read-along books, start reading from the page"
+   ]
+  },
+  {
+   "component": "android",
+   "version": "0.18.0",
+   "date": "2026-10-27",
+   "changes": [
+    "Play a read-along book's own recording"
+   ]
+  },
+  {
+   "component": "android",
+   "version": "0.17.1",
+   "date": "2026-10-27",
+   "changes": [
+    "Fix the reader crashing when narration starts"
+   ]
+  },
+  {
+   "component": "android",
+   "version": "0.17.0",
+   "date": "2026-10-27",
+   "changes": [
+    "Read aloud in the book reader"
+   ]
+  }
+ ]
+}

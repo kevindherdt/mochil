@@ -1,0 +1,63 @@
+/* An opened series uses the same card typography as every other grid. */
+.series-focus-books .book strong{min-height:2.48em;margin-top:8px;font:600 14px/1.24 "Source Sans","Segoe UI",sans-serif}
+.series-focus-books .book-meta small{font:400 12px/1.25 "Source Sans","Segoe UI",sans-serif}
+
+/* Browser-owned surfaces follow the palette. */
+:root[data-theme=dark]{color-scheme:dark}
+:root[data-theme=light]{color-scheme:light}
+::selection{background:color-mix(in srgb,var(--accent) 38%,transparent);color:inherit}
+input,textarea,select{caret-color:var(--accent);accent-color:var(--accent)}
+html{scrollbar-color:color-mix(in srgb,var(--muted) 40%,transparent) transparent;scrollbar-width:thin}
+a{text-underline-offset:.2em}
+
+/* Search keeps the library picker beside it on wide screens. */
+@media (min-width:761px){
+  .masthead.searching{grid-template-columns:minmax(130px,180px) minmax(0,1fr) auto}
+  .masthead.searching .masthead-destination{display:grid}
+  .masthead.searching .shell-context{display:none}
+  .masthead.searching .masthead-actions{grid-column:2/4}
+  .masthead.searching .search{margin-inline-start:auto}
+}
+
+/* The book menu appears with the card on pointer devices. */
+@media (hover:hover) and (pointer:fine){
+  .book .book-more>summary{opacity:0;transition:opacity .15s ease}
+  .book:hover .book-more>summary,.book:focus-within .book-more>summary,.book .book-more[open]>summary{opacity:1}
+}
+
+/* Status messages: announced always, shown briefly as a toast. */
+#status.catalog-status{position:fixed;left:-9999px;bottom:20px;margin:0}
+#status.catalog-status.toast-visible{left:50%;z-index:80;max-width:min(92vw,520px);padding:11px 18px;border:1px solid var(--line);border-radius:var(--r-12);background:var(--surface);color:var(--text);font-size:var(--fs-14);line-height:1.35;text-align:center;transform:translateX(-50%);animation:status-in .2s ease-out}
+:root:not([data-palette=eink]) #status.catalog-status.toast-visible{box-shadow:0 12px 32px #0005}
+@keyframes status-in{from{opacity:0;transform:translate(-50%,8px)}}
+@media (prefers-reduced-motion:reduce){#status.catalog-status.toast-visible{animation:none}}
+
+@media(pointer:coarse){
+  .collection-save{position:relative}
+  .reading-dismiss,.video-reading-dismiss,.audio-dismiss{position:absolute}
+  .collection-save::after,.reading-dismiss::after,.video-reading-dismiss::after,.audio-dismiss::after{content:"";position:absolute;inset:-12px}
+  #settings-view label.path-field .browse-folder{min-height:44px}
+}
+
+/* A shelf that is empty should not look abandoned at the top of the page: the panel takes
+   a share of the height and centres itself in it, so it lands near the middle on a tall
+   shelf and stays tight on a short one. */
+.state-panel{display:grid;justify-items:center;align-content:center;gap:8px;max-width:420px;min-height:min(56vh,420px);margin:clamp(20px,6vh,64px) auto;padding:0 16px;text-align:center}
+.state-panel h3{margin:0;font:600 22px/1.25 var(--serif,Newsreader,Georgia,serif);color:var(--text)}
+.state-panel p{margin:0;font-size:var(--fs-14);line-height:1.55;color:color-mix(in srgb,var(--text) 76%,transparent)}
+.state-actions{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-top:10px}
+.state-actions button{min-height:44px;padding:0 18px;border:1px solid var(--line);border-radius:var(--r-10);background:transparent;color:var(--text);font:inherit;font-size:var(--fs-14);font-weight:650;cursor:pointer}
+.state-actions button.primary{border-color:transparent;background:var(--accent);color:var(--accent-ink,#1a1411)}
+.state-actions button:hover{border-color:var(--accent)}
+.state-actions button.primary:hover{filter:brightness(1.06)}
+/* On phones the open search field fills its column instead of overflowing it. */
+@media(max-width:760px){.masthead.searching .search{width:100%;min-width:0;margin-inline-start:0}}
+
+/* Settings: fields added after the first one keep the same rhythm; an empty list leaves no rule behind. */
+#settings-view .system-card.appearance-settings>label+label:not(.check-field):not(.setting-toggle){margin-top:18px}
+.accounts-list:empty{display:none}
+
+/* Empty states: one calm, centred panel instead of loose headline text. */
+.empty-state{display:grid;justify-items:center;gap:var(--sp-8);margin:var(--sp-24) 0;padding:var(--sp-48) var(--sp-24);border:1px dashed var(--line);border-radius:var(--r-16);background:color-mix(in srgb,var(--surface) 60%,transparent);color:var(--muted);font:600 var(--fs-18)/1.35 Newsreader,Georgia,serif;text-align:center}
+.empty-state>*{margin:0}
+.empty-state :is(p,small,span):not(:first-child){font:430 var(--fs-14)/1.45 "Source Sans","Segoe UI",sans-serif}
