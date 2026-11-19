@@ -1,0 +1,11 @@
+/* A series with several books looks like a small stack: two more covers peek out behind the front one (the same image, tinted down, so no extra requests). */
+.series-cover-grid .series-card.is-stack>button:first-child{position:relative;isolation:isolate}
+.series-cover-grid .series-card.is-stack>button:first-child::before,.series-cover-grid .series-card.is-stack>button:first-child::after{content:"";position:absolute;z-index:-1;left:0;right:0;top:0;aspect-ratio:3/4;border:1px solid var(--card-border);border-radius:var(--r-8);background:var(--stack-cover) center/cover,var(--raised);transition:transform .2s ease}
+.series-cover-grid .series-card.is-stack>button:first-child::before{transform:translate(-6px,-3px) rotate(-3deg) scale(.95);filter:brightness(.55) saturate(.8)}
+.series-cover-grid .series-card.is-stack>button:first-child::after{transform:translate(6px,-2px) rotate(3deg) scale(.95);filter:brightness(.7) saturate(.85)}
+.series-cover-grid .series-card.is-stack:is(:hover,:focus-within)>button:first-child::before{transform:translate(-9px,-4px) rotate(-5deg) scale(.96)}
+.series-cover-grid .series-card.is-stack:is(:hover,:focus-within)>button:first-child::after{transform:translate(9px,-3px) rotate(5deg) scale(.96)}
+.series-cover-grid .series-card.is-stack .cover-frame{position:relative;z-index:1}
+:root:not([data-palette=eink]) .series-cover-grid .series-card.is-stack .cover-frame{box-shadow:0 6px 16px #0006}
+@media (prefers-reduced-motion:reduce){.series-cover-grid .series-card.is-stack>button:first-child::before,.series-cover-grid .series-card.is-stack>button:first-child::after{transition:none}}
+:root[data-palette=eink] .series-cover-grid .series-card.is-stack>button:first-child::before,:root[data-palette=eink] .series-cover-grid .series-card.is-stack>button:first-child::after{filter:none;background:var(--raised)}
