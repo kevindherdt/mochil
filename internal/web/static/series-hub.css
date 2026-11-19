@@ -1,0 +1,34 @@
+/* One series: a header with the cover, the series' name and how far along you are, then its books below. */
+.series-hub{position:relative;isolation:isolate;margin:0 0 28px;padding:20px 24px 26px;overflow:hidden;border:1px solid var(--card-border);border-radius:var(--r-24);background:var(--card-bg)}
+.series-hub::before{content:"";position:absolute;inset:-40px;z-index:-1;background:var(--art,none) center/cover;filter:blur(40px) saturate(1.3);opacity:.32}
+.series-hub::after{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(180deg,transparent,color-mix(in srgb,var(--bg) 55%,transparent))}
+.series-hub .back-button{margin-bottom:10px}
+.series-hub-body{display:flex;gap:28px;align-items:flex-end}
+.series-hub-cover{position:relative;flex:none;width:clamp(120px,16vw,170px);aspect-ratio:2/3;overflow:hidden;border:1px solid #fff2;border-radius:var(--r-12);background:var(--raised)}
+:root:not([data-palette=eink]) .series-hub-cover{box-shadow:0 22px 50px #000a}
+.series-hub-cover img{display:block;width:100%;height:100%;object-fit:cover}
+.series-hub-cover b{position:absolute;top:8px;left:8px;padding:3px 8px;border-radius:var(--r-6);background:var(--kind-book);color:var(--kind-book-ink);font-size:var(--fs-11);letter-spacing:.04em}
+.series-hub-copy{display:grid;gap:8px;min-width:0}
+.series-hub-tags span{display:inline-block;padding:3px 10px;border-radius:var(--r-6);border:1px solid color-mix(in srgb,var(--kind-book) 40%,transparent);background:color-mix(in srgb,var(--kind-book) 16%,transparent);color:var(--kind-book);font-size:var(--fs-11);font-weight:700;letter-spacing:.05em;text-transform:uppercase}
+.series-hub h2{margin:0;font:650 clamp(26px,3.4vw,40px)/1.1 Newsreader,Georgia,serif;letter-spacing:-.01em}
+.series-hub-by,.series-hub-progress{margin:0;color:var(--muted);font-size:var(--fs-14)}
+.series-hub-by strong{color:var(--text)}
+.series-hub-progress{color:var(--kind-book);font-weight:650}
+.series-hub-progress:empty{display:none}
+.series-hub-actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:10px}
+.series-hub-primary{display:inline-flex;align-items:center;min-height:46px;padding:0 22px;border-radius:var(--r-12);background:var(--accent);color:var(--accent-ink);font-weight:700;text-decoration:none}
+:root:not([data-palette=eink]) .series-hub-primary{box-shadow:0 8px 24px color-mix(in srgb,var(--accent) 40%,transparent)}
+.series-hub-primary:hover{filter:brightness(1.07)}
+.series-hub-primary[hidden]{display:none}
+.series-hub .series-hub-save{position:static;display:inline-flex!important;align-items:center;gap:8px;width:auto;min-height:46px;padding:0 18px;border:1px solid var(--card-border);border-radius:var(--r-12);background:color-mix(in srgb,var(--surface) 60%,transparent);color:var(--text);font-weight:650;cursor:pointer}
+.series-hub .series-hub-save svg{width:18px;height:18px}
+.series-hub .series-hub-save:hover{border-color:var(--card-hover-border)}
+@media (max-width:640px){.series-hub{padding:14px 16px 20px}.series-hub-body{flex-direction:column;align-items:flex-start;gap:16px}.series-hub-cover{width:130px}}
+:root[data-palette=eink] .series-hub::before,:root[data-palette=eink] .series-hub::after{display:none}
+/* The button is big already. Its invisible tap-area extension used to resolve against the whole hero (the button is not positioned), swallowing taps on the back arrow. */
+.series-hub .series-hub-save{position:relative}
+.series-hub .series-hub-save::after{content:none}
+/* The hero takes its colour from the cover (--tint, set by cover-tint.js); until the cover is read it uses the accent. */
+.series-hub{--tint:var(--accent)}
+.series-hub::after{background:radial-gradient(ellipse 80% 90% at 12% 0%,color-mix(in srgb,var(--tint) 42%,transparent),transparent 72%),linear-gradient(180deg,transparent,color-mix(in srgb,var(--bg) 55%,transparent))}
+.series-hub{border-color:color-mix(in srgb,var(--tint) 30%,var(--card-border))}

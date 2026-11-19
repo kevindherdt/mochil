@@ -1,0 +1,32 @@
+/* Settings, second pass: preference panels read as rows (the name and its help on the left, the control in a boxed field on the right) and every field is a boxed control. Loaded after settings-unified.css, so it only overrides. */
+#settings-view .system-card+.system-card{margin-top:16px}
+
+/* Boxed fields everywhere in Settings. */
+#settings-view :is(.fields,.settings-fields,.system-card)>label:not(.check-field):not(.setting-toggle) :is(input:not([type=checkbox]),select){
+  min-height:var(--control-h);padding:0 14px;border:1px solid var(--line);border-radius:var(--control-r);background-color:color-mix(in srgb,var(--text) 5%,transparent);box-shadow:none}
+#settings-view :is(.fields,.settings-fields,.system-card)>label select{padding-right:38px;background-position:right 10px center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#settings-view :is(.fields,.settings-fields,.system-card)>label :is(input,select):hover{border-color:color-mix(in srgb,var(--accent) 55%,var(--line))}
+#settings-view :is(.fields,.settings-fields,.system-card)>label :is(input,select):focus{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 22%,transparent)}
+
+/* Preference rows (Appearance, Playback). */
+#settings-view :is(.appearance-settings,.system-card.settings-fields){padding:6px 24px}
+#settings-view :is(.appearance-settings,.system-card.settings-fields)>label:not(.check-field){display:grid;grid-template-columns:minmax(0,1fr) minmax(220px,320px);align-items:center;gap:6px 24px;margin:0;padding:18px 0 4px;border-top:1px solid var(--line);color:var(--text);font-size:var(--fs-15,15px);font-weight:600;letter-spacing:0;text-transform:none}
+#settings-view :is(.appearance-settings,.system-card.settings-fields)>label:not(.check-field):first-child{border-top:0}
+#settings-view :is(.appearance-settings,.system-card.settings-fields)>label:not(.check-field) :is(input,select){margin-top:0}
+#settings-view :is(.appearance-settings,.system-card.settings-fields)>small{display:block;max-width:60ch;margin:0 0 14px;padding:0}
+#settings-view .appearance-settings>.check-field{margin:0;padding:18px 0 18px;border-top:1px solid var(--line)}
+#settings-view .appearance-settings>.check-field small{margin:2px 0 0}
+#settings-view .appearance-settings>.check-field:first-child{border-top:0}
+
+/* Accounts: the session row is as wide as the list above it. */
+#settings-view .account-session{max-width:none}
+
+@media (max-width:700px){
+  #settings-view :is(.appearance-settings,.system-card.settings-fields){padding:4px 16px}
+  #settings-view :is(.appearance-settings,.system-card.settings-fields)>label:not(.check-field){grid-template-columns:minmax(0,1fr);gap:8px}
+}
+
+/* Devices & sync keeps its fields inside accordions: box them the same way. */
+#settings-view [data-settings-panel=sync] label:not(.check-field):not(.setting-toggle) :is(input:not([type=checkbox]),select){
+  min-height:var(--control-h);padding:0 14px;border:1px solid var(--line);border-radius:var(--control-r);background-color:color-mix(in srgb,var(--text) 5%,transparent);box-shadow:none}
+#settings-view [data-settings-panel=sync] label:not(.check-field):not(.setting-toggle) :is(input,select):focus{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 22%,transparent)}
