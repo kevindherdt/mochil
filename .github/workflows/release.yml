@@ -1,0 +1,207 @@
+# Release: a tag is a promise. Pushing `v0.1.0` publishes that number everywhere — the container
+# tags, the binary archives, and the version the server prints — and refuses to run if the tag and
+# the VERSION file disagree, so a release can never be labelled with a number it is not.
+#
+# Image tags a release produces on ghcr.io/OWNER/mochil:
+#   :0.1.0   the exact release — use this to pin
+#   :0.1     follows patch releases of the same minor — use this for "safe updates"
+#   :latest  the newest release, for people who do not want to think about it
+# A push to main publishes :edge instead, which is never a release.
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: npm
+      # A tag that disagrees with VERSION would publish binaries and an image labelled with one
+      # number but built from another. Fail here, before anything is pushed.
+      - name: The tag matches VERSION
+        run: |
+          want="v$(tr -d '[:space:]' < VERSION)"
+          if [ "$want" != "${GITHUB_REF_NAME}" ]; then
+            echo "tag ${GITHUB_REF_NAME} does not match VERSION (${want})" >&2
+            exit 1
+          fi
+      - run: npm ci
+      - run: go test ./...
+      - run: go vet ./...
+      - run: npm run test:frontend
+      - run: ./scripts/check-store-readiness.sh
+      - run: ./scripts/check-module-sizes.sh
+
+  binaries:
+    needs: verify
+    strategy:
+      matrix:
+        include:
+          # Linux only. The product is the container; these archives exist for people running the
+          # server as a plain binary (NixOS, a NAS, a box without a runtime). Windows and macOS had
+          # no users and cost two CI jobs plus two assets per release on every tag.
+          - { goos: linux, goarch: amd64, archive: tar.gz }
+          - { goos: linux, goarch: arm64, archive: tar.gz }
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+      - name: Build
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: "0"
+        run: |
+          version=$(tr -d '[:space:]' < VERSION)
+          suffix=""
+          if [ "$GOOS" = windows ]; then suffix=".exe"; fi
+          mkdir dist
+          go build -trimpath \
+            -ldflags="-s -w -X mochil/internal/version.Version=${version} -X mochil/internal/version.Commit=${GITHUB_SHA::7}" \
+            -o "dist/mochil${suffix}" ./cmd/mochil
+          cp README.md DESIGN.md LICENSE dist/
+          if [ -f example/compose.yaml ]; then cp example/compose.yaml dist/; fi
+      - name: Package
+        run: |
+          version=$(tr -d '[:space:]' < VERSION)
+          name="mochil-${version}-${{ matrix.goos }}-${{ matrix.goarch }}"
+          if [ "${{ matrix.archive }}" = zip ]; then
+            (cd dist && zip -r "../${name}.zip" .)
+          else
+            tar -C dist -czf "${name}.tar.gz" .
+          fi
+      - uses: actions/upload-artifact@v7
+        with:
+          name: mochil-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: mochil-*
+
+  # Each architecture builds natively: arm64 under QEMU emulation took ~20 minutes per release,
+  # which made shipping painful, while the same build on an arm64 runner takes two. The two images
+  # are merged into one multi-arch tag afterwards, so users still pull a single manifest.
+  container-amd64:
+    needs: verify
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Version
+        id: tags
+        run: echo "version=$(tr -d '[:space:]' < VERSION)" >> "$GITHUB_OUTPUT"
+      - uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: Containerfile
+          platforms: linux/amd64
+          push: true
+          build-args: |
+            VERSION=${{ steps.tags.outputs.version }}
+          tags: ghcr.io/${{ github.repository }}:${{ steps.tags.outputs.version }}-amd64
+          labels: |
+            org.opencontainers.image.version=${{ steps.tags.outputs.version }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+
+  container-arm64:
+    needs: verify
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v7
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Version
+        id: tags
+        run: echo "version=$(tr -d '[:space:]' < VERSION)" >> "$GITHUB_OUTPUT"
+      - uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: Containerfile
+          platforms: linux/arm64
+          push: true
+          build-args: |
+            VERSION=${{ steps.tags.outputs.version }}
+          tags: ghcr.io/${{ github.repository }}:${{ steps.tags.outputs.version }}-arm64
+          labels: |
+            org.opencontainers.image.version=${{ steps.tags.outputs.version }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+
+  container:
+    needs: [container-amd64, container-arm64]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Publish the multi-arch tags
+        run: |
+          version=$(tr -d '[:space:]' < VERSION)
+          repo="ghcr.io/${{ github.repository }}"
+          docker buildx imagetools create \
+            -t "${repo}:${version}" \
+            -t "${repo}:${version%.*}" \
+            -t "${repo}:latest" \
+            "${repo}:${version}-amd64" \
+            "${repo}:${version}-arm64"
+      # The published image is the thing users install, so prove that exact tag boots from empty
+      # volumes before the release is announced, not a rebuild of the same source.
+      - name: Prove the published image installs
+        run: |
+          version=$(tr -d '[:space:]' < VERSION)
+          IMAGE="ghcr.io/${{ github.repository }}:${version}" ./scripts/install-smoke.sh --no-build
+
+  publish:
+    needs: [binaries, container]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          path: artifacts
+          merge-multiple: true
+      - name: Checksums
+        run: cd artifacts && sha256sum mochil-* > SHA256SUMS
+      # Release notes are the app's own changelog entry for this version (what changed for someone
+      # running Mochil) plus how to install it, not a list of commit subjects.
+      - name: Release notes
+        run: |
+          version=$(tr -d '[:space:]' < VERSION)
+          ./scripts/release-notes.sh "${version}" > release-notes.md
+          cat release-notes.md
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version=$(tr -d '[:space:]' < VERSION)
+          # Only the archives we build: `artifacts/*` also swept in buildx's provenance blob
+          # (kevindherdt.mochil.<id>.dockerbuild) on every release.
+          gh release create "${GITHUB_REF_NAME}" artifacts/mochil-* artifacts/SHA256SUMS \
+            --title "Mochil ${version}" --notes-file release-notes.md --verify-tag
