@@ -1,0 +1,43 @@
+services:
+  # The service and volume keep the pre-rename names on purpose: renaming a named volume makes
+  # Docker create a new empty one, and this container is the live library. They are renamed on the
+  # production host, where no volume exists yet.
+  mochil:
+    build:
+      context: .
+      dockerfile: Containerfile
+    image: mochil:local
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/healthz"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    command: ["-config", "/config/config.json", "-config-template", "/bootstrap/config.json"]
+    ports:
+      - "${MOCHIL_PORT:-8099}:8080"
+    environment:
+      MOCHIL_USERNAME: "${MOCHIL_USERNAME:-}"
+      MOCHIL_PASSWORD: "${MOCHIL_PASSWORD:-}"
+      # Run as the usual first user of the host so notes and media it writes stay
+      # yours. Change these if your files belong to someone else.
+      MOCHIL_UID: "${MOCHIL_UID:-1000}"
+      MOCHIL_GID: "${MOCHIL_GID:-1000}"
+      MOCHIL_KOSYNC_USERNAME: "${MOCHIL_KOSYNC_USERNAME:-}"
+      MOCHIL_KOSYNC_PASSWORD: "${MOCHIL_KOSYNC_PASSWORD:-}"
+      MOCHIL_VAAPI_DEVICE: "${MOCHIL_VAAPI_DEVICE:-/dev/dri/renderD128}"
+      XDG_CACHE_HOME: /data/.cache
+      MOCHIL_HLS_MAX_HEIGHT: "${MOCHIL_HLS_MAX_HEIGHT:-1080}"
+      MOCHIL_HLS_CACHE_MB: "${MOCHIL_HLS_CACHE_MB:-4096}"
+      MOCHIL_VIDEO_ARTWORK_CACHE_MB: "${MOCHIL_VIDEO_ARTWORK_CACHE_MB:-1024}"
+      MOCHIL_VIDEO_PREVIEW_CACHE_MB: "${MOCHIL_VIDEO_PREVIEW_CACHE_MB:-512}"
+      MOCHIL_AUDIO_ARTWORK_CACHE_MB: "${MOCHIL_AUDIO_ARTWORK_CACHE_MB:-512}"
+      MOCHIL_PODCAST_DOWNLOAD_CACHE_MB: "${MOCHIL_PODCAST_DOWNLOAD_CACHE_MB:-20480}"
+    volumes:
+      - ${MOCHIL_CONFIG_PATH:-./config}:/config
+      - ./deployment/bootstrap.json:/bootstrap/config.json:ro
+      - mochil-data:/data
+      - ${MOCHIL_MEDIA_PATH:-./media}:/media
+volumes:
+  mochil-data:

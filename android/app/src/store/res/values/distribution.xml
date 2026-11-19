@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="tv_update_install_action">Open app store</string>
+    <string name="tv_update_install_help">Updates are managed by your app store.</string>
+</resources>

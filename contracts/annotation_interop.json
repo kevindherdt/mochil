@@ -1,0 +1,61 @@
+{
+  "version": 1,
+  "annotations": [
+    {
+      "origin": "android",
+      "annotation": {
+        "id": "android:chapter-23-selection",
+        "kind": "highlight",
+        "quote": "The city lights gathered beneath the rain.",
+        "note": "Revisit this image.",
+        "color": "yellow",
+        "chapter": "Chapter 23",
+        "created_at": 1787700000000,
+        "updated_at": 1787700005000,
+        "revision": 7,
+        "device_id": "android-fixture",
+        "locators": {
+          "readium": "{\"href\":\"text/chapter-23.xhtml\",\"type\":\"application/xhtml+xml\",\"title\":\"Chapter 23\",\"locations\":{\"progression\":0.01,\"totalProgression\":0.48},\"text\":{\"before\":\"At the window, \",\"highlight\":\"The city lights gathered beneath the rain.\",\"after\":\" Nobody spoke.\"}}"
+        },
+        "anchor": {
+          "version": 1,
+          "prefix": "At the window,",
+          "exact": "The city lights gathered beneath the rain.",
+          "suffix": "Nobody spoke.",
+          "spine_index": 22,
+          "progress": 0.01
+        }
+      },
+      "expected_readium_href": "text/chapter-23.xhtml",
+      "expected_spine_index": 22
+    },
+    {
+      "origin": "koreader",
+      "annotation": {
+        "id": "koreader:chapter-4-selection",
+        "kind": "highlight",
+        "quote": "A map is also a promise.",
+        "color": "yellow",
+        "chapter": "Chapter 4",
+        "created_at": 1787600000000,
+        "updated_at": 1787600000000,
+        "revision": 3,
+        "device_id": "koreader-fixture",
+        "locators": {
+          "koreader": "{\"page\":\"/body/DocFragment[4]/body/div[1]/p[3]/text().0\",\"pos0\":\"/body/DocFragment[4]/body/div[1]/p[3]/text().0\",\"pos1\":\"/body/DocFragment[4]/body/div[1]/p[3]/text().25\"}"
+        },
+        "anchor": {
+          "version": 2,
+          "prefix": "He folded the paper.",
+          "exact": "A map is also a promise.",
+          "suffix": "Then he closed the door.",
+          "spine_index": 3,
+          "progress": 0
+        }
+      },
+      "expected_koreader_css_selector": "body > div:nth-of-type(1) > p:nth-of-type(3)",
+      "expected_koreader_text_offset": 0,
+      "expected_spine_index": 3
+    }
+  ]
+}
