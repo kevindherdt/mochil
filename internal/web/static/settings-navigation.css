@@ -1,0 +1,22 @@
+/* Settings categories use the workspace width; individual panels own their measure. */
+.settings-nav {
+  width: 100%;
+  max-width: none;
+  scrollbar-width: thin;
+  scrollbar-color: var(--accent) transparent;
+}
+
+@media (max-width: 760px) {
+  .settings-nav {
+    scroll-snap-type: x proximity;
+    scrollbar-width: none;
+  }
+
+  .settings-nav::-webkit-scrollbar {
+    display: none;
+  }
+
+  .settings-nav button {
+    scroll-snap-align: start;
+  }
+}

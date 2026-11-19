@@ -1,0 +1,20 @@
+.vault-home{box-sizing:border-box;width:min(40rem,100%);margin:0 auto;padding:clamp(24px,6vh,64px) clamp(18px,4vw,44px)}
+.vault-home h2{margin:0 0 18px;font:650 clamp(26px,3.2vw,34px)/1.1 Newsreader,Georgia,serif;letter-spacing:-.01em}
+.vault-home h3{margin:30px 0 8px;color:var(--muted);font:650 var(--fs-13)/1 "Source Sans",sans-serif;letter-spacing:.06em;text-transform:uppercase}
+.vault-home-actions{display:flex;flex-wrap:wrap;gap:8px}
+.vault-home-actions button{display:inline-flex;align-items:center;gap:8px;min-height:40px;padding:0 14px;border:1px solid var(--line);border-radius:var(--r-pill);background:var(--surface);color:var(--text);font:inherit;cursor:pointer}
+.vault-home-actions button:hover{border-color:var(--accent);color:var(--accent)}
+.vault-home-actions svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.vault-recent{margin:0;padding:0;list-style:none;border-top:1px solid var(--line)}
+.vault-recent li{border-bottom:1px solid var(--line)}
+.vault-recent button{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"t d" "f d";gap:2px 12px;width:100%;padding:12px 4px;border:0;background:none;color:var(--text);font:inherit;text-align:left;cursor:pointer}
+.vault-recent button:hover strong{color:var(--accent)}
+.vault-recent strong{grid-area:t;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:650}
+.vault-recent small{grid-area:f;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted)}
+.vault-recent small:empty{display:none}
+.vault-recent time{grid-area:d;align-self:center;color:var(--muted);font-size:var(--fs-13)}
+.vault-home-tags p{display:flex;flex-wrap:wrap;gap:8px;margin:0}
+.vault-home-tags .vault-tag{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border:1px solid var(--line);border-radius:var(--r-pill);background:var(--surface);color:var(--text);text-decoration:none}
+.vault-home-tags .vault-tag:hover{border-color:var(--accent);color:var(--accent)}
+.vault-home-tags .vault-tag small{color:var(--muted)}
+.vault-home-tags h3{margin-top:30px}
