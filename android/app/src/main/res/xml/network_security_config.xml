@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Cleartext is allowed because Mochil is normally reached at a private address: 192.168.x.x at home,
+  or a 100.x Tailscale address when away. Which addresses are acceptable is enforced in
+  net.kdhmedia.mochil.auth.ServerAddress (public hosts must use https), not here, because Android
+  cannot express "private ranges only" in this file.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

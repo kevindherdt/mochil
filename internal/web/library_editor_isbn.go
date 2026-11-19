@@ -1,0 +1,137 @@
+package web
+
+import (
+	"context"
+	"errors"
+	"net/http"
+	"strconv"
+	"strings"
+
+	"mochil/internal/catalog"
+	"mochil/internal/isbn"
+	"mochil/internal/jobs"
+)
+
+var (
+	errNoFile           = errors.New("this book's file is not available to read")
+	errFindingsNotSaved = errors.New("the findings could not be saved")
+)
+
+func isbnFindKey(library string) string { return "isbn-find:" + library }
+
+// hasISBN says whether a book already carries an ISBN in its identifiers.
+func hasISBN(book catalog.Book) bool {
+	for scheme, value := range book.Identifiers {
+		if strings.EqualFold(scheme, "isbn") && strings.TrimSpace(value) != "" {
+			return true
+		}
+	}
+	return strings.HasPrefix(strings.ToLower(book.Identifier), "isbn")
+}
+
+// findBookISBN reads one book's file for its ISBN. It only reads.
+func findBookISBN(ctx context.Context, lib Library, book catalog.Book) (isbn.Result, error) {
+	acquired, err := lib.Store.Acquire(ctx, book)
+	if err != nil {
+		return isbn.Result{}, err
+	}
+	if acquired.Reader == nil {
+		return isbn.Result{}, errNoFile
+	}
+	defer acquired.Reader.Close()
+	return isbn.Extract(acquired.Reader, book.Format, isbn.Hints{Title: book.Title, Volume: book.SeriesIndex})
+}
+
+var isbnJob = editorJob{
+	key:         isbnFindKey,
+	available:   func(m *multiServer) bool { return m.isbnFound != nil },
+	unavailable: "Looking for ISBNs is not available right now.",
+	busy:        "The ISBN search is already running for this library.",
+	run: func(ctx context.Context, m *multiServer, lib Library, books []catalog.Book, recount bool) (string, error) {
+		store := m.isbnFound
+		total := int64(len(books))
+		var searched, clear, unsure, none, unreadable, unsupported, hadISBN, before int
+		for index, book := range books {
+			if ctx.Err() != nil {
+				break
+			}
+			jobs.Report(ctx, int64(index), total, "Looking for ISBNs")
+			if hasISBN(book) { // nothing to find
+				hadISBN++
+				continue
+			}
+			if _, have := store.Get(lib.ID, book.ID, book.Size, book.Modified); have && !recount {
+				before++
+				continue
+			}
+			result, err := findBookISBN(ctx, lib, book)
+			if errors.Is(err, isbn.ErrUnsupported) {
+				// A format this search cannot open is not "no ISBN printed": storing a
+				// zero result would report that falsehood forever.
+				unsupported++
+				continue
+			}
+			if err != nil {
+				unreadable++
+				continue
+			}
+			searched++
+			switch {
+			case result.Own != "":
+				clear++
+			case result.Ambiguous:
+				unsure++
+			default:
+				none++
+			}
+			store.Put(lib.ID, book.ID, book.Size, book.Modified, result)
+			if index%50 == 49 {
+				_ = store.Save()
+			}
+		}
+		if err := store.Save(); err != nil {
+			return "", errFindingsNotSaved
+		}
+		message := "Searched " + strconv.Itoa(searched) + " books: " + strconv.Itoa(clear) + " with a clear ISBN, " + strconv.Itoa(unsure) + " unsure, " + strconv.Itoa(none) + " with none"
+		if unreadable > 0 {
+			message += "; " + strconv.Itoa(unreadable) + " could not be read"
+		}
+		if unsupported > 0 {
+			message += "; " + strconv.Itoa(unsupported) + " are in a format this search cannot open"
+		}
+		if searched == 0 && unreadable == 0 && unsupported == 0 {
+			message = "Nothing new to search: " + strconv.Itoa(hadISBN) + " already have an ISBN and " + strconv.Itoa(before) + " were searched before (their findings are kept)."
+		}
+		return message, nil
+	},
+}
+
+// editorISBN looks inside books for their ISBN in the background; nothing is written to the books or the catalogue.
+// What it found is shown beside each book, and taken only when the person chooses.
+func (m *multiServer) editorISBN(w http.ResponseWriter, r *http.Request) {
+	m.serveEditorJob(w, r, isbnJob)
+}
+
+// isbnNote words what was found for a book in a few sentences, with the reasons for the choice.
+func isbnNote(result isbn.Result) string {
+	if len(result.Candidates) == 0 {
+		return "No ISBN is printed in this book."
+	}
+	top := result.Candidates[0]
+	why := func(c isbn.Candidate) string { return c.ISBN + " (" + strings.Join(c.Reasons, ", ") + ")" }
+	var note string
+	rest := result.Candidates[1:]
+	if result.Own != "" {
+		note = "Best match: " + strings.Join(top.Reasons, ", ") + "."
+	} else {
+		note = "Not certain which is this book's own. Closest: " + why(top) + "."
+	}
+	if len(rest) > 0 {
+		others := make([]string, len(rest))
+		for i, other := range rest {
+			others[i] = why(other)
+		}
+		note += " Also in the book: " + strings.Join(others, "; ") + "."
+	}
+	return note
+}
