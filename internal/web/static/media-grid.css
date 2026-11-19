@@ -1,0 +1,47 @@
+/* One grid for every cover grid that is not a book grid. Books set the standard (card-surface.css: 196px cards, roomy gaps);
+   music, podcasts, audiobooks and documents now use the same column width and gaps. A page that needs another size sets --grid-min or --grid-gap on its grid.
+   Phones keep the two columns their own rules already give them.
+   Columns are capped at --grid-max (not left to stretch via 1fr), and justify-content centres the
+   row: a short grid (e.g. a handful of search or discover results) then reads as a deliberate,
+   centred block rather than a left-pinned fragment with a big empty gap beside it. */
+@media (min-width: 761px) {
+  :is(
+    .music-group-grid:not(.list),
+    .music-track-grid,
+    .music-playlist-grid:not(.list),
+    .podcast-cover-grid,
+    .audiobook-book-grid,
+    .audiobook-series-grid,
+    .document-grid
+  ) {
+    grid-template-columns: repeat(auto-fit, minmax(var(--grid-min, 196px), var(--grid-max, 220px)));
+    gap: var(--grid-gap, clamp(22px, 2.4vw, 34px));
+    align-items: stretch;
+    justify-content: center;
+  }
+}
+
+/* Podcast and audiobook cards fill their column and hold the same height: the title takes the spare room, the count sits at the foot. */
+.podcast-card,
+.audiobook-series-card {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+.podcast-card > strong,
+.audiobook-series-card > strong {
+  display: -webkit-box;
+  flex: 1;
+  margin-top: 10px;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+.podcast-card > small,
+.audiobook-series-card > small {
+  margin-top: 4px;
+}
+
+/* Track cards carry no negative margin of their own any more, so they line up with every other grid. */
+.music-track-grid > .music-track-card { margin: 0; }

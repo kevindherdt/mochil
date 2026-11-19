@@ -1,0 +1,27 @@
+@font-face{font-family:Newsreader;src:url('/assets/fonts/newsreader.woff2') format('woff2');font-display:swap;font-weight:200 800}
+@font-face{font-family:Source Sans;src:url('/assets/fonts/source-sans.woff2') format('woff2');font-display:swap;font-weight:200 900}
+:root{color-scheme:dark;--bg:#171513;--surface:#211e1b;--raised:#2a2622;--text:#f4eee6;--muted:#b8aea3;--line:#3a342e;--accent:#f09a72;--accent-ink:#2a1510;--error:#f28b7b}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;background:var(--bg);color:var(--text);font:430 16px/1.5 'Source Sans','Segoe UI',sans-serif}main{min-height:100vh;display:grid;place-items:center;padding:24px}section{width:min(400px,100%);padding:clamp(24px,5vw,38px);border:1px solid var(--line);border-radius:var(--r-16);background:var(--surface)}.wordmark{display:flex;align-items:center;gap:9px;width:max-content;margin-bottom:clamp(52px,10vh,88px);color:var(--text);font:650 20px/1 Newsreader,Georgia,serif;text-decoration:none}.wordmark span{display:grid;place-items:center;width:30px;height:30px;border-radius:var(--r-8);background:var(--accent);color:var(--accent-ink);font-weight:750}h1{margin:0;font:580 clamp(40px,10vw,56px)/.98 Newsreader,Georgia,serif;letter-spacing:-.03em}.intro{margin:12px 0 30px;color:var(--muted)}form{display:grid;gap:16px}label{display:grid;gap:7px;color:var(--muted);font-size:var(--fs-13);font-weight:650}input{width:100%;height:46px;padding:0 12px;border:1px solid var(--line);border-radius:var(--r-10);background:var(--raised);color:var(--text);font:inherit;font-size:var(--fs-16)}input:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:3px}button{height:46px;margin-top:5px;border:0;border-radius:var(--r-10);background:var(--accent);color:var(--accent-ink);font:700 15px 'Source Sans',sans-serif;cursor:pointer}.error{margin:0;color:var(--error);font-size:var(--fs-13)}section>small{display:block;margin-top:24px;color:var(--muted);font-size:var(--fs-12)}@media(max-width:480px){main{align-items:stretch;padding:0}section{min-height:100vh;border:0;border-radius:0;padding:24px}.wordmark{margin-bottom:clamp(64px,15vh,120px)}}
+/* Glass sign-in card: a soft glow behind, centred header, inputs with icons and a glowing button. */
+body{background:radial-gradient(circle at 24% 22%,color-mix(in srgb,var(--accent) 20%,transparent),transparent 55%),radial-gradient(circle at 78% 78%,#7c5cff22,transparent 55%),var(--bg)}
+section{width:min(430px,100%);padding:clamp(28px,5vw,42px);border:1px solid #ffffff1c;border-radius:28px;background:color-mix(in srgb,var(--surface) 72%,transparent);-webkit-backdrop-filter:blur(24px);backdrop-filter:blur(24px)}
+:root:not([data-palette=eink]) section{box-shadow:0 30px 90px #000a}
+.wordmark{margin:0 auto 26px;flex-direction:column;gap:12px;font-size:22px}
+.wordmark span{width:52px;height:52px;border-radius:16px;background:linear-gradient(135deg,color-mix(in srgb,var(--accent) 80%,#fff),var(--accent));font-size:24px}
+:root:not([data-palette=eink]) .wordmark span{box-shadow:0 10px 30px color-mix(in srgb,var(--accent) 45%,transparent)}
+section>div{text-align:center}
+h1{font-size:clamp(30px,7vw,38px);line-height:1.05}
+.intro{margin:10px 0 26px}
+input{height:48px;padding-left:42px;border-radius:14px;background-color:color-mix(in srgb,var(--raised) 80%,transparent);background-repeat:no-repeat;background-position:14px 50%;background-size:18px;transition:border-color .15s ease,box-shadow .15s ease}
+input:focus{outline:0;border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 28%,transparent)}
+input[name=username]{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23b8aea3' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='8' r='4'/%3E%3Cpath d='M4 21a8 8 0 0 1 16 0'/%3E%3C/svg%3E")}
+input[name=password]{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23b8aea3' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='5' y='11' width='14' height='9' rx='2'/%3E%3Cpath d='M8 11V8a4 4 0 0 1 8 0v3'/%3E%3C/svg%3E")}
+button{height:50px;margin-top:8px;border-radius:14px;transition:transform .15s ease,filter .15s ease}
+:root:not([data-palette=eink]) button{box-shadow:0 10px 28px color-mix(in srgb,var(--accent) 35%,transparent)}
+button:hover{filter:brightness(1.07);transform:translateY(-1px)}
+section>small{text-align:center}
+@media(prefers-reduced-motion:reduce){button,input{transition:none}button:hover{transform:none}}
+@media(max-width:480px){section{border-radius:0;-webkit-backdrop-filter:none;backdrop-filter:none;background:transparent;box-shadow:none;justify-content:center}}
+main{position:relative;z-index:1}
+label.remember{display:flex;align-items:center;gap:10px;margin:-2px 0 0;font-weight:500;cursor:pointer}
+label.remember input{width:18px;height:18px;padding:0;border-radius:5px;accent-color:var(--accent);flex:0 0 auto}.wordmark span img{width:100%;height:100%;display:block;border-radius:inherit}
