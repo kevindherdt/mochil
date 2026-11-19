@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Debug builds also trust the emulator test server's certificate; release builds never see this file. -->
+<network-security-config>
+    <debug-overrides>
+        <trust-anchors>
+            <certificates src="system" />
+            <certificates src="@raw/debug_ca" />
+        </trust-anchors>
+    </debug-overrides>
+</network-security-config>

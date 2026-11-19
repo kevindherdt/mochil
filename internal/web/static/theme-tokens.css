@@ -1,0 +1,214 @@
+/* Mochil theme palettes. Ember (warm orange) is the default, Tide (cyan) the
+   cool counterpart, then Magenta Cream, Paper and the e-ink device palette.
+   Ember, Tide and Magenta Cream each carry a dark and a light block so the
+   device's light/dark switch still means something; Paper is light-only and
+   e-ink overrides everything for e-ink screens.
+   [data-theme] only raises specificity above app.css.
+   The selector lists also carry the ids saved by older builds, so a saved
+   choice survives the rename: dusk/twilight/tide/manjaro/material -> kiln,
+   ember/rosewood/ubuntu -> mochil. */
+
+/* Ember: warm near-black with a genuinely vivid orange. Espresso's old peach
+   sat in the same hue band as its own brown background, which is why the
+   app read as one flat colour; the accent here is far enough away from the
+   surface to actually signal something. Follows light and dark. */
+:root[data-palette="mochil"][data-theme="dark"],
+:root[data-palette="ember"][data-theme="dark"],
+:root[data-palette="rosewood"][data-theme="dark"],
+:root[data-palette="ubuntu"][data-theme="dark"],
+[data-swatch][data-palette="mochil"][data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #1a1512;
+  --surface: #251e18;
+  --raised: #382c24;
+  --line: #5a4a38;
+  --text: #f7efe2;
+  --muted: #bfae99;
+  --accent: #ff7a34;
+  --accent-ink: #241005;
+  --wash: #a33c12;
+  --error: #ff8a6b;
+  --accent-video: #b470f0;
+  --accent-music: #70f0b8;
+  --accent-podcast: #f070a5;
+  --accent-comics: #f0e770;
+  --shadow: 0 16px 38px #0009;
+}
+
+:root[data-palette="mochil"][data-theme="light"],
+:root[data-palette="ember"][data-theme="light"],
+:root[data-palette="rosewood"][data-theme="light"],
+:root[data-palette="ubuntu"][data-theme="light"],
+[data-swatch][data-palette="mochil"][data-theme="light"] {
+  color-scheme: light;
+  --bg: #fdf1e3;
+  --surface: #fffaf3;
+  --raised: #f6e2cd;
+  --line: #e0c6a8;
+  --text: #241608;
+  --muted: #6f5540;
+  --accent: #b8420a;
+  --accent-ink: #fff6ec;
+  --wash: #f7d7bb;
+  --error: #a3260b;
+  --accent-video: #62229b;
+  --accent-music: #1b7e58;
+  --accent-podcast: #9b2266;
+  --accent-comics: #79731a;
+  --shadow: 0 14px 35px #6b3a151f;
+}
+
+:root[data-palette="kiln"][data-theme="dark"],
+:root[data-palette="dusk"][data-theme="dark"],
+:root[data-palette="twilight"][data-theme="dark"],
+:root[data-palette="tide"][data-theme="dark"],
+:root[data-palette="manjaro"][data-theme="dark"],
+:root[data-palette="material"][data-theme="dark"],
+[data-swatch][data-palette="kiln"][data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0d1618;
+  --surface: #142023;
+  --raised: #1c2b2f;
+  --line: #2f4247;
+  --text: #e9f6f7;
+  --muted: #a3bcc1;
+  --accent: #2fd6d0;
+  --accent-ink: #04211f;
+  --wash: #0f5f61;
+  --error: #ff8f9e;
+  --accent-video: #c084fc;
+  --accent-music: #fbbf24;
+  --accent-podcast: #fb7185;
+  --accent-comics: #a3e635;
+  --shadow: 0 16px 38px #000c;
+}
+
+:root[data-palette="kiln"][data-theme="light"],
+:root[data-palette="dusk"][data-theme="light"],
+:root[data-palette="twilight"][data-theme="light"],
+:root[data-palette="tide"][data-theme="light"],
+:root[data-palette="manjaro"][data-theme="light"],
+:root[data-palette="material"][data-theme="light"],
+[data-swatch][data-palette="kiln"][data-theme="light"] {
+  color-scheme: light;
+  --bg: #eaf6f6;
+  --surface: #f9fdfd;
+  --raised: #d8eeef;
+  --line: #b3d6d8;
+  --text: #0d2426;
+  --muted: #4d6f73;
+  --accent: #0a7278;
+  --accent-ink: #ffffff;
+  --wash: #c9e9ea;
+  --error: #a3123a;
+  --accent-video: #6d28d9;
+  --accent-music: #a16207;
+  --accent-podcast: #9f1239;
+  --accent-comics: #4d7c0f;
+  --shadow: 0 14px 35px #0d3f401f;
+}
+
+:root[data-palette="paper"][data-theme],
+[data-swatch][data-palette="paper"][data-theme] {
+  color-scheme: light;
+  --bg: #f7f7f5;
+  --surface: #ffffff;
+  --raised: #edede9;
+  --line: #c9c9c3;
+  --text: #1a1a18;
+  --muted: #5d5d57;
+  --accent: #1a1a18;
+  --accent-ink: #ffffff;
+  --wash: #dadad4;
+  --error: #a73535;
+  --accent-video: #7e43b1;
+  --accent-music: #307e73;
+  --accent-podcast: #b1436c;
+  --accent-comics: #856f32;
+  --shadow: 0 14px 35px #2a2a241c;
+}
+
+:root[data-palette="eink"][data-theme="dark"],
+[data-swatch][data-palette="eink"][data-theme="dark"] {
+  --bg:#000;
+  --surface:#000;
+  --raised:#171717;
+  --text:#fff;
+  --muted:#c9c9c9;
+  --line:#8a8a8a;
+  /* A card edge has to read as a line on e-ink: solid, not a tinted mix, and
+     the same grey as separators so both clear 3:1 against the page. */
+  --card-border: var(--line);
+  --accent:#fff;
+  --accent-ink:#000;
+  --accent-video:#fff;
+  --accent-music:#fff;
+  --accent-podcast:#fff;
+  --accent-comics:#fff;
+  --error:#fff;
+  --shadow:none;
+}
+
+:root[data-palette="eink"][data-theme="light"],
+[data-swatch][data-palette="eink"][data-theme="light"] {
+  --bg:#fff;
+  --surface:#fff;
+  --raised:#eee;
+  --text:#111;
+  --muted:#4a4a4a;
+  --line:#767676;
+  --card-border: var(--line);
+  --accent:#111;
+  --accent-ink:#fff;
+  --accent-video:#111;
+  --accent-music:#111;
+  --accent-podcast:#111;
+  --accent-comics:#111;
+  --error:#111;
+  --shadow:none;
+}
+
+/* Magenta Cream: the real mark's colours (field #ff2e7e, pack #fff3e9, lid
+   #8c003b), used as a real theme rather than just icon/launcher assets. Bold
+   on purpose — this exists because the Espresso default reads as one brown
+   note throughout (background, accent and progress bar all close in hue);
+   this theme leans hard into contrast instead. */
+:root[data-palette="magenta-cream"][data-theme="dark"],
+[data-swatch][data-palette="magenta-cream"][data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #15121a;
+  --surface: #1e1a24;
+  --raised: #282230;
+  --line: #3a323f;
+  --text: #fff3e9;
+  --muted: #b8a8ae;
+  --accent: #ff2e7e;
+  --accent-ink: #2a0f1a;
+  --wash: #8c003b;
+  --error: #ff5f7e;
+  --accent-video: #7a5cff;
+  --accent-music: #30e0a0;
+  --accent-podcast: #ffb020;
+  --accent-comics: #30c7f0;
+  --shadow: 0 16px 38px #0008;
+}
+
+:root[data-palette="magenta-cream"][data-theme="light"],
+[data-swatch][data-palette="magenta-cream"][data-theme="light"] {
+  color-scheme: light;
+  --bg: #fff3e9;
+  --surface: #fffaf5;
+  --raised: #ffe8da;
+  --line: #e9c9b4;
+  --text: #2a0f1a;
+  --muted: #7a5a60;
+  --accent: #c81a5e;
+  --accent-ink: #fff3e9;
+  --wash: #ffd3e4;
+  --error: #a3003a;
+  --accent-video: #5a3fc0;
+  --accent-music: #0e8f5f;
+  --accent-podcast: #b06d00;
+  --accent-comics: #0e7fa0;
+  --shadow: 0 14px 35px #8c003b1f;
+}

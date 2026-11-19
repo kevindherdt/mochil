@@ -1,0 +1,19 @@
+[
+  {"title":"The Album","bucket":"A"},
+  {"title":"AN   Record","bucket":"R"},
+  {"title":"A Song","bucket":"S"},
+  {"title":"  The Album  ","bucket":"A"},
+  {"title":"Theatre","bucket":"T"},
+  {"title":"The","bucket":"T"},
+  {"title":"The A Song","bucket":"A"},
+  {"title":"The\tAlbum","bucket":"T"},
+  {"title":"86—Eighty Six","bucket":"#"},
+  {"title":"The 86—Eighty Six","bucket":"#"},
+  {"title":"Élan","bucket":"#"},
+  {"title":"The 日本語","bucket":"#"},
+  {"title":"🎵 Album","bucket":"#"},
+  {"title":"","bucket":"#"},
+  {"title":" \t\n ","bucket":"#"},
+  {"title":"istanbul","bucket":"I"},
+  {"title":"ßound","bucket":"#"}
+]
