@@ -1,0 +1,112 @@
+/* List layouts for books: every row is a roomy rounded card like the cover grids, laid out in columns on wide screens
+   instead of one thin line across the page. Series rows carry a cover and open full width; book rows show a larger cover. */
+.series-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,440px),1fr));gap:14px;align-items:start;border-top:0}
+.series-list .series-row{border:1px solid var(--card-border);border-radius:var(--card-radius);background:var(--card-bg);transition:border-color .2s ease,box-shadow .2s ease}
+.series-list .series-row[open]{grid-column:1/-1}
+.series-list .series-row>summary{min-height:92px;padding:12px 88px 12px 12px;grid-template-columns:56px minmax(0,1fr) auto;gap:14px}
+.series-list .series-row>summary>.series-row-cover{grid-column:1;grid-row:1;display:block;width:56px;height:76px;overflow:hidden;border-radius:var(--r-8);background:var(--raised)}
+:root:not([data-palette=eink]) .series-list .series-row>summary>.series-row-cover{box-shadow:0 6px 16px #0006}
+.series-list .series-row>summary>.series-row-cover img{width:100%;height:100%;object-fit:cover}
+.series-list .series-row>summary>span:first-child{grid-column:2;grid-row:1}
+.series-list .series-row>summary>.series-count{grid-column:3;grid-row:1;padding:3px 10px;border-radius:var(--r-pill);background:color-mix(in srgb,var(--kind-book) 16%,transparent);color:var(--kind-book);font-weight:650}
+.series-list .series-row>summary::after{top:41px}
+.series-list .series-row[open]>summary::after{top:47px}
+.series-list details.series-row>summary>button.series-row-save{top:24px}
+.series-list .series-row>.series-books{padding:6px 14px 18px}
+.series-list .series-row:hover{border-color:var(--card-hover-border)}
+.book-list,.series-books .book-list{display:grid!important;grid-template-columns:repeat(auto-fill,minmax(min(100%,400px),1fr));gap:12px;border-top:0}
+.book-list .book-list-item{min-height:104px;padding:10px 6px 10px 12px;border:1px solid var(--card-border);border-radius:var(--card-radius);background:var(--card-bg);transition:border-color .2s ease,transform .2s ease}
+.book-list .book-list-item .book-open{grid-template-columns:60px minmax(0,1fr);gap:16px}
+.book-list .book-list-cover{width:60px;height:90px;border-radius:var(--r-8)}
+:root:not([data-palette=eink]) .book-list .book-list-cover{box-shadow:0 8px 18px #0007}
+.book-list .book-list-item .book-list-copy strong{font-size:var(--fs-15,15px)}
+.book-list .book-list-item:hover{border-color:var(--card-hover-border)}
+@media (hover:hover) and (pointer:fine){.book-list .book-list-item:hover{transform:translateY(-2px)}}
+@media (max-width:760px){
+  .series-list,.book-list{grid-template-columns:minmax(0,1fr)}
+  .series-list .series-row>summary{min-height:84px;padding-right:44px}
+  .series-books .book-list{grid-template-columns:minmax(0,1fr)}
+  .series-list .series-row>summary>.series-row-cover{width:48px;height:66px}
+  .series-list .series-row>summary{grid-template-columns:48px minmax(0,1fr)}
+  .series-list .series-row>summary::after{top:37px}
+  .series-list .series-row[open]>summary::after{top:43px}
+}
+@media (prefers-reduced-motion:reduce),(prefers-contrast:more){.series-list .series-row,.book-list .book-list-item{transition:none}.book-list .book-list-item:hover{transform:none}}
+/* Table-like rows on wide screens: cover and title, creator, series or format, and a progress line. */
+.book-list-col{display:none}
+@media (min-width:900px){
+  .book-list,.series-books .book-list{grid-template-columns:minmax(0,1fr);gap:8px}
+  .book-list .book-list-item{min-height:76px;padding:8px 8px 8px 14px;background:color-mix(in srgb,var(--card-bg) 55%,transparent);border-color:transparent}
+  .book-list .book-list-item:hover{background:var(--card-bg);border-color:var(--card-hover-border);transform:none}
+  .book-list .book-list-item .book-open{grid-template-columns:48px minmax(0,2fr) minmax(0,1.3fr) minmax(0,1.2fr) 190px;gap:18px;align-items:center}
+  .book-list .book-list-cover{width:48px;height:68px}
+  .book-list .book-list-copy small,.book-list .book-list-copy .book-reading-label{display:none}
+  .book-list .book-list-col{display:block;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted);font-size:var(--fs-13)}
+  .book-list .book-list-creator{color:var(--text)}
+  .book-list .book-list-series i{padding:2px 8px;border-radius:var(--r-6);background:var(--raised);font-style:normal;font-size:var(--fs-11);font-weight:650;letter-spacing:.04em}
+  .book-list .book-list-meter{display:flex;align-items:center;gap:10px;font-variant-numeric:tabular-nums}
+  .book-list .book-list-meter b{min-width:3.2em;text-align:right;color:var(--kind-book);font-weight:650}
+  .book-list-meter-bar{position:relative;flex:1;height:6px;border-radius:var(--r-pill);background:color-mix(in srgb,var(--text) 14%,transparent);overflow:hidden}
+  .book-list-meter-bar::after{content:"";position:absolute;inset:0 auto 0 0;width:var(--progress);border-radius:inherit;background:var(--kind-book)}
+}
+/* Currently reading: cover beside the details, a progress line underneath. */
+.reading-head{display:flex;align-items:baseline;gap:12px;margin-bottom:12px}
+.reading-head h2{margin:0;font:650 var(--fs-18,18px)/1.2 "Source Sans","Segoe UI",sans-serif}
+.reading-head p{margin:0;color:var(--muted);font-size:var(--fs-13)}
+.reading-track{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr));gap:16px}
+.reading-card{display:flex;align-items:center;gap:16px;padding:14px;border:1px solid var(--card-border);border-radius:var(--card-radius);background:var(--card-bg);color:var(--text);text-decoration:none;transition:border-color .2s ease,box-shadow .2s ease}
+.reading-cover{flex:none;width:72px;aspect-ratio:2/3;overflow:hidden;border-radius:var(--r-8);background:var(--raised)}
+:root:not([data-palette=eink]) .reading-cover{box-shadow:0 8px 18px #0007}
+.reading-cover img{display:block;width:100%;height:100%;object-fit:cover}
+.reading-copy{display:grid;gap:5px;min-width:0;flex:1}
+.reading-copy .jump-tag{position:static;justify-self:start;background:color-mix(in srgb,var(--kind-book) 18%,transparent);color:var(--kind-book);border:1px solid color-mix(in srgb,var(--kind-book) 35%,transparent)}
+.reading-copy strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:650 var(--fs-15,15px)/1.2 "Source Sans","Segoe UI",sans-serif}
+.reading-copy small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted);font-size:var(--fs-12)}
+.reading-meter{display:grid;gap:5px;margin-top:4px}
+.reading-meter-label{color:var(--kind-book);font-size:var(--fs-11);font-weight:650;font-variant-numeric:tabular-nums}
+.reading-meter-bar{position:relative;height:6px;border-radius:var(--r-pill);background:color-mix(in srgb,var(--text) 14%,transparent);overflow:hidden}
+.reading-meter-bar::after{content:"";position:absolute;inset:0 auto 0 0;width:var(--progress);border-radius:inherit;background:var(--kind-book)}
+@media (hover:hover) and (pointer:fine){.reading-card:hover{border-color:var(--kind-book)}.reading-card:hover strong{color:var(--kind-book)}:root:not([data-palette=eink]) .reading-card:hover{box-shadow:0 14px 28px -14px #000a,0 0 22px 1px color-mix(in srgb,var(--kind-book) 20%,transparent)}}
+@media (max-width:760px){.reading-track{display:flex;overflow-x:auto;gap:12px;scroll-snap-type:x proximity;padding-bottom:6px}.reading-card{flex:0 0 min(84%,300px);scroll-snap-align:start}}
+@media (prefers-reduced-motion:reduce){.reading-card{transition:none}}
+/* Header row, row numbers (turning into an open icon on hover) and the sort control. */
+.book-list-head{display:none}
+.book-sort{display:flex;justify-content:flex-end;margin:0 18px 12px 0}
+.book-sort label{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:var(--fs-13)}
+.book-sort select{height:44px;padding:0 12px;border:1px solid var(--card-border);border-radius:var(--r-10);background:var(--card-bg);color:var(--text);font:inherit;font-size:var(--fs-13);cursor:pointer}
+.book-sort select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media (min-width:900px){
+  .book-list-head{display:grid;grid-template-columns:48px minmax(0,2fr) minmax(0,1.3fr) minmax(0,1.2fr) 190px;gap:18px;margin:0 55px 6px 15px;padding:0 0 8px;border-bottom:1px solid var(--card-border);color:var(--muted);font-size:var(--fs-11);font-weight:650;letter-spacing:.08em;text-transform:uppercase}
+  .book-list-head span:first-child{display:none}
+  .book-list-head.is-numbered span:nth-child(2){display:block}
+  .book-list-head:not(.is-numbered) span:nth-child(2){display:block}
+  .book-list-head.is-numbered{grid-template-columns:28px 48px minmax(0,2fr) minmax(0,1.3fr) minmax(0,1.2fr) 190px}
+  .book-list-head.is-numbered span:first-child{display:block;text-align:center}
+  .book-list.is-numbered{counter-reset:row}
+  .book-list.is-numbered .book-list-item .book-open{grid-template-columns:28px 48px minmax(0,2fr) minmax(0,1.3fr) minmax(0,1.2fr) 190px}
+  .book-list.is-numbered .book-list-item .book-open::before{counter-increment:row;content:counter(row);display:grid;place-items:center;width:28px;height:28px;color:var(--muted);font-size:var(--fs-12);font-variant-numeric:tabular-nums}
+  .book-list.is-numbered .book-list-item:hover .book-open::before,.book-list.is-numbered .book-list-item:focus-within .book-open::before{content:"";background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%237fb2f7' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 6.5C10 5 7 4.5 4 5v13c3-.5 6 0 8 1.5 2-1.5 5-2 8-1.5V5c-3-.5-6 0-8 1.5ZM12 6.5v13'/%3E%3C/svg%3E") center/18px no-repeat}
+}
+.book-list .book-list-series em{font-style:normal;opacity:.45}
+/* Inside an opened series or author the books come first; "Currently reading" belongs to the shelves. */
+/* Phones: a compact letter strip, air between the tabs and the selector, and a smaller save button that stays inside the card. */
+@media (max-width:600px){
+  :root{--catalog-sticky-top:116px}
+  nav.masthead.masthead:has(.shell-context:not([hidden])){height:116px;grid-template-rows:40px 52px;row-gap:14px}
+  .alphabet.alphabet-jump{margin:4px -14px 10px;padding:2px 14px;background:none;backdrop-filter:none;gap:0}
+  .alphabet.alphabet-jump a,.alphabet.alphabet-jump button{min-width:30px;min-height:30px;padding:0;font-size:var(--fs-13)}
+  .series-cover-grid .series-card .series-save:not(.series-hub-save){position:absolute;top:18px;right:18px;width:32px;height:32px;min-height:0}
+  .series-cover-grid .series-card .series-save:not(.series-hub-save) svg{width:16px;height:16px}
+  .series-cover-grid .series-card .series-count-badge{right:16px;bottom:16px}
+}
+/* The save button is already 44px; its extra invisible hit area reached over the open/close chevron and opened "Save to collection" by mistake. */
+.series-row .series-row-save::after,.series-cover-grid .series-card .series-save:not(.series-hub-save)::after{content:none}
+/* Inside one series or one author the A–Z strip has nothing to jump between. */
+.alphabet:has(~ .series-index :is(.series-hub,.series-focus-head)){display:none}
+/* A list inside an opened collection carries both classes; the list layout must beat the cover-grid columns. */
+.book-grid.book-list{grid-template-columns:repeat(auto-fill,minmax(min(100%,400px),1fr));gap:12px}
+@media (max-width:760px){.book-grid.book-list{grid-template-columns:minmax(0,1fr);gap:8px}}
+@media (min-width:900px){.book-grid.book-list{grid-template-columns:minmax(0,1fr);gap:8px}}
+/* Style containment would restart the row counter at 1 in every row. */
+.book-list.is-numbered .book{contain:layout;content-visibility:visible}
+/* Books inside a collection take their columns and gap from the shared cover grid in card-surface.css. */

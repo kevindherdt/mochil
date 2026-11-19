@@ -1,0 +1,34 @@
+/* Reduce animations: everything happens at once. Set from Settings, and by default with the E-ink theme. */
+:root[data-motion="reduced"] *,
+:root[data-motion="reduced"] *::before,
+:root[data-motion="reduced"] *::after {
+  animation-duration: 0.001ms !important;
+  animation-delay: 0s !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+  transition-delay: 0s !important;
+  scroll-behavior: auto !important;
+}
+
+/* A screen fades in when it opens instead of snapping into place; controls give a little under the finger. */
+@keyframes view-in{from{opacity:0}}
+main>section:not([hidden]){animation:view-in var(--dur) var(--ease)}
+.masthead button:active,.audio-player button:active,.layout-toggle button:active{transform:scale(.94)}
+.masthead button,.audio-player button,.layout-toggle button{transition:transform var(--dur-fast) var(--ease),background-color var(--dur-fast) var(--ease),color var(--dur-fast) var(--ease)}
+
+/* Rails that scroll sideways fade out on the side that has more: nothing on the left until you have scrolled, nothing on
+   the right once you have reached the end. Browsers without scroll-driven animations just show the rail as before. */
+@property --rail-fade-start{syntax:"<length>";inherits:false;initial-value:0px}
+@property --rail-fade-end{syntax:"<length>";inherits:false;initial-value:0px}
+@keyframes rail-fade{
+  0%{--rail-fade-start:0px;--rail-fade-end:36px}
+  6%{--rail-fade-start:36px;--rail-fade-end:36px}
+  94%{--rail-fade-start:36px;--rail-fade-end:36px}
+  100%{--rail-fade-start:36px;--rail-fade-end:0px}
+}
+@supports (animation-timeline:scroll(self inline)){
+  .reading-track,.recent-track,.music-discovery-groups{
+    animation:rail-fade linear both;animation-timeline:scroll(self inline);animation-range:8px calc(100% - 8px);
+    -webkit-mask-image:linear-gradient(to right,transparent,#000 var(--rail-fade-start),#000 calc(100% - var(--rail-fade-end)),transparent);
+    mask-image:linear-gradient(to right,transparent,#000 var(--rail-fade-start),#000 calc(100% - var(--rail-fade-end)),transparent)}
+}
