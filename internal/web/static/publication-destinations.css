@@ -1,0 +1,31 @@
+.author-list{display:grid}
+.author-row{width:100%;min-height:58px;display:flex;align-items:center;justify-content:space-between;gap:18px;padding:7px 2px;border:0;border-bottom:1px solid var(--line);border-radius:0;background:transparent;color:var(--text);text-align:left;cursor:pointer}
+.author-row:hover{background:var(--surface)}
+.author-row>span:first-child{display:grid;min-width:0}.author-row small{color:var(--muted)}
+@media(min-width:900px){
+  .browse-controls{width:100%;display:grid;grid-template-columns:44px minmax(0,1fr) 44px;align-items:center;gap:0}
+  .browse-controls::before{content:"";width:44px}
+  .browse-controls .publication-destinations{justify-self:center;max-width:100%}
+  .browse-controls .view-menu{justify-self:end}
+}
+@media(max-width:760px){.publication-destinations{flex:1;max-width:100%}}
+.layout-toggle{display:inline-flex;gap:2px;padding:3px;border-radius:var(--r-10);background:var(--surface)}
+.layout-toggle button{width:38px;height:36px;display:grid;place-items:center;border:0;border-radius:var(--r-8);background:transparent;color:var(--muted);cursor:pointer}
+.layout-toggle button svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.layout-toggle button[aria-pressed=true]{background:var(--raised);color:var(--text)}
+:root:not([data-palette=eink]) .layout-toggle button[aria-pressed=true]{box-shadow:0 1px 3px #0003}
+.layout-toggle{justify-self:end}
+.layout-toggle[hidden]{display:none}
+/* One icon for the two layouts: it shows the layout a click switches to, and the pressed one steps aside. */
+.layout-toggle{padding:0;gap:0;background:transparent}
+.layout-toggle button[aria-pressed=true]{display:none}
+.layout-toggle button{color:var(--text)}
+.layout-toggle button:hover{background:var(--raised)}
+@media (pointer:coarse),(max-width:700px){.layout-toggle button{width:44px;height:44px}}
+
+/* A–Z side rail (wide screens only): quiet until scrolling or approaching the edge. */
+@media (min-width:700px){
+.alphabet.alphabet-jump{opacity:0;transition:opacity .25s ease}
+.rail-awake .alphabet.alphabet-jump,.alphabet.alphabet-jump:hover,.alphabet.alphabet-jump:focus-within{opacity:1}
+}
+@media (min-width:700px) and (prefers-reduced-motion:reduce){.alphabet.alphabet-jump{transition:none}}

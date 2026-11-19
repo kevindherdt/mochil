@@ -1,0 +1,24 @@
+/* Music rows as a table on wide screens: title with its art, artist, album and length, like the sample lists. */
+.audio-table-head{display:none}
+.audio-col{display:none}
+/* Phones keep the stacked row: the old last-child rule must not pick up the time column or lose the title block. */
+#audio-index .audio-open>.audio-col{display:none}
+#audio-index .audio-open>span:not(.audio-glyph):not(.audio-col){display:grid;min-width:0}
+@media (min-width:900px){
+  #audio-index[data-kind="music"] .audio-table-head{display:grid;grid-template-columns:40px minmax(0,2fr) minmax(0,1.3fr) minmax(0,1.3fr) 70px;gap:18px;margin:0 56px 6px 14px;padding:0 0 8px;border-bottom:1px solid var(--card-border);color:var(--muted);font-size:var(--fs-11);font-weight:650;letter-spacing:.08em;text-transform:uppercase}
+  .audio-table-head span:last-child{text-align:right}
+  #audio-index[data-kind="music"] #audio-items>.audio-item:has(.audio-col){margin-bottom:6px;border:1px solid transparent;border-radius:var(--card-radius);background:color-mix(in srgb,var(--card-bg) 55%,transparent);transition:background-color .15s ease,border-color .15s ease}
+  #audio-index[data-kind="music"] #audio-items>.audio-item:has(.audio-col):hover,#audio-index[data-kind="music"] #audio-items>.audio-item:has(.audio-col):focus-within{background:var(--card-bg);border-color:var(--card-hover-border)}
+  #audio-index[data-kind="music"] #audio-items>.audio-item:has(.audio-col) .audio-open{display:grid;grid-template-columns:40px minmax(0,2fr) minmax(0,1.3fr) minmax(0,1.3fr) 70px;gap:18px;align-items:center;width:100%;padding:8px 6px 8px 14px;text-align:left}
+  #audio-index[data-kind="music"] #audio-items>.audio-item:has(.audio-col) .audio-open>span:nth-child(2) small{display:none}
+  #audio-index[data-kind="music"] #audio-items>.audio-item:has(.audio-col) .audio-col{display:block;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted);font-size:var(--fs-13)}
+  #audio-index[data-kind="music"] #audio-items>.audio-item:has(.audio-col) .audio-col-artist{color:var(--text)}
+  #audio-index[data-kind="music"] #audio-items>.audio-item:has(.audio-col) .audio-col-time{text-align:right;font-variant-numeric:tabular-nums}
+}
+/* Hovering a row (mouse only) dims its art and shows a play triangle, so the whole row clearly plays. */
+@media (min-width:900px) and (hover:hover) and (pointer:fine){
+  #audio-index[data-kind="music"] #audio-items>.audio-item:has(.audio-col) .audio-glyph{position:relative;overflow:hidden}
+  #audio-index[data-kind="music"] #audio-items>.audio-item:has(.audio-col) .audio-glyph::after{content:"";position:absolute;inset:0;background:rgb(0 0 0/.5) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='m8 5 11 7-11 7V5Z' fill='white'/%3E%3C/svg%3E") center/18px no-repeat;opacity:0;transition:opacity .14s ease}
+  #audio-index[data-kind="music"] #audio-items>.audio-item:has(.audio-col):hover .audio-glyph::after,#audio-index[data-kind="music"] #audio-items>.audio-item:has(.audio-col):focus-within .audio-glyph::after{opacity:1}
+}
+@media (prefers-reduced-motion:reduce){#audio-index[data-kind="music"] .audio-glyph::after{transition:none}}
