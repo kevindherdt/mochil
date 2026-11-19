@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="en" data-theme="dark" data-palette="mochil">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+    <meta name="color-scheme" content="dark light" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="theme-color" content="#1f1b18" />
+    <script>
+      // Apply the saved theme before the first paint. app.js is loaded at the end of
+      // the body, so without this a light, paper or e-ink reader sees the dark
+      // palette flash on every page load.
+      (() => {
+        try {
+          const root = document.documentElement;
+          const palettes = ["mochil", "kiln", "paper", "eink"];
+          const mode = localStorage.getItem("mochil-theme-mode") || localStorage.getItem("mochil-theme") || "system";
+          const resolved = mode === "system" ? (matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark") : mode;
+          if (resolved === "light" || resolved === "dark") root.dataset.theme = resolved;
+          const palette = localStorage.getItem("mochil-palette");
+          if (palettes.includes(palette)) root.dataset.palette = palette;
+        } catch (_) {
+          /* private windows can refuse reads; the default palette still applies */
+        }
+      })();
+    </script>
+    <link rel="icon" type="image/png" href="/assets/icons/favicon-32.png" />
+    <link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon.png" />
+    <title>Mochil</title>
+    <link rel="stylesheet" href="/assets/design-tokens.css?v=2">
+  <link rel="stylesheet" href="/assets/app.css?v=111" />
+    <link rel="stylesheet" href="/assets/card-surface.css?v=21" />
+    <link rel="stylesheet" href="/assets/media-grid.css?v=3" />
+    <link rel="stylesheet" href="/assets/backdrops.css?v=4" />
+    <link rel="stylesheet" href="/assets/book-list.css?v=25" />
+    <link rel="stylesheet" href="/assets/series-hub.css?v=4" />
+    <link rel="stylesheet" href="/assets/theme-tokens.css?v=10" />
+    <link rel="stylesheet" href="/assets/activity-panel.css?v=2" />
+    <link rel="stylesheet" href="/assets/dashboard.css?v=46" />
+    <link rel="stylesheet" href="/assets/kind-colors.css?v=26" />
+    <link rel="stylesheet" href="/assets/sticky-shell.css?v=17" />
+    <link rel="stylesheet" href="/assets/destination-rail.css?v=8" />
+    <link rel="stylesheet" href="/assets/viewport-action-menus.css?v=3" />
+    <link rel="stylesheet" href="/assets/book-progress.css?v=4" />
+    <link rel="stylesheet" href="/assets/motion.css?v=4" />
+    <link rel="stylesheet" href="/assets/publication-destinations.css?v=13" />
+    <link rel="stylesheet" href="/assets/book-actions.css?v=10" />
+    <link rel="stylesheet" href="/assets/folder-picker.css?v=2" />
+    <link rel="stylesheet" href="/assets/cover-loading.css?v=8" />
+    <link rel="stylesheet" href="/assets/field-suggestions.css?v=1" />
+    <link rel="stylesheet" href="/assets/smart-collection.css?v=5" />
+    <link rel="stylesheet" href="/assets/library-menu.css?v=5" />
+    <link rel="stylesheet" href="/assets/finished-rail.css?v=4" />
+    <link rel="stylesheet" href="/assets/ui-polish.css?v=39" />
+    <link rel="stylesheet" href="/assets/video-polish.css?v=31" />
+    <link rel="stylesheet" href="/assets/series-stack.css?v=2" />
+    <link rel="stylesheet" href="/assets/collection-rows.css?v=1" />
+  </head>
+  <body>
+    <nav class="masthead" aria-label="Primary navigation">
+      <label class="shelf-switcher masthead-destination"
+        ><span class="sr-only">Home or library</span
+        ><select id="filters" aria-label="Choose Home or a library"></select
+        ><svg class="shelf-chevron" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="m8 10 4 4 4-4" /></svg
+      ></label>
+      <div class="shell-context" id="shell-context" hidden></div>
+      <div class="masthead-actions">
+        <label class="search" id="search-panel" aria-hidden="true" inert
+          ><span class="sr-only">Search books</span
+          ><input
+            id="search"
+            type="search"
+            placeholder="Titles, authors, series"
+            autocomplete="off"
+        /></label>
+        <button
+          class="icon-button"
+          id="search-toggle"
+          aria-label="Search books"
+          aria-expanded="false"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="11" cy="11" r="6.5" />
+            <path d="m16 16 4 4" />
+          </svg>
+        </button>
+        <button
+          class="icon-button activity-toggle"
+          id="activity-toggle"
+          aria-label="Activity"
+          aria-expanded="false"
+          aria-controls="activity-panel"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="12" r="8" />
+            <path d="M12 7v5l3 2" /></svg
+          ><span class="activity-dot"></span>
+        </button>
+        <button class="icon-button" data-view="settings" aria-label="Settings" aria-pressed="false" hidden></button>
+      </div>
+    </nav>
+    <main>
+      <section id="library-view" hidden>
+        <div class="library-tools">
+          <div class="browse-controls">
+            <nav class="publication-destinations" id="publication-destinations" aria-label="Browse publication library"></nav>
+            <div class="layout-toggle" id="view-menu" role="group" aria-label="Layout">
+              <button type="button" data-layout="covers" aria-label="Covers" aria-pressed="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h6v6H4zM14 5h6v6h-6zM4 15h6v4H4zM14 15h6v4h-6z" /></svg></button>
+              <button type="button" data-layout="list" aria-label="List" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" /></svg></button>
+            </div>
+            <div hidden>
+              <select id="series-layout"><option value="covers"></option><option value="list"></option></select>
+              <select id="item-layout"><option value="covers"></option><option value="list"></option></select>
+              <select id="video-layout"><option value="covers"></option><option value="list"></option></select>
+              <select id="document-layout"><option value="covers"></option><option value="list"></option></select>
+            </div>
+          </div>
+        </div>
+        <p class="catalog-status" id="status" aria-live="polite">
+          Opening the shelves…
+        </p>
+        <button type="button" class="save-search" id="save-search" hidden>
+          Save this search as a collection
+        </button>
+        <nav
+          class="alphabet"
+          id="alphabet"
+          aria-label="Browse by first character"
+        ></nav>
+        <nav
+          class="alphabet media-alphabet"
+          id="media-alphabet"
+          aria-label="Jump by first character"
+          hidden
+        ></nav>
+
+        <div class="series-index" id="series-index"></div>
+        <div
+          class="pagination-sentinel"
+          id="series-sentinel"
+          aria-hidden="true"
+        ></div>
+        <button class="load-more" id="series-load-more" hidden>
+          Load more series
+        </button>
+        <div class="catalog" id="book-catalog" hidden>
+          <div
+            class="virtual-spacer"
+            id="book-top-spacer"
+            aria-hidden="true"
+          ></div>
+          <div
+            class="pagination-sentinel"
+            id="book-start-sentinel"
+            aria-hidden="true"
+          ></div>
+          <button class="load-more" id="book-load-previous" hidden>
+            Load previous books
+          </button>
+          <div class="grid book-grid" id="books"></div>
+          <div
+            class="pagination-sentinel"
+            id="book-sentinel"
+            aria-hidden="true"
+          ></div>
+          <button class="load-more" id="load-more" hidden>
+            Load more books
+          </button>
+          <div
+            class="virtual-spacer"
+            id="book-bottom-spacer"
+            aria-hidden="true"
+          ></div>
+        </div>
+        <div class="collection-index" id="collection-index" hidden></div>
+      </section>
+
+      <section id="settings-view" hidden>
+        <header class="settings-head">
+          <div>
+            <button type="button" class="settings-back" id="settings-back" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 5-7 7 7 7"/></svg><span>All settings</span></button>
+            <h1>Settings</h1>
+            <p class="settings-intro" id="settings-intro">Pick a page. Each one holds a single area, so nothing hides at the bottom of a long list.</p>
+          </div>
+          <div class="settings-save">
+            <p id="settings-status" role="status"></p>
+            <button type="button" id="discard" hidden>Discard changes</button>
+            <button class="primary" id="save">Save changes</button>
+          </div>
+        </header>
+        <nav class="settings-nav settings-index" aria-label="Settings pages">
+          <button
+            class="active"
+            data-settings-tab="libraries"
+            data-hint="Your folders, their metadata and imports"
+            aria-pressed="true"
+          ><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg><span>Libraries</span></button>
+          <button data-settings-tab="modules" data-hint="Optional features you can switch on" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><path d="M16.5 13v7M13 16.5h7"/></svg><span>Modules</span></button>
+          <button data-settings-tab="sync" data-hint="Phones, tablets and KOReader" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 0 0-14-4M4 13a8 8 0 0 0 14 4M6 3v4h4M18 21v-4h-4"/></svg><span>Devices &amp; sync</span></button>
+          <button data-settings-tab="playback" data-hint="How audio and video play" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m10 8.5 5 3.5-5 3.5z"/></svg><span>Playback</span></button>
+          <button data-settings-tab="narration" data-hint="Voices the reader can speak with" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg><span>Narration</span></button>
+          <button data-settings-tab="appearance" data-hint="Theme, palette and reading defaults" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18c1.5 0 2-1 1.5-2s0-2.5 1.5-2.5H17a4 4 0 0 0 4-4C21 6.5 17 3 12 3z"/><circle cx="8" cy="11" r=".8"/><circle cx="12" cy="7.5" r=".8"/><circle cx="16" cy="11" r=".8"/></svg><span>Appearance</span></button>
+          <button data-settings-tab="accounts" data-hint="Who can sign in, and what they may do" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 20c1-4 4-6 8-6s7 2 8 6"/></svg><span>Accounts</span></button>
+          <button data-settings-tab="diagnostics" data-hint="Health, logs and slow requests" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h4l2-6 4 12 2-6h6"/></svg><span>Diagnostics</span></button>
+        </nav>
+                <section class="settings-panel" data-settings-panel="narration" hidden>
+          <header><h2>Narration</h2><p>The voices the reader can read aloud with. Make a new one from a short recording.</p></header>
+          <p class="panel-empty">Narration is off or not installed. Turn it on under Modules to manage voices here.</p>
+        </section>
+        <section class="settings-panel" data-settings-panel="diagnostics" hidden>
+          <header><h2>Diagnostics</h2><p>Server health at a glance: uptime, memory, slow requests and background errors.</p></header>
+        </section>
+        <section class="settings-panel settings-subsection" data-settings-panel="editor" hidden>
+          <header><h2>Editor</h2><p>The library editor is an optional module for administrators: a spreadsheet-like table for books, with Hermes-assisted tools when Hermes is on.</p></header>
+          <div class="system-card editor-menu-card">
+            <label class="check-field" id="editor-menu-toggle" hidden><input type="checkbox" /><span><strong>Show the library editor in the Home and library menu</strong><small>Only hides the entry on this device; the editor itself stays available.</small></span></label>
+          </div>
+        </section>
+        <section class="settings-panel" data-settings-panel="libraries">
+          <header class="libraries-head">
+            <div>
+              <h2>Libraries</h2>
+              <p>Open a library to change it. The switch shows or hides it on this device only.</p>
+            </div>
+            <div class="libraries-head-actions">
+              <a class="add add-secondary" href="/editor/import">Import…</a>
+              <button class="add" id="add-library" type="button">Add a folder…</button>
+            </div>
+          </header>
+          <p class="first-library-hint" id="first-library-hint" hidden>
+            Start with the folder that holds your books — <code>/books</code> is the one this
+            install mounts. Comics, audiobooks and video are added the same way afterwards.
+          </p>
+          <div id="library-settings"></div>
+        </section>
+      </section>
+    </main>
+    <script type="module" src="/assets/app.js?v=557"></script>
+  </body>
+</html>

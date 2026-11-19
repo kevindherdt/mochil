@@ -1,0 +1,21 @@
+FROM golang:1.26-bookworm AS build
+WORKDIR /src
+COPY go.mod go.sum ./
+RUN go mod download
+COPY . .
+RUN CGO_ENABLED=0 go run ./cmd/assetbuild
+RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/mochil ./cmd/mochil
+
+FROM debian:bookworm-slim
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates calibre gosu \
+    && rm -rf /var/lib/apt/lists/* \
+    && mkdir -p /data/.config/calibre \
+    && chown -R 65532:65532 /data
+COPY --from=build /out/mochil /mochil
+COPY --chmod=0755 deployment/container-entrypoint.sh /container-entrypoint.sh
+ENV HOME=/data XDG_CONFIG_HOME=/data/.config
+EXPOSE 8080
+VOLUME ["/books", "/config", "/data"]
+ENTRYPOINT ["/container-entrypoint.sh"]
+CMD ["-library", "/books", "-cache", "/data/catalog.json", "-listen", "0.0.0.0:8080"]
