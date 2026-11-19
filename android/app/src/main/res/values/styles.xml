@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.Mochil" parent="android:style/Theme.Material.NoActionBar">
+        <item name="android:fontFamily">sans</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:windowActionModeOverlay">true</item>
+    </style>
+    <!-- Media3's track picker is an AppCompat dialog; the app theme is not, and AppCompat refuses to draw in it. -->
+    <style name="Theme.Mochil.TrackDialog" parent="Theme.AppCompat.Dialog.Alert">
+        <item name="colorAccent">#FFF09A72</item>
+    </style>
+</resources>
