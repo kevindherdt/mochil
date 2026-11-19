@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+    <!-- The main manifest also declares a network security config now (private http addresses), so
+         the debug override has to state that it wins instead of tripping the manifest merger. -->
+    <application
+        android:networkSecurityConfig="@xml/debug_network"
+        tools:replace="android:networkSecurityConfig" />
+</manifest>

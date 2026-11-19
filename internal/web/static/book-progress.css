@@ -1,0 +1,53 @@
+.book .cover-frame, .recent-card .cover-frame { position: relative; }
+.book-reading-bar {
+  position: absolute;
+  z-index: 2;
+  inset: auto 0 0;
+  height: 4px;
+  background: color-mix(in srgb, var(--line) 82%, transparent);
+}
+.book-reading-bar::after {
+  content: "";
+  display: block;
+  width: var(--progress);
+  height: 100%;
+  background: var(--accent);
+}
+.book-reading-bar.is-finished::after { width: 100%; }
+.book-reading-label {
+  flex: 0 0 auto !important;
+  color: var(--accent) !important;
+  font-size: var(--fs-12) !important;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.book-reading-label.is-finished { font-weight: 700; }
+.book-list-copy .book-reading-label { margin-top: 2px; }
+@media (max-width: 560px) {
+  .book-meta { flex-wrap: wrap; }
+  .book-reading-bar { height: 3px; }
+}
+.book-read-along {
+  position: absolute;
+  z-index: 2;
+  left: 6px;
+  bottom: 10px;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  color: #fff;
+  background: color-mix(in srgb, #000 62%, transparent);
+  backdrop-filter: blur(4px);
+}
+.book-read-along svg { width: 15px; height: 15px; fill: currentColor; }
+.book-read-along-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 2px;
+  color: var(--accent) !important;
+  font-size: var(--fs-12) !important;
+}
+.book-read-along-label svg { width: 13px; height: 13px; fill: currentColor; }
