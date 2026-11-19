@@ -1,0 +1,5 @@
+/* Episode rows: where a copy is kept. Quiet pills under the details; the saved arrows take the accent colour. */
+.episode-badges{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.episode-badge{padding:2px 9px;border:1px solid color-mix(in srgb,var(--kind-podcast,var(--accent)) 55%,transparent);border-radius:var(--r-pill,999px);background:color-mix(in srgb,var(--kind-podcast,var(--accent)) 12%,transparent);color:var(--kind-podcast,var(--accent));font-size:12px;font-style:normal;font-weight:650;line-height:1.5}
+.audio-quick-device[data-state=ready]{color:var(--accent)}
+@media (forced-colors:active),(prefers-contrast:more){.episode-badge{border-color:currentColor}}

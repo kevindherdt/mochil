@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en" data-theme="dark" data-palette="mochil">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="dark light">
+  <title>Import books · Mochil</title>
+  <link rel="icon" type="image/png" href="/assets/icons/favicon-32.png">
+  <link rel="stylesheet" href="/assets/design-tokens.css?v=1">
+  <link rel="stylesheet" href="/assets/theme-tokens.css?v=10">
+  <link rel="stylesheet" href="/assets/editor.css?v=23">
+  <link rel="stylesheet" href="/assets/import.css?v=6">
+</head>
+<body>
+  <header class="ed-top">
+    <a class="ed-back" href="/" aria-label="Back to Mochil">←</a>
+    <h1>Import books</h1>
+    <nav class="ed-tabs" aria-label="Editor pages"><a href="/editor">Library</a><a href="/editor/import" aria-current="page">Import</a></nav>
+    <label class="ed-library">Compare with <select id="im-library"></select></label>
+    <label class="ed-library">Default library <select id="im-into"></select></label>
+    <label class="ed-library">Save as <select id="im-naming"><option value="default">Author / Series / Series - Vol 1</option><option value="kavita">Kavita: Series / Series - Vol 01</option><option value="calibre">Calibre: Author / Title / Title - Author</option></select></label>
+  </header>
+  <nav class="ed-filters" id="im-filters" aria-label="Show"></nav>
+  <main>
+    <p class="ed-hint" id="im-destination"></p>
+    <label class="im-option im-hide"><input type="checkbox" id="im-hide-copied"> Hide books already copied</label>
+    <p class="ed-status" id="im-status" role="status" aria-live="polite"></p>
+    <p class="ed-hint" id="im-hint">Books are copied from the drop folder into the managed folder. The originals are never changed or removed. Click a cell to correct it; the saved name updates. Shift-click a checkbox to select a range, or use Space and Shift+Space on the highlighted row.</p>
+    <div class="ed-scroll">
+      <table class="ed-grid im-grid" aria-label="Books waiting to be imported">
+        <thead><tr id="im-head"></tr></thead>
+        <tbody id="im-body"></tbody>
+      </table>
+    </div>
+    <button type="button" id="im-more" class="ed-more" hidden>Load more</button> <button type="button" id="im-everything" class="ed-more" hidden>Load everything</button>
+  </main>
+  <footer class="ed-save" id="im-bar" hidden>
+    <span id="im-bar-text"></span>
+    <details class="im-options" id="im-options"><summary>Options</summary>
+    <label class="im-option"><input type="checkbox" id="im-sidecar" checked> Write a metadata.opf beside each book</label>
+    <label class="im-option" title="Rewrites the title, author, series and other fields inside the copied EPUB. The original in the drop folder is never changed."><input type="checkbox" id="im-embed"> Also write them into the copied EPUB</label>
+    </details>
+    <button type="button" id="im-send" class="ed-quiet">Send to library…</button>
+    <button type="button" id="im-clear" class="ed-quiet">Clear</button>
+    <button type="button" id="im-copy" class="ed-primary">Review &amp; copy</button>
+  </footer>
+  <dialog id="ed-dialog"><form method="dialog" id="ed-dialog-form"><h2 id="ed-dialog-title"></h2><div id="ed-dialog-body"></div><p class="ed-error" id="ed-dialog-error" role="alert"></p><div class="ed-dialog-actions"><button value="cancel" class="ed-quiet" id="ed-dialog-cancel">Cancel</button><button value="ok" class="ed-primary" id="ed-dialog-ok">OK</button></div></form></dialog>
+  <script type="module" src="/assets/import.js?v=14"></script>
+</body>
+</html>
