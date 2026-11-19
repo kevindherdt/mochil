@@ -1,0 +1,46 @@
+.audio-art-placeholder {
+  width: 28%;
+  height: 28%;
+  min-width: 20px;
+  min-height: 20px;
+  color: var(--accent);
+}
+
+:is(
+  .podcast-card-art,
+  .podcast-list-art,
+  .podcast-focus-art,
+  .audiobook-series-art,
+  .audiobook-series-row-art,
+  .audiobook-focus-art
+) {
+  position: relative;
+}
+
+:is(
+  .podcast-card-art,
+  .podcast-list-art,
+  .podcast-focus-art,
+  .audiobook-series-art,
+  .audiobook-series-row-art,
+  .audiobook-focus-art
+) > img {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+
+:is(.podcast-back, .audiobook-back) {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+:is(.podcast-back, .audiobook-back) svg {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+}
+
+/* The subtitle sits right under the title; a one-line title no longer leaves a gap shaped like a second line. */
+.audiobook-book-card .audio-open>strong,.audiobook-series-card strong{min-height:0}
