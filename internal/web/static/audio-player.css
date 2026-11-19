@@ -1,0 +1,229 @@
+/* The player: a docked bar, and an expanded sheet that opens from it. One set of rules per part, bar first, then the
+   expanded layout; overrides are by selector, never forced. Sizes come from design-tokens.css. */
+
+/* ── Shell ─────────────────────────────────────────────────────────────────────────────────────── */
+.audio-player{position:fixed;z-index:35;right:0;bottom:0;left:0;display:grid;grid-template-columns:48px minmax(0,1fr) auto minmax(0,1fr) auto 40px;align-items:center;gap:var(--sp-8) var(--sp-8);min-height:64px;padding:8px max(14px,env(safe-area-inset-right)) max(8px,env(safe-area-inset-bottom)) max(14px,env(safe-area-inset-left));border-top:1px solid color-mix(in srgb,var(--line) 70%,transparent);background:color-mix(in srgb,var(--surface) 88%,transparent);-webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px)}
+:root:not([data-palette=eink]) .audio-player{box-shadow:0 -12px 32px #0003}
+.audio-player[hidden]{display:none}
+.audio-player audio{display:none}
+.audio-expanded{overflow:hidden}
+
+/* Progress is a line on the top edge of the bar (--progress is set on the player). */
+.audio-player:not(.expanded)::before{content:"";position:absolute;top:-1px;left:0;width:var(--progress,0%);height:2px;background:var(--accent);transition:width .25s linear;pointer-events:none}
+
+/* Buttons share one quiet style; parts below say how they differ. */
+.audio-player button,.audio-player select{min-height:44px;border:0;border-radius:var(--r-8);background:0 0;color:var(--text)}
+.audio-player button{min-width:36px;padding:0 8px;cursor:pointer}
+.audio-player button svg{width:17px;height:17px}
+.audio-player button.active,.audio-player button:hover{background:var(--raised);color:var(--accent)}
+
+/* ── Bar ───────────────────────────────────────────────────────────────────────────────────────── */
+.audio-art-play{position:relative;grid-column:1;grid-row:1;display:grid;place-items:center;width:48px;height:48px;min-width:48px;padding:0;overflow:hidden;border-radius:var(--r-10);background:var(--raised);color:var(--accent);cursor:default}
+#audio-player-art{position:absolute;inset:0;display:grid;place-items:center;overflow:hidden;border-radius:var(--r-10);background:var(--raised);color:var(--accent)}
+#audio-player-art>svg{width:18px;height:18px}
+#audio-player-art:has(img)>svg{display:none}
+#audio-player-art img{width:100%;height:100%;object-fit:cover}
+
+.audio-player-copy{grid-column:2;grid-row:1;display:grid;align-self:center;gap:1px;min-width:0;width:100%;text-align:left}
+.audio-player-copy strong,.audio-player-copy small{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.audio-player-copy strong{font:650 var(--fs-14)/1.15 "Source Sans","Segoe UI",sans-serif}
+.audio-player-copy small{color:var(--muted);font-size:var(--fs-11);line-height:1.2}
+.audio-player-copy #audio-source-facts{display:none;color:var(--muted);font-size:var(--fs-11);line-height:1.2;letter-spacing:.025em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+.audio-bar-skip{grid-column:3;grid-row:1;position:relative;display:flex;align-items:center;gap:6px}
+.audio-player .audio-bar-skip button{display:grid;place-items:center;width:38px;min-width:38px;height:38px;min-height:0;padding:0;border-radius:50%}
+.audio-player .audio-bar-skip button:hover{background:var(--raised);color:var(--text)}
+.audio-player .audio-bar-skip .audio-bar-play{width:44px;min-width:44px;height:44px;background:var(--accent);color:var(--accent-ink)}
+.audio-player .audio-bar-skip .audio-bar-play:hover{background:var(--accent);color:var(--accent-ink);filter:brightness(1.08)}
+.audio-bar-play .audio-play-icon{width:22px;height:22px}
+/* The close button is taken out of the group's flow: with it inside, the six controls put the
+   play button 21px left of the bar's centre line, which reads as a misaligned player. */
+.audio-player .audio-bar-skip #audio-bar-close{position:absolute;left:calc(100% + 10px);top:50%;transform:translateY(-50%);width:32px;min-width:32px;height:32px;margin-left:0;color:var(--muted)}
+
+.audio-time{grid-column:4;grid-row:1;justify-self:start;display:flex;align-items:center;gap:var(--sp-4);padding:0 6px;color:var(--muted);font-size:var(--fs-12);font-variant-numeric:tabular-nums;white-space:nowrap}
+.audio-time i{opacity:.5;font-style:normal}
+
+.audio-player-favorite,.audio-player-more>summary{display:grid;place-items:center;width:44px;height:44px;border:0;border-radius:50%;background:0 0;color:var(--muted);cursor:pointer}
+.audio-player-favorite{grid-column:5;grid-row:1}
+.audio-player .audio-player-favorite svg,.audio-player-more>summary svg{width:19px;height:19px}
+.audio-player-favorite.active{color:var(--accent)}
+.audio-player-favorite.active svg{fill:currentColor}
+.audio-player:not(.expanded) .audio-player-favorite.active,.audio-player:not(.expanded) .audio-player-favorite.active:hover{background:0 0}
+
+.audio-player-more{position:relative;grid-column:6;grid-row:1}
+.audio-player-more>summary{list-style:none}
+.audio-player-more>summary::-webkit-details-marker{display:none}
+.audio-player-more>summary:hover,.audio-player-more[open]>summary{background:var(--raised);color:var(--text)}
+.audio-player-more>summary svg{fill:currentColor}
+.audio-player-more>div{position:absolute;right:0;bottom:49px;z-index:9;width:210px;padding:6px;border:1px solid var(--line);border-radius:var(--r-12);background:var(--surface);box-shadow:var(--shadow-3)}
+.audio-player-more button,.audio-player-more label{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;min-height:44px;padding:0 10px;border:0;border-radius:var(--r-8);background:0 0;color:var(--text);font:600 var(--fs-13)/1 "Source Sans","Segoe UI",sans-serif}
+.audio-player-more button:hover{background:var(--raised)}
+.audio-player-more button svg{width:17px;height:17px}
+.audio-player-more button>span{margin-right:auto}
+.audio-player-more button b{font-weight:700}
+.audio-player-more #audio-sleep b{color:var(--accent)}
+.audio-player-more select{height:32px;min-height:0;padding:0 5px;border:0;background:var(--raised);color:var(--text)}
+.audio-player-skip{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));margin-bottom:var(--sp-4);padding-bottom:var(--sp-4);border-bottom:1px solid var(--line)}
+.audio-player-skip button{justify-content:center;padding:0 5px}
+.audio-player-skip button span{margin:0}
+
+/* Shown only after playback has given up: a plain button to start the same track again where it stopped. */
+.audio-retry{display:none}
+
+/* Parts that only exist in the expanded sheet. */
+.audio-seek,.audio-expanded-transport,.audio-player-collapse,.audio-player-queue[hidden]{display:none}
+
+@media (prefers-reduced-motion:reduce){.audio-player:not(.expanded)::before{transition:none}}
+
+/* Phone bar: no time or close button; the menu still has Close player. */
+@media (max-width:680px){
+  .audio-player{grid-template-columns:44px minmax(0,1fr) auto 36px;min-height:60px}
+  .audio-art-play{width:44px;min-width:44px;height:44px}
+  .audio-player-copy strong{font-size:var(--fs-13)}
+  .audio-time,.audio-player .audio-bar-skip #audio-bar-close{display:none}
+  .audio-player-favorite{display:none}
+  .audio-player-more{grid-column:4}
+  .audio-player .audio-bar-skip button{width:34px;min-width:34px;height:34px}
+  .audio-player .audio-bar-skip .audio-bar-play{width:40px;min-width:40px;height:40px}
+  .audio-player-more>div{right:-2px;bottom:47px}
+}
+
+/* ── Expanded sheet: one centred column — cover, title with heart and menu, seek, transport ───────── */
+.audio-player.expanded{z-index:70;left:50%;right:auto;bottom:max(12px,env(safe-area-inset-bottom));width:min(480px,calc(100% - 24px));height:min(780px,calc(100dvh - 24px));grid-template-columns:minmax(0,1fr) 48px 48px;grid-template-rows:auto minmax(0,1fr) auto auto auto auto;align-items:stretch;gap:0 4px;padding:10px 24px 22px;transform:translateX(-50%);border:1px solid color-mix(in srgb,var(--line) 70%,transparent);border-radius:var(--r-28);background:linear-gradient(180deg,color-mix(in srgb,var(--art-tint,var(--accent)) 26%,var(--surface)),var(--surface) 62%)}
+:root:not([data-palette=eink]) .audio-player.expanded{box-shadow:0 30px 90px #000a}
+.audio-player.expanded .audio-bar-skip{display:none}
+
+.audio-player.expanded .audio-player-collapse{grid-column:3;grid-row:1;justify-self:end;display:grid;place-items:center;width:44px;height:44px;margin-right:-10px}
+.audio-player.expanded .audio-art-play{grid-column:1/-1;grid-row:2;align-self:center;justify-self:center;width:clamp(140px,calc(100dvh - 370px),100%);height:auto;min-width:0;aspect-ratio:1;margin-block:6px 18px;border-radius:var(--r-24)}
+:root:not([data-palette=eink]) .audio-player.expanded .audio-art-play{box-shadow:0 18px 44px #0006}
+.audio-player.expanded #audio-player-art{border-radius:var(--r-24)}
+
+.audio-player.expanded .audio-player-copy{grid-column:1;grid-row:3;align-self:center;height:auto;min-height:0;grid-template-rows:repeat(3,min-content);align-content:center;gap:var(--sp-4);padding:0 8px 0 0;background:transparent;box-shadow:none;-webkit-tap-highlight-color:transparent}
+.audio-player.expanded .audio-player-copy:focus{outline:none}
+.audio-player.expanded .audio-player-copy:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:var(--r-8)}
+.audio-player.expanded .audio-player-copy strong{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;font-size:var(--fs-22);line-height:1.2;letter-spacing:-.01em;white-space:normal}
+.audio-player.expanded .audio-player-copy small{font-size:var(--fs-14);line-height:1.3}
+.audio-player.expanded .audio-player-copy #audio-source-facts:not(:empty){display:block;margin-top:2px}
+/* Status (including "lost its connection") may wrap instead of being cut off. */
+.audio-player.expanded .audio-player-copy #audio-context{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;white-space:normal}
+
+.audio-player.expanded .audio-player-favorite{grid-column:2;grid-row:3;align-self:center}
+.audio-player.expanded .audio-player-more{z-index:8;grid-column:3;grid-row:3;align-self:center}
+.audio-player.expanded .audio-player-more>div{bottom:48px}
+
+.audio-player.expanded>.audio-seek{display:block;grid-column:1/-1;grid-row:4;width:100%;height:26px;margin:14px 0 0;appearance:none;background:0 0;cursor:pointer}
+.audio-player.expanded>.audio-seek::-webkit-slider-runnable-track{height:3px;border-radius:var(--r-4);background:linear-gradient(to right,var(--accent) var(--seek),var(--line) var(--seek))}
+.audio-player.expanded>.audio-seek::-webkit-slider-thumb{width:14px;height:14px;margin-top:-5.5px;appearance:none;border:0;border-radius:50%;background:var(--accent)}
+.audio-player.expanded>.audio-seek::-moz-range-track{height:3px;background:var(--line)}
+.audio-player.expanded>.audio-seek::-moz-range-progress{height:3px;background:var(--accent)}
+.audio-player.expanded>.audio-seek::-moz-range-thumb{width:14px;height:14px;border:0;background:var(--accent)}
+.audio-player.expanded .audio-time{grid-column:1/-1;grid-row:5;justify-self:stretch;justify-content:space-between;margin-top:-2px;padding:0}
+.audio-player.expanded .audio-time i{display:none}
+
+.audio-player.expanded .audio-expanded-transport{grid-column:1/-1;grid-row:6;display:flex;align-items:center;justify-content:center;gap:clamp(6px,3.5vw,18px);margin-top:6px;padding-inline:var(--sp-4)}
+.audio-player.expanded .audio-expanded-transport button,.audio-player.expanded .audio-player-favorite,.audio-player.expanded .audio-player-more>summary{display:grid;place-items:center;width:48px;height:48px;padding:0;border-radius:50%;background:transparent;color:var(--text)}
+.audio-player.expanded .audio-expanded-transport button svg,.audio-player.expanded .audio-player-favorite svg,.audio-player.expanded .audio-player-more>summary svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.audio-player.expanded .audio-expanded-transport button:hover,.audio-player.expanded .audio-player-favorite:hover,.audio-player.expanded .audio-player-more>summary:hover{background:var(--raised)}
+.audio-player.expanded .audio-expanded-transport #audio-player-shuffle-large,.audio-player.expanded .audio-expanded-transport #audio-queue-toggle{color:var(--muted)}
+.audio-player.expanded .audio-expanded-transport #audio-player-shuffle-large.active{color:var(--accent)}
+/* Kept in place but unseen (podcasts have no queue), so the play button stays in the middle. */
+.audio-player.expanded .audio-expanded-transport #audio-queue-toggle[hidden]{display:grid;visibility:hidden;pointer-events:none}
+.audio-player.expanded .audio-expanded-transport #audio-play-large{width:68px;height:68px;background:var(--accent);color:var(--accent-ink)}
+:root:not([data-palette=eink]) .audio-player.expanded .audio-expanded-transport #audio-play-large{box-shadow:0 8px 24px color-mix(in srgb,var(--accent) 40%,transparent)}
+.audio-player.expanded .audio-expanded-transport #audio-play-large svg{width:28px;height:28px;fill:currentColor;stroke:none}
+.audio-player.expanded .audio-expanded-transport #audio-play-large:hover{background:var(--accent);filter:brightness(1.06)}
+.audio-player.expanded .audio-player-favorite.active{color:var(--accent)}
+.audio-player.expanded .audio-player-favorite.active svg{fill:currentColor}
+
+.audio-player.expanded .audio-retry:not([hidden]){z-index:2;grid-column:1/-1;grid-row:2;align-self:end;justify-self:center;display:inline-flex;align-items:center;min-height:44px;margin-bottom:6px;padding:0 20px;border:0;border-radius:var(--r-24);background:var(--accent);color:var(--accent-ink);font:650 var(--fs-16)/1 "Source Sans","Segoe UI",sans-serif;cursor:pointer}
+
+/* Phone: the sheet fills the screen. */
+@media (max-width:680px){
+  .audio-player.expanded{inset:0;width:100%;height:100dvh;transform:none;border:0;border-radius:0;padding:max(12px,env(safe-area-inset-top)) 22px max(22px,env(safe-area-inset-bottom))}
+  .audio-player.expanded .audio-player-favorite{display:grid}
+  .audio-player.expanded .audio-player-more>div{position:fixed;right:10px;bottom:max(10px,env(safe-area-inset-bottom));left:10px;width:auto}
+}
+
+/* ── Queue and chapters ────────────────────────────────────────────────────────────────────────── */
+.audio-chapters{position:absolute;z-index:10;inset:64px 18px 108px;overflow:hidden;border-radius:var(--r-12);background:var(--raised);box-shadow:var(--shadow)}
+.audio-chapters>header{display:flex;align-items:center;justify-content:space-between;height:54px;padding:0 8px 0 16px;border-bottom:1px solid var(--line)}
+.audio-chapters>header strong,.audio-player-queue>header strong{font:650 var(--fs-16)/1.2 "Source Sans","Segoe UI",sans-serif}
+.audio-chapters>header button,.audio-player-queue>header button{display:grid;place-items:center;width:44px;height:44px;padding:0;border:0;border-radius:var(--r-8);background:0 0;color:var(--muted);cursor:pointer}
+.audio-chapters>header button:hover,.audio-player-queue>header button:hover{background:var(--surface);color:var(--text)}
+.audio-chapters>header svg{width:19px;height:19px}
+#audio-chapter-list{height:calc(100% - 54px);overflow-y:auto;overscroll-behavior:contain;padding:4px 8px 10px}
+#audio-chapter-list>button{display:flex;align-items:center;width:100%;min-height:52px;padding:6px 10px;border:0;border-bottom:1px solid var(--line);background:0 0;color:var(--text);text-align:left;cursor:pointer}
+#audio-chapter-list>button.active,#audio-chapter-list>button:hover{background:var(--surface)}
+#audio-chapter-list>button.active{color:var(--accent)}
+#audio-chapter-list>button>span{display:grid;min-width:0}
+#audio-chapter-list strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:var(--fs-14)}
+#audio-chapter-list small{margin-top:2px;color:var(--muted);font-size:var(--fs-12);font-variant-numeric:tabular-nums}
+
+.audio-player-queue{position:absolute;z-index:10;inset:76px 18px 108px;display:grid;grid-template-rows:54px minmax(0,1fr) 52px;overflow:hidden;border-radius:var(--r-12);background:var(--raised);box-shadow:var(--shadow)}
+.audio-player-queue>header{display:flex;align-items:center;justify-content:space-between;padding:0 8px 0 16px;border-bottom:1px solid var(--line)}
+.audio-player-queue>header>span{display:grid;min-width:0}
+.audio-player-queue>header small{color:var(--muted);font-size:var(--fs-12);font-variant-numeric:tabular-nums}
+#audio-queue-items{min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:4px 8px}
+#audio-queue-items>button{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:12px;width:100%;min-height:52px;padding:6px 10px;border:0;border-bottom:1px solid var(--line);border-radius:0;background:0 0;color:var(--text);text-align:left;cursor:pointer}
+#audio-queue-items>button:hover,#audio-queue-items>button.active{background:var(--surface)}
+#audio-queue-items>button.active{color:var(--accent)}
+#audio-queue-items>button>span{display:grid;min-width:0}
+#audio-queue-items strong,#audio-queue-items small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#audio-queue-items strong{font-size:var(--fs-14)}
+#audio-queue-items small{margin-top:2px;color:var(--muted);font-size:var(--fs-12)}
+#audio-queue-items b{color:var(--muted);font-size:var(--fs-12);font-weight:600;font-variant-numeric:tabular-nums}
+#audio-queue-items>p{margin:28px 12px;color:var(--muted)}
+.audio-player-queue>footer{display:flex;justify-content:flex-end;gap:var(--sp-4);padding:4px 8px;border-top:1px solid var(--line)}
+.audio-player-queue>footer button{min-width:76px;height:44px;padding:0 10px;border:0;background:0 0;color:var(--text);cursor:pointer}
+.audio-player-queue>footer button:hover{background:var(--surface)}
+.audio-player-queue>footer button:disabled{opacity:.35;cursor:default}
+@media (max-width:680px){.audio-chapters{inset:58px 10px 108px}.audio-player-queue{inset:68px 10px 108px}}
+/* The cover that is playing, blurred and dimmed behind the whole sheet. */
+.audio-player.expanded::before{content:"";position:absolute;inset:-48px;z-index:-1;clip-path:inset(48px round var(--r-28));background:var(--art-image,none) center/cover;filter:blur(36px) saturate(1.3);opacity:.38;pointer-events:none}
+:root[data-palette=eink] .audio-player.expanded::before{display:none}
+/* Wide screens: the docked bar shows the seek line with the times either side under the transport, like a desktop player.
+   Phones and the expanded sheet keep the compact bar. The same elements are only re-placed; nothing is added. */
+.audio-player .audio-bar-skip .audio-bar-extra,.audio-player .audio-volume{display:none}
+@media (min-width:900px){
+  .audio-player:not(.expanded){grid-template-columns:48px minmax(160px,1fr) auto minmax(200px,440px) auto minmax(0,1fr) auto 40px;grid-template-rows:auto auto;row-gap:0;min-height:78px;padding-block:10px}
+  .audio-player:not(.expanded)::before{display:none}
+  .audio-player:not(.expanded) .audio-art-play{grid-row:1/3;border-radius:var(--r-12)}
+  .audio-player:not(.expanded) .audio-player-copy{grid-row:1/3}
+  .audio-player:not(.expanded) .audio-bar-skip{grid-column:3/6;grid-row:1;justify-self:center}
+  .audio-player:not(.expanded) .audio-bar-skip .audio-bar-play{width:46px;min-width:46px;height:46px}
+  :root:not([data-palette=eink]) .audio-player:not(.expanded) .audio-bar-skip .audio-bar-play{box-shadow:0 0 20px color-mix(in srgb,var(--accent) 42%,transparent)}
+  .audio-player:not(.expanded) .audio-time{display:contents}
+  .audio-player:not(.expanded) .audio-time i{display:none}
+  .audio-player:not(.expanded) #audio-elapsed{grid-column:3;grid-row:2;justify-self:end;padding-right:6px}
+  .audio-player:not(.expanded) #audio-duration{grid-column:5;grid-row:2;justify-self:start;padding-left:6px}
+  .audio-player:not(.expanded) #audio-elapsed,.audio-player:not(.expanded) #audio-duration{color:var(--muted);font-size:var(--fs-11);font-variant-numeric:tabular-nums}
+  .audio-player:not(.expanded)>.audio-seek{display:block;grid-column:4;grid-row:2;width:100%;height:18px;margin:0;appearance:none;background:0 0;cursor:pointer}
+  .audio-player:not(.expanded)>.audio-seek::-webkit-slider-runnable-track{height:4px;border-radius:var(--r-pill);background:linear-gradient(to right,var(--accent) var(--seek,0%),color-mix(in srgb,var(--line) 80%,transparent) var(--seek,0%))}
+  .audio-player:not(.expanded)>.audio-seek::-webkit-slider-thumb{width:0;height:0;margin-top:-4px;appearance:none;border:0;border-radius:50%;background:#fff;transition:width .12s ease,height .12s ease}
+  .audio-player:not(.expanded)>.audio-seek:hover::-webkit-slider-thumb,.audio-player:not(.expanded)>.audio-seek:focus-visible::-webkit-slider-thumb{width:12px;height:12px;margin-top:-4px}
+  .audio-player:not(.expanded)>.audio-seek::-moz-range-track{height:4px;border-radius:var(--r-pill);background:color-mix(in srgb,var(--line) 80%,transparent)}
+  .audio-player:not(.expanded)>.audio-seek::-moz-range-progress{height:4px;border-radius:var(--r-pill);background:var(--accent)}
+  .audio-player:not(.expanded)>.audio-seek::-moz-range-thumb{width:0;height:0;border:0}
+  .audio-player:not(.expanded) .audio-player-favorite{grid-column:7;grid-row:1/3}
+  .audio-player:not(.expanded) .audio-player-more{grid-column:8;grid-row:1/3}
+}
+@media (min-width:900px){
+  .audio-player:not(.expanded) .audio-bar-skip .audio-bar-extra{display:grid;color:var(--muted);width:34px;min-width:34px;height:34px;position:relative}
+  .audio-player:not(.expanded) .audio-bar-skip .audio-bar-extra svg{width:16px;height:16px}
+  .audio-player:not(.expanded) .audio-bar-skip .audio-bar-extra.active{color:var(--accent);background:color-mix(in srgb,var(--accent) 14%,transparent)}
+  .audio-player:not(.expanded) #audio-bar-repeat[data-mode=one]::after{content:"1";position:absolute;right:3px;bottom:3px;font:700 9px/1 "Source Sans","Segoe UI",sans-serif}
+  .audio-player:not(.expanded) .audio-volume{grid-column:6;grid-row:1/3;justify-self:end;display:flex;align-items:center;gap:var(--sp-4);padding-right:var(--sp-8)}
+  .audio-volume button{display:grid;place-items:center;width:34px;min-width:34px;height:34px;min-height:0;padding:0;border-radius:50%;color:var(--muted)}
+  .audio-volume button svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+  .audio-volume .slash,.audio-volume button.muted .wave{display:none}
+  .audio-volume button.muted .slash{display:inline}
+  .audio-volume input{width:92px;height:18px;margin:0;appearance:none;background:0 0;cursor:pointer}
+  .audio-volume input::-webkit-slider-runnable-track{height:4px;border-radius:var(--r-pill);background:linear-gradient(to right,var(--muted) var(--volume,100%),color-mix(in srgb,var(--line) 80%,transparent) var(--volume,100%))}
+  .audio-volume input:hover::-webkit-slider-runnable-track{background:linear-gradient(to right,var(--accent) var(--volume,100%),color-mix(in srgb,var(--line) 80%,transparent) var(--volume,100%))}
+  .audio-volume input::-webkit-slider-thumb{width:0;height:0;margin-top:-4px;appearance:none;border:0;border-radius:50%;background:#fff}
+  .audio-volume input:hover::-webkit-slider-thumb,.audio-volume input:focus-visible::-webkit-slider-thumb{width:12px;height:12px}
+  .audio-volume input::-moz-range-track{height:4px;border-radius:var(--r-pill);background:color-mix(in srgb,var(--line) 80%,transparent)}
+  .audio-volume input::-moz-range-progress{height:4px;border-radius:var(--r-pill);background:var(--muted)}
+  .audio-volume input::-moz-range-thumb{width:0;height:0;border:0}
+}
+@media (hover:none){.audio-player .audio-volume{display:none!important}}
