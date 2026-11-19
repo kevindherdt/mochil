@@ -1,0 +1,37 @@
+# BoboBooks with the optional Narration runtime (Pocket TTS on CPU).
+#
+# The standard image is Alpine, whose C library cannot run PyTorch, so this
+# variant is built on Debian with Python 3.13. It is the same server; only the
+# base and the extra runtime differ. Use it through compose.narration.yaml.
+FROM golang:1.26-alpine AS build
+WORKDIR /src
+RUN apk add --no-cache ca-certificates
+COPY go.mod go.sum ./
+RUN go mod download
+COPY . .
+RUN CGO_ENABLED=0 go run ./cmd/assetbuild
+RUN GOMAXPROCS=1 CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/mochil ./cmd/mochil \
+    && mkdir -p /out/data \
+    && chown 65532:65532 /out/data
+
+FROM python:3.13-slim-bookworm
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates ffmpeg mesa-va-drivers gosu \
+    && rm -rf /var/lib/apt/lists/* \
+    && ln -s /usr/sbin/gosu /usr/local/bin/su-exec
+# The voice runtime lives in its own environment so nothing else can depend on it.
+RUN python -m venv /opt/voice \
+    && /opt/voice/bin/pip install --no-cache-dir 'torch==2.14.1+cpu' --index-url https://download.pytorch.org/whl/cpu \
+    && /opt/voice/bin/pip install --no-cache-dir 'pocket-tts==3.3.0' 'torchao==0.13.0'
+# Speech recognition for the Hermes chat's voice input (faster-whisper on the CPU). The model is not downloaded here:
+# put models--Systran--faster-whisper-base.en under <voice cache>/whisper (see docs/NARRATION.md).
+RUN /opt/voice/bin/pip install --no-cache-dir 'faster-whisper==1.2.1'
+# The compose health check uses wget, which Alpine has built in and Debian does not.
+RUN apt-get update && apt-get install -y --no-install-recommends wget && rm -rf /var/lib/apt/lists/*
+COPY --from=build /out/mochil /mochil
+COPY --from=build --chown=65532:65532 /out/data /data
+COPY --chmod=0755 deployment/container-entrypoint.sh /container-entrypoint.sh
+EXPOSE 8080
+VOLUME ["/books", "/config", "/data"]
+ENTRYPOINT ["/container-entrypoint.sh"]
+CMD ["-library", "/books", "-cache", "/data/catalog.json", "-listen", "0.0.0.0:8080"]
