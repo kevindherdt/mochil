@@ -1,0 +1,70 @@
+/* Card actions live on the cover, not under the title. */
+.book .book-more--overlay{position:absolute;z-index:6;top:1px;right:1px;margin:0}
+.book .book-more--overlay>summary{position:relative;box-sizing:content-box;width:34px;height:34px;border:5px solid transparent;background-clip:padding-box;border-radius:50%;background-color:rgb(20 16 12 / .55);color:#fff;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.book .book-more--overlay>summary:hover,.book .book-more--overlay[open]>summary{background-color:rgb(20 16 12 / .8);color:#fff}
+.book .book-more--overlay>summary svg{width:18px;height:18px}
+.book .book-more--overlay>div{top:46px}
+.book-meta{min-height:0}
+
+/* Selection: a ring and a tick on the cover; the menu steps aside. */
+.book-check{position:absolute;z-index:6;top:8px;left:8px;width:26px;height:26px;display:none;place-items:center;border:2px solid #fff;border-radius:50%;background:rgb(20 16 12 / .45);color:transparent}
+:root:not([data-palette=eink]) .book-check{box-shadow:0 1px 4px #0006}
+.book-check svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+body[data-selecting] .book-check{display:grid}
+body[data-selecting] .book .book-more{display:none}
+.book[data-selected] .book-check{border-color:var(--accent);background:var(--accent);color:#fff}
+body[data-selecting] .book .cover-frame,body[data-selecting] .book .book-list-cover{transition:transform .12s ease,outline-color .12s ease;outline:3px solid transparent;outline-offset:-3px;border-radius:inherit}
+body[data-selecting] .book[data-selected] .cover-frame,body[data-selecting] .book[data-selected] .book-list-cover{outline-color:var(--accent);transform:scale(.96)}
+body[data-selecting] .book .book-list-cover{position:relative}
+.book.book-list-item .book-check{top:50%;left:10px;transform:translateY(-50%)}
+
+.selection-bar{position:fixed;z-index:70;left:50%;bottom:max(14px,env(safe-area-inset-bottom));transform:translateX(-50%);display:flex;align-items:center;gap:6px;width:max-content;max-width:calc(100vw - 20px);padding:6px 6px 6px 16px;border:1px solid var(--line);border-radius:var(--r-16);background:var(--surface);box-shadow:var(--shadow-3);animation:selection-in .16s ease}
+.selection-bar[hidden]{display:none}
+.selection-bar output{margin-right:8px;font:650 14px/1 "Source Sans","Segoe UI",sans-serif;white-space:nowrap}
+.selection-bar button{min-height:44px;padding:0 14px;border:0;border-radius:var(--r-10);background:transparent;color:var(--text);font:600 14px/1 "Source Sans","Segoe UI",sans-serif;white-space:nowrap;cursor:pointer}
+.selection-bar button:hover{background:var(--raised)}
+.selection-bar button.primary{background:var(--accent);color:#fff}
+.selection-bar button.primary:hover{filter:brightness(1.08)}
+@keyframes selection-in{from{opacity:0;transform:translate(-50%,10px)}}
+@media (prefers-reduced-motion:reduce){.selection-bar{animation:none}body[data-selecting] .book .cover-frame{transition:none}}
+@media (max-width:420px){.selection-bar button{padding:0 10px}}
+
+/* Series cards: the save button sits on the cover like the book menu. */
+.series-card{position:relative}
+.series-card .series-save{position:absolute;z-index:6;top:1px;right:1px;left:auto;bottom:auto;width:44px;height:44px;min-height:0;margin:0;padding:0;border:0;border-radius:0;background:radial-gradient(circle,rgb(20 16 12 / .55) 17px,transparent 17.5px);color:#fff}
+.series-card .series-save:hover{background:radial-gradient(circle,rgb(20 16 12 / .8) 17px,transparent 17.5px)}
+.series-card .series-save svg{width:18px;height:18px}
+@media (hover:hover) and (pointer:fine){.series-card .series-save{opacity:0}.series-card:hover .series-save,.series-card:focus-within .series-save{opacity:1}}
+
+/* Series list: the whole row opens it; the save button stays put at the right. */
+.series-row{position:relative}
+.series-row>summary{min-height:64px;padding:8px 96px 8px 4px;grid-template-columns:minmax(0,1fr) auto;-webkit-tap-highlight-color:transparent}
+.series-row>summary::after{content:"";position:absolute;right:10px;top:22px;width:10px;height:10px;border:solid var(--muted);border-width:0 2px 2px 0;transform:rotate(45deg);transition:transform .15s ease,top .15s ease;font:0}
+.series-row[open]>summary::after{content:"";top:28px;transform:rotate(-135deg)}
+.series-row>summary>.series-count{grid-column:2;grid-row:1;white-space:nowrap;font-size:var(--fs-12)}
+details.series-row>summary>button.series-row-save{position:absolute;display:grid!important;float:none;margin:0;z-index:2;right:34px;top:10px;width:44px;height:44px;padding:0;place-items:center;border:0;border-radius:var(--r-10);background:transparent;color:var(--muted)}
+.series-row .series-row-save:hover{background:var(--raised);color:var(--text)}
+.series-row>summary>span:first-child{grid-column:1;grid-row:1}
+.series-row .series-books{padding:4px 0 10px}
+@media (max-width:700px){.series-row>summary>.series-count{display:none}.series-row>summary{padding-right:92px}}
+@media (prefers-reduced-motion:reduce){.series-row>summary::after{transition:none}}
+
+/* Documents and videos: the same round menu on the cover as books. */
+.document-card .document-more{top:1px;right:1px;bottom:auto}
+.document-card .document-more>summary,.video-item .video-more>summary{box-sizing:content-box;width:34px;height:34px;border:5px solid transparent;background-clip:padding-box;border-radius:50%;background-color:rgb(20 16 12 / .55);color:#fff;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);display:grid;place-items:center;cursor:pointer;list-style:none}
+.document-card .document-more>summary:hover,.document-card .document-more[open]>summary,.video-item .video-more>summary:hover,.video-item .video-more[open]>summary{background-color:rgb(20 16 12 / .8);color:#fff}
+.video-item{position:relative}
+.video-item .video-more{position:absolute;z-index:6;top:1px;right:1px}
+.video-item .video-more>summary::-webkit-details-marker{display:none}
+.video-item .video-more>summary svg{width:18px;height:18px;fill:currentColor}
+.video-item .video-more>div{position:absolute;z-index:30;right:0;top:46px;width:170px;padding:5px;border:1px solid var(--line);border-radius:var(--r-10);background:var(--surface);box-shadow:var(--shadow)}
+.video-item .video-more .video-metadata-open{width:100%;min-height:44px;margin:0;padding:0 10px;border-radius:var(--r-6);color:var(--text);text-align:left;font:600 13px/1 "Source Sans","Segoe UI",sans-serif}
+.video-item .video-more .video-metadata-open:hover{background:var(--raised)}
+.book-more .book-status-menu>summary{display:flex;align-items:center;min-height:44px;padding:0 12px;cursor:pointer;list-style:none;font-weight:600}
+.book-more .book-status-menu>summary::-webkit-details-marker{display:none}
+.book-more .book-status-menu>summary::after{content:"";width:7px;height:7px;margin-left:auto;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(45deg) translateY(-2px);opacity:.6}
+.book-more .book-status-menu[open]>summary::after{transform:rotate(225deg)}
+.book-more .book-status-menu>div{display:grid;position:static;margin:0;padding:0 0 4px 8px;border:0;box-shadow:none;background:none}
+.book-more .book-status-menu button{justify-content:flex-start;min-height:40px}
+.book-more .book-status-menu button[aria-checked=true]{color:var(--accent);font-weight:700}
+.book-more .book-status-menu button[aria-checked=true]::before{content:"✓";margin-right:8px}

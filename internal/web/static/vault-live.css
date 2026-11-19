@@ -1,0 +1,80 @@
+/* The note editor: it looks like the page it will become. */
+.vault-workspace .vault-pane.vault-live-pane>:is(.vault-live-host){box-sizing:border-box;width:min(46rem,100%);margin-inline:auto;padding-inline:clamp(18px,4vw,44px)}
+.vault-workspace[data-width=wide] .vault-pane.vault-live-pane>:is(.vault-live-host){width:100%;margin-inline:0}
+.vault-live-pane .vault-edit-state{color:var(--muted);font:500 13px/1 "Source Sans","Segoe UI",sans-serif;white-space:nowrap}
+.vault-live-pane .vault-edit-state[data-kind=error]{color:var(--accent)}
+.vault-live-pane .vault-edit-state[data-kind=warn]{color:var(--text)}
+.vault-live-pane .vault-page-actions{gap:8px}
+.vault-live-pane .vault-notebar .vault-page-actions>button.vault-done{min-width:72px;background:var(--accent);color:#fff}
+.vault-live-pane .vault-notebar .vault-page-actions>button.vault-done:hover{filter:brightness(1.08)}
+.vault-live-pane .vault-notebar .vault-page-actions>button.vault-done:disabled{opacity:.6}
+
+
+.vault-live-host{padding-bottom:30vh}
+.vault-live-host .cm-editor{background:transparent;color:var(--text);font:400 17px/1.68 Newsreader,Georgia,serif}
+.vault-live-host .cm-editor.cm-focused{outline:none}
+.vault-live-host .cm-scroller{overflow:visible;font:inherit;line-height:inherit}
+.vault-live-host .cm-content{padding:10px 0;caret-color:var(--accent)}
+.vault-live-host .cm-line{padding:0}
+.vault-live-host .cm-cursor{border-left-color:var(--accent)}
+.vault-live-host ::selection{background:color-mix(in srgb,var(--accent) 30%,transparent)}
+
+.vault-live-host .cm-line.cm-md-h{font-weight:600;line-height:1.22;padding-top:.7em}
+.vault-live-host .cm-line.cm-md-h1{font-size:var(--fs-30)}
+.vault-live-host .cm-line.cm-md-h2{font-size:var(--fs-26)}
+.vault-live-host .cm-line.cm-md-h3{font-size:var(--fs-22)}
+.vault-live-host .cm-line.cm-md-h4,.vault-live-host .cm-line.cm-md-h5,.vault-live-host .cm-line.cm-md-h6{font-size:var(--fs-18)}
+.vault-live-host .cm-md-strong{font-weight:700}
+.vault-live-host .cm-md-em{font-style:italic}
+.vault-live-host .cm-md-strike{text-decoration:line-through;opacity:.7}
+.vault-live-host .cm-md-code{padding:1px 4px;border-radius:var(--r-4);background:var(--surface);font:400 .86em/1.4 ui-monospace,SFMono-Regular,monospace}
+.vault-live-host .cm-md-link,.vault-live-host .cm-md-wiki{color:var(--accent)}
+.vault-live-host .cm-md-link{text-decoration:underline;text-underline-offset:.2em}
+.vault-live-host .cm-md-wiki{text-decoration:underline dotted;text-underline-offset:.22em}
+.vault-live-host .cm-md-image{color:var(--muted);font-style:italic}
+.vault-live-host .cm-md-tag{padding:0 6px;border-radius:var(--r-pill);background:color-mix(in srgb,var(--accent) 14%,transparent);color:var(--accent);font:600 .86em/1.5 "Source Sans","Segoe UI",sans-serif}
+.vault-live-host .cm-line.cm-md-quote{padding-inline-start:14px;border-inline-start:3px solid var(--line);color:var(--muted)}
+.vault-live-host .cm-md-listmark{color:var(--accent);font-weight:700}
+.vault-live-host .cm-md-task{color:var(--accent);font:600 .86em/1.4 ui-monospace,SFMono-Regular,monospace}
+.vault-live-host .cm-line.cm-md-done{color:var(--muted);text-decoration:line-through}
+.vault-live-host .cm-line.cm-md-fence{padding-inline:14px;background:var(--surface);font:400 13.5px/1.6 ui-monospace,SFMono-Regular,monospace}
+.vault-live-host .cm-line.cm-md-fence-mark{color:var(--muted)}
+.vault-live-host .cm-line.cm-md-hr{border-bottom:1px solid var(--line)}
+.vault-live-host .cm-line.cm-md-frontmatter{color:var(--muted);font:400 13px/1.6 ui-monospace,SFMono-Regular,monospace}
+@media (prefers-reduced-motion:no-preference){.vault-live-pane .vault-edit-state{transition:color .15s}}
+
+.vault-live-host .cm-line.cm-md-blank{height:.6em;line-height:.6em;overflow:hidden}
+.cm-tooltip.cm-tooltip-autocomplete{overflow:hidden;border:1px solid var(--line);border-radius:var(--r-10);background:var(--bg)}
+:root:not([data-palette=eink]) .cm-tooltip.cm-tooltip-autocomplete{box-shadow:0 10px 30px rgb(20 16 12/.22)}
+.cm-tooltip-autocomplete>ul{max-height:15rem;font:inherit;font-size:.95rem}
+.cm-tooltip-autocomplete>ul>li{display:flex;justify-content:space-between;gap:14px;padding:7px 12px;color:var(--text)}
+.cm-tooltip-autocomplete>ul>li[aria-selected]{background:var(--surface);color:var(--text)}
+.cm-tooltip-autocomplete .cm-completionDetail{margin:0;font-style:normal;color:var(--muted)}
+.vault-live-host .cm-md-img{display:block;max-width:100%;max-height:30rem;margin:.4em 0;border-radius:var(--r-8)}
+.vault-workspace .vault-pane.vault-live-pane>header.vault-notebar{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:0 12px;grid-template-rows:46px 46px;min-height:92px;padding-block:0}
+.vault-live-pane .vault-notebar .vault-crumbs{grid-column:1;grid-row:1}
+.vault-live-pane .vault-notebar .vault-page-actions{grid-column:-2/-1;grid-row:1}
+.vault-live-pane .vault-notebar .vault-format{grid-column:1/-1;grid-row:2;display:flex;align-items:center;gap:2px;overflow-x:auto;height:46px;border-top:1px solid var(--line);scrollbar-width:none}
+.vault-live-pane .vault-format::-webkit-scrollbar{display:none}
+.vault-live-pane .vault-format button{flex:none;display:grid;place-items:center;min-width:36px;height:36px;padding:0 6px;border:0;border-radius:var(--r-8);background:transparent;color:var(--muted);cursor:pointer}
+.vault-live-pane .vault-format button:hover,.vault-live-pane .vault-format button:focus-visible{background:var(--surface);color:var(--text)}
+.vault-live-pane .vault-format button:active{background:color-mix(in srgb,var(--accent) 14%,var(--surface))}
+.vault-live-pane .vault-format svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.vault-live-pane .vault-format b{font:700 13px/1 "Source Sans","Segoe UI",sans-serif;letter-spacing:-.01em}
+.vault-live-pane .vault-format .vault-format-divider{flex:none;width:1px;height:20px;margin:0 6px;background:var(--line)}
+/* With room to spare the tools sit in the page bar itself; narrower, they get their own row. */
+@media (min-width:1200px){
+  .vault-workspace .vault-pane.vault-live-pane>header.vault-notebar{grid-template-columns:minmax(0,11rem) minmax(0,1fr) auto;grid-template-rows:48px;min-height:48px}
+  .vault-live-pane .vault-notebar .vault-format{grid-column:2;grid-row:1;justify-content:center;height:auto;border-top:0}
+}
+.vault-workspace .vault-pane.vault-live-pane>header.vault-notebar{background:var(--bg)}
+
+/* vault-nav.css stretches this bar over the outline column; the note text sits in the first
+   track, so the bar takes that track and lets its column (above) centre on the text. */
+.vault-workspace .vault-pane.vault-document>header.vault-notebar{grid-column:1;width:auto;margin-inline:0}
+
+/* The bar no longer lays out its own contents: .vault-notebar-column carries the grid, so the
+   bar only spans the pane. Without this the live pane's grid rules above still apply to the bar
+   and squeeze that column into one auto track. */
+.vault-workspace .vault-pane.vault-live-pane>header.vault-notebar{display:block;grid-template-columns:none;grid-template-rows:none;min-height:auto;padding:0}
+
