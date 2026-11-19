@@ -1,0 +1,8 @@
+services:
+  mochil:
+    build:
+      context: .
+      dockerfile: Containerfile.calibre
+    image: mochil:calibre
+    environment:
+      MOCHIL_CALIBREDB: calibredb
