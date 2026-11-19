@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<lint>
+    <!-- Android Lint 2026.1 crashes in its FIR bridge on this Media3 activity.
+         Scope the official workaround to this file; the lifecycle rule remains
+         active for the rest of the application. -->
+    <issue id="RepeatOnLifecycleWrongUsage">
+        <ignore path="app/src/main/java/net/kdhmedia/mochil/video/VideoPlayerActivity.kt" />
+    </issue>
+    <!-- Adaptive icon XML is only recognized from the v26-qualified resource
+         directory even though 26 is also this app's minimum SDK. -->
+    <issue id="ObsoleteSdkInt">
+        <ignore path="app/src/main/res/mipmap-anydpi-v26" />
+    </issue>
+</lint>

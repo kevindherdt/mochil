@@ -1,0 +1,44 @@
+{
+  "listen": "0.0.0.0:8080",
+  "public_url": "https://books.example.com",
+  "scan_every": "10m",
+  "cache_directory": "/var/lib/opdshelf/catalogs",
+  "cover_cache": {
+    "maximum_bytes": 536870912,
+    "maximum_width": 600,
+    "maximum_height": 900,
+    "jpeg_quality": 82
+  },
+  "libraries": [
+    {
+      "id": "books",
+      "name": "Books",
+      "kind": "books",
+      "source": {
+        "type": "filesystem",
+        "path": "/srv/books"
+      },
+      "inference": {
+        "folder_layout": "auto"
+      }
+    },
+    {
+      "id": "manga",
+      "name": "Manga",
+      "kind": "manga",
+      "page_streaming": true,
+      "source": {
+        "type": "filesystem",
+        "path": "/media/manga"
+      },
+      "inference": {
+        "folder_layout": "series"
+      }
+    }
+  ],
+  "page_cache": {
+    "directory": "/var/cache/opdshelf/pages",
+    "maximum_bytes": 4294967296,
+    "expire_after": "168h"
+  }
+}

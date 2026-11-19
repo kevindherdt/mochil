@@ -1,0 +1,15 @@
+/* The one background behind the app: a soft two-colour glow in the palette's own hues. Paper and
+   e-ink stay flat. Built from the palette (--accent and --backdrop-alt) so it follows light and dark.
+   It sits behind everything, fixed, and never takes clicks.
+
+   The phone gives every palette but e-ink this glow (ThemeGlow), so the web must too: leaving one
+   palette out made the same theme read flat and darker here than in the app. */
+:root{--backdrop-alt:#7c5cff;--bd-strength:30%;--bd-alt-strength:24%;--bd-vignette:#00000066}
+/* Magenta Cream's second colour is its own lid maroon, not violet, which would fight the magenta. */
+:root[data-palette=magenta-cream]{--backdrop-alt:#8c003b}
+:root[data-theme="light"]{--bd-strength:18%;--bd-alt-strength:12%;--bd-vignette:transparent}
+:root:is([data-palette=mochil],[data-palette=kiln],[data-palette=magenta-cream]) body{position:relative;z-index:0}
+:root:is([data-palette=mochil],[data-palette=kiln],[data-palette=magenta-cream]) body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;background:
+  radial-gradient(ellipse 70% 60% at 18% 12%,color-mix(in srgb,var(--accent) var(--bd-strength),transparent),transparent 70%),
+  radial-gradient(ellipse 65% 60% at 85% 85%,color-mix(in srgb,var(--backdrop-alt) var(--bd-alt-strength),transparent),transparent 70%),
+  radial-gradient(ellipse at 50% 50%,transparent 40%,var(--bd-vignette) 100%)}

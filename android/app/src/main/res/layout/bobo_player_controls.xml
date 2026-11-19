@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<merge xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+    <View android:id="@id/exo_controls_background" android:layout_width="0dp" android:layout_height="0dp" android:background="#8C000000" />
+    <FrameLayout android:layout_width="match_parent" android:layout_height="match_parent" android:layoutDirection="ltr">
+        <ImageButton android:id="@id/exo_rew" android:layout_width="64dp" android:layout_height="64dp" android:layout_gravity="center_vertical|start" android:layout_marginStart="32dp" android:background="?android:attr/selectableItemBackgroundBorderless" android:contentDescription="Back 5 seconds" android:src="@drawable/ic_player_rewind" android:scaleType="fitCenter" android:padding="12dp" />
+        <ImageButton android:id="@id/exo_ffwd" android:layout_width="64dp" android:layout_height="64dp" android:layout_gravity="center_vertical|end" android:layout_marginEnd="32dp" android:background="?android:attr/selectableItemBackgroundBorderless" android:contentDescription="Forward 15 seconds" android:src="@drawable/ic_player_forward" android:scaleType="fitCenter" android:padding="12dp" />
+        <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_gravity="center" android:gravity="center_vertical" android:orientation="horizontal">
+            <ImageButton android:id="@id/exo_prev" android:layout_width="56dp" android:layout_height="56dp" android:background="?android:attr/selectableItemBackgroundBorderless" android:contentDescription="Previous" android:src="@drawable/ic_player_previous" android:scaleType="fitCenter" android:padding="12dp" />
+            <ImageButton android:id="@id/exo_play_pause" android:layout_width="96dp" android:layout_height="96dp" android:layout_marginStart="16dp" android:layout_marginEnd="16dp" android:background="?android:attr/selectableItemBackgroundBorderless" android:contentDescription="Play or pause" android:scaleType="fitCenter" android:padding="14dp" />
+            <ImageButton android:id="@id/exo_next" android:layout_width="56dp" android:layout_height="56dp" android:background="?android:attr/selectableItemBackgroundBorderless" android:contentDescription="Next" android:src="@drawable/ic_player_next" android:scaleType="fitCenter" android:padding="12dp" />
+        </LinearLayout>
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_gravity="bottom" android:layout_marginBottom="64dp" android:paddingStart="16dp" android:paddingEnd="8dp" android:gravity="center_vertical" android:orientation="horizontal">
+            <TextView android:id="@id/exo_position" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="#FFFFFFFF" android:textSize="14sp" />
+            <androidx.media3.ui.DefaultTimeBar android:id="@id/exo_progress" android:layout_width="0dp" android:layout_height="40dp" android:layout_weight="1" app:bar_height="4dp" app:scrubber_enabled_size="16dp" app:scrubber_dragged_size="24dp" app:played_color="#FFF09A72" app:scrubber_color="#FFF09A72" app:buffered_color="#66FFFFFF" app:unplayed_color="#33FFFFFF" />
+            <TextView android:id="@id/exo_duration" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="#FFFFFFFF" android:textSize="14sp" />
+            <ImageButton android:id="@id/exo_settings" android:layout_width="40dp" android:layout_height="40dp" android:background="?android:attr/selectableItemBackgroundBorderless" android:contentDescription="Playback settings" android:src="@drawable/ic_player_settings" android:scaleType="fitCenter" android:padding="8dp" />
+        </LinearLayout>
+    </FrameLayout>
+</merge>
