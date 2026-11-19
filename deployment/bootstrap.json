@@ -1,0 +1,24 @@
+{
+  "listen": "0.0.0.0:8080",
+  "public_url": "",
+  "scan_every": "10m",
+  "cache_directory": "/data/catalogs",
+  "kosync": {
+    "enabled": false,
+    "provider": "disabled",
+    "database": "/data/catalogs/kosync.json",
+    "allow_registration": false
+  },
+  "page_cache": {
+    "directory": "/data/catalogs/publications",
+    "maximum_bytes": 4294967296,
+    "expire_after": "168h"
+  },
+  "cover_cache": {
+    "maximum_bytes": 536870912,
+    "maximum_width": 600,
+    "maximum_height": 900,
+    "jpeg_quality": 82
+  },
+  "libraries": []
+}
