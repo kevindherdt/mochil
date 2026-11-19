@@ -1,0 +1,187 @@
+.music-discovery,
+.music-discovery-section,
+.music-discovery-groups {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.music-discovery {
+  display: grid;
+  gap: 34px;
+  padding-top: 8px;
+}
+
+.music-discovery-section > header {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.music-discovery-section > header h2 {
+  font-family: "Source Sans", "Segoe UI", sans-serif;
+  font-size: var(--fs-22);
+  font-weight: 720;
+  letter-spacing: -0.015em;
+}
+
+.music-discovery-section > header button {
+  min-height: 44px;
+  padding: 0 2px;
+  border: 0;
+  background: transparent;
+  color: var(--accent);
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.music-discovery-tracks {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: clamp(18px, 2vw, 30px);
+}
+
+@media (min-width: 860px) {
+  .music-discovery-tracks {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1220px) {
+  .music-discovery-tracks {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.music-discovery-tracks > p {
+  grid-column: 1 / -1;
+  margin: 14px 0;
+  color: var(--muted);
+}
+
+.music-discovery-empty {
+  margin: 14px 0;
+  color: var(--muted);
+}
+
+.music-discovery-empty > button {
+  min-height: 44px;
+  margin-inline-start: 4px;
+  padding-inline: 8px;
+  border: 0;
+  background: transparent;
+  color: var(--accent);
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.music-discovery-playlists {
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(126px, 160px);
+  grid-template-columns: none;
+  gap: 14px;
+  padding: 14px 1px 4px;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  scroll-snap-type: x proximity;
+}
+
+.music-discovery-playlists .music-playlist-card {
+  scroll-snap-align: start;
+}
+
+.music-discovery-groups {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(126px, 160px);
+  gap: 14px;
+  padding: 14px 1px 4px;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  scroll-snap-type: x proximity;
+  scrollbar-width: thin;
+  scrollbar-color: var(--line) transparent;
+}
+
+.music-discovery-group {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+  padding: 0 0 10px;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  scroll-snap-align: start;
+  cursor: pointer;
+}
+
+.music-discovery-group > span {
+  width: 100%;
+  aspect-ratio: 1;
+  display: block;
+  overflow: hidden;
+  border-radius: var(--r-8);
+  background: var(--raised);
+}
+
+.music-discovery-group img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.music-discovery-group small,
+.music-discovery-group strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.music-discovery-group strong {
+  margin-top: 3px;
+  font-size: var(--fs-14);
+}
+
+.music-discovery-group small {
+  color: var(--muted);
+  font-size: var(--fs-12);
+}
+
+@media (max-width: 760px) {
+  .music-discovery {
+    gap: 28px;
+  }
+
+  .music-discovery-tracks {
+    grid-template-columns: 1fr;
+  }
+
+  .music-discovery-groups {
+    grid-auto-columns: 132px;
+  }
+
+  .music-discovery-playlists {
+    grid-auto-columns: 132px;
+  }
+}
+
+/* Recently played is a row of larger covers you can scroll sideways; the other sections stay compact lists. */
+.music-discovery-tracks.is-carousel {
+  grid-template-columns: none;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(158px, 190px);
+  gap: 20px;
+  padding: 14px 8px 8px;
+  margin-inline: -8px;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  scroll-snap-type: x proximity;
+  scrollbar-width: thin;
+  scrollbar-color: var(--line) transparent;
+}
+
+.music-discovery-tracks.is-carousel > .music-track-card {
+  scroll-snap-align: start;
+}
