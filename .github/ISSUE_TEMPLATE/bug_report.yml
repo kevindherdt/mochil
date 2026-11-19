@@ -1,0 +1,73 @@
+name: Something is broken
+description: Report a bug in the server, the web app, the Android app or the KOReader plugin
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Mochil is alpha software maintained by one person, so a report that says what you ran, what you
+        expected and what happened is the difference between a fix this week and a guess.
+
+        Please do **not** paste passwords, tokens, API keys or your `config.json` unfiltered.
+
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: From Settings → About, or the image tag you run (`ghcr.io/kevindherdt/mochil:0.1.13`).
+      placeholder: 0.1.13
+    validations:
+      required: true
+
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Where does it happen?
+      options:
+        - Web app (browser)
+        - Android app
+        - KOReader plugin
+        - OPDS reader
+        - Server itself (startup, scanning, health)
+        - Container / install
+    validations:
+      required: true
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened, and what did you expect?
+      description: One or two sentences is enough, but say whether it worked before.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: How to reproduce it
+      placeholder: |
+        1. Open Settings → Libraries
+        2. Add a folder with ...
+        3. Open a book with ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs, screenshots, or the crash report
+      description: >
+        `docker logs <container> --tail 50` for server problems; the Android app offers "Share" on a
+        crash report; a browser console error helps for web problems. Remove secrets first.
+      render: text
+    validations:
+      required: false
+
+  - type: input
+    id: setup
+    attributes:
+      label: How is it deployed?
+      description: Compose or `docker run`, behind a reverse proxy or not, which OS, and roughly how big the library is.
+      placeholder: NixOS, docker compose, no reverse proxy, ~2000 books
+    validations:
+      required: false

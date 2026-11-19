@@ -1,0 +1,40 @@
+# The install a stranger should get: one file, three folders, one command.
+#
+#   docker compose up -d
+#
+# `latest` always installs the newest release. To stay on one minor line, which only takes fix
+# releases, use :0.1 instead; to pin exactly, use the full number, :0.1.0.
+# The image starts in managed-config mode: it seeds /config/config.json from a template on first
+# run, so Settings can save and libraries survive a recreate. Mount /config to keep it.
+#
+# `build:` makes this work from a checkout today. `image:` names the same image so that, once a
+# release is tagged and published, `docker compose pull` fetches it instead of compiling — this file
+# does not have to change. No environment variables are required: the server starts with no account
+# and no library, asks for the first account, then sends you to settings to add a folder.
+services:
+  app:
+    image: ghcr.io/kevindherdt/mochil:latest
+    build:
+      context: .
+      dockerfile: Containerfile
+    restart: unless-stopped
+    ports:
+      - "8099:8080"
+    volumes:
+      - ./books:/books          # your ebooks, comics and audiobooks
+      - ./config:/config        # settings the app writes; back this up
+      - ./data:/data            # caches that can be deleted and rebuilt
+    environment:
+      # The sign-in can be chosen here instead of on the first-run page. Both empty is fine: the
+      # server asks for the first account and keeps the library closed until it exists.
+      MOCHIL_USERNAME: "${MOCHIL_USERNAME:-}"
+      MOCHIL_PASSWORD: "${MOCHIL_PASSWORD:-}"
+      # Run as the owner of ./books so files the app writes stay editable by you.
+      MOCHIL_UID: "${MOCHIL_UID:-1000}"
+      MOCHIL_GID: "${MOCHIL_GID:-1000}"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/healthz"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
