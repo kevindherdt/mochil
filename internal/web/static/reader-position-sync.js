@@ -91,7 +91,16 @@ export function createReaderPositionSync({
         })
         const saved = await response.json().catch(() => null)
         if (response.status === 409) {
-          if (saved?.revision) revision = saved.revision
+          // The server's answer is authoritative, including when the record is gone: a
+          // position deleted from another tab or marked unread comes back as revision 0.
+          // Keeping the old revision here left this tab editing something that no longer
+          // existed, so every later save conflicted and the page was never saved again.
+          revision = Number(saved?.revision) || 0
+          if (!revision) {
+            blocked = false
+            blockedAtPosition = null
+            return 'retry-now'
+          }
           blocked = true
           blockedAtPosition = { ...latestPosition }
           positionStore.markConflicted?.()
@@ -132,7 +141,12 @@ export function createReaderPositionSync({
 
   const load = async () => {
     const response = await fetchImpl(endpoint)
-    if (response.status === 404) return null
+    if (response.status === 404) {
+      // No position is a state this tab can write from, not a revision to keep. Holding
+      // the old revision made the next save conflict with a record that is not there.
+      revision = 0
+      return null
+    }
     if (!response.ok) throw new Error('Reading position is unavailable')
     const position = await response.json()
     revision = position.revision || 0

@@ -1,5 +1,6 @@
 // Reading status from the book menu: reading, read, on hold, dropped or unread. The server keeps it per account;
-// on hold and dropped books drop out of Jump back in and Currently reading, unread forgets the place.
+// on hold, dropped and unread books drop out of Jump back in and Currently reading, and only unread and the two
+// parked states keep the reader's place, which is what makes unread safe to press by accident.
 export const STATUSES = [
   ['reading', 'Reading'],
   ['read', 'Read'],

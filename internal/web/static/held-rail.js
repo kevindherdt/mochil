@@ -7,7 +7,7 @@ export function heldBooks(books, isLibraryVisible = () => true, limit = 48) {
 
 export function heldCardHTML(item, escapeHTML) {
   const title = escapeHTML(item.title || 'Untitled')
-  return `<article class="jump-item finished-item">${jumpCardHTML({ type: 'book', item }, escapeHTML)}<button type="button" class="held-resume" data-library="${escapeHTML(item.library_id)}" data-book="${escapeHTML(item.id)}" aria-label="Move ${title} back to reading">Resume</button></article>`
+  return `<article class="jump-item rail-card">${jumpCardHTML({ type: 'book', item }, escapeHTML)}<button type="button" class="held-resume" data-library="${escapeHTML(item.library_id)}" data-book="${escapeHTML(item.id)}" aria-label="Move ${title} back to reading">Resume</button></article>`
 }
 
 export function createHeldRail({ document, $, escapeHTML, requestJSON, isLibraryVisible, releaseCovers, installCoverFallbacks }) {

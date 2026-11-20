@@ -20,7 +20,7 @@ import { createRequestCache } from "./request-cache.js?v=2";
 import { loadPlaybackQualityPolicy } from "./playback-quality.js?v=2";
 import { createLibraryVisibility } from "./library-visibility.js?v=4";
 import { createActivityMonitor } from "./activity-monitor.js?v=5";
-import { createFinishedRail } from "./finished-rail.js?v=9";
+import { createHeldRail } from "./held-rail.js?v=6";
 import { createThemeController } from "./theme-controller.js?v=17";
 import { createSearchController } from "./search-controller.js?v=3";
 import { bindPopupDismissal } from "./popup-controller.js?v=1";
@@ -92,13 +92,12 @@ const activateLibraries = (ids) =>
 // Every Home shelf reads the same lists; one in-flight GET per URL is enough.
 const homeRequests = createRequestCache(requestJSON), homeRails = createHomeRails({
   requests: homeRequests, document, $, $$, escapeHTML, releaseCovers, installCoverFallbacks,
-  isLibraryVisible: libraryVisibility.isVisible, createReadingDashboard, createJumpBackIn, createFinishedRail,
+  isLibraryVisible: libraryVisibility.isVisible, createReadingDashboard, createJumpBackIn, createHeldRail,
 });
 // Every card on every shelf takes its glow from its own artwork; one observer serves them all.
 createCardTint({ root: document.body });
 const readingDashboard = homeRails.reading;
 const jumpBackIn = homeRails.jumpBackIn;
-const finishedRail = homeRails.finished;
 const mediaNavigator = createMediaSectionNavigator($("#media-alphabet"));
 const videoLibrary = createDeferredVideoController({
   document,

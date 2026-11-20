@@ -56,6 +56,11 @@ test("activity panel mounts once after navigation", () => {
 });
 
 test("dashboard retains reading, watching, listening, and undo contracts", () => {
+  // Home is what is next. A shelf of finished books belongs in the library's filters and behind the
+  // Continue reading toggle, not as a second list on the first screen.
+  assert.doesNotMatch(dashboardHTML, /id="finished-rail"/);
+  assert.doesNotMatch(dashboardHTML, /id="finished-track"/);
+  assert.match(dashboardHTML, /id="held-rail"/);
   assert.match(dashboardHTML, /class="dashboard-lanes"/);
   assert.match(dashboardHTML, /class="dashboard-media-lane"/);
   assert.doesNotMatch(dashboardHTML, /<h1>Home<\/h1>/);

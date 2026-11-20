@@ -387,19 +387,30 @@ func containsString(values []string, wanted string) bool {
 	return false
 }
 
+// Delete removes one place and the recent positions kept for it. The history
+// only exists to move back to a place the reader still has: left behind, the
+// reader's "Recent positions" list offered restores for a record that is gone,
+// and every one of them answered 404.
 func (s *Store) Delete(account, libraryID, bookID string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	key := readingKey(libraryID, bookID)
 	positions := s.data.Accounts[account]
 	prior, exists := positions[key]
-	if !exists {
+	priorHistory, hadHistory := s.data.History[account][key]
+	if !exists && !hadHistory {
 		return nil
 	}
 	delete(positions, key)
+	delete(s.data.History[account], key)
 	s.markDirtyLocked()
 	if err := s.saveLocked(); err != nil {
-		positions[key] = prior
+		if exists {
+			positions[key] = prior
+		}
+		if hadHistory {
+			s.data.History[account][key] = priorHistory
+		}
 		s.markDirtyLocked()
 		return err
 	}

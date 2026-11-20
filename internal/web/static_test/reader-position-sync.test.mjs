@@ -190,3 +190,40 @@ test('what is kept while blocked is marked conflicted, and moving on purpose cle
   assert.equal(saved.at(-1).conflicted, false, 'a deliberate move is a fresh claim')
   await timers.at(-1)()
 })
+
+test('a position deleted elsewhere leaves this tab able to save again', async () => {
+  const requests = []
+  const { sync, statuses, conflicts } = fixture(async (_url, options) => {
+    const body = JSON.parse(options.body)
+    requests.push(body)
+    // Nothing is stored any more. The server answers every save that names an old
+    // revision with 409 and revision 0, which is how it says "there is no position".
+    return body.base_revision === 0
+      ? response(200, { ...body, revision: 1 })
+      : response(409, { library_id: 'books', book_id: 'one', fraction: 0, updated_at: 0, revision: 0 })
+  })
+  sync.revision = 5
+
+  await sync.save({ cfi: 'here', fraction: 0.4 })
+
+  assert.deepEqual(requests.map(request => request.base_revision), [5, 0], 'the retry starts from nothing instead of the lost revision')
+  assert.equal(sync.blocked, false, 'there was nothing to merge with, so the tab is not held back')
+  assert.equal(sync.revision, 1)
+  assert.equal(statuses.at(-1), 'Saved')
+  assert.deepEqual(conflicts, [], 'a deleted position is not a conflict to preserve')
+})
+
+test('a position deleted before this tab loads is saved from the ground up', async () => {
+  const requests = []
+  const { sync } = fixture(async (_url, options) => {
+    if (options?.method !== 'PUT') return response(404, null)
+    const body = JSON.parse(options.body)
+    requests.push(body)
+    return response(200, { ...body, revision: 1 })
+  })
+  sync.revision = 5 // an earlier load in this tab, before the book was marked unread
+  assert.equal(await sync.load(), null)
+  assert.equal(sync.revision, 0, 'no position means no revision to claim')
+  await sync.save({ cfi: 'here', fraction: 0.4 })
+  assert.equal(requests[0].base_revision, 0)
+})

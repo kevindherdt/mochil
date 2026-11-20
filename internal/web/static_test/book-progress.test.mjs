@@ -17,3 +17,10 @@ test('finished publications are visibly complete even with an earlier locator', 
 test('untouched publications do not gain noisy progress chrome', () => {
   assert.equal(bookReadingState({}).label, '')
 })
+
+test('every status has its own word, unread included', () => {
+  // Only the two parked states were mapped, so anything else fell through to 'Dropped'.
+  assert.equal(bookReadingState({ reading_progress: { status: 'unread', fraction: 0.42 } }).label, 'Unread')
+  assert.equal(bookReadingState({ reading_progress: { status: 'on_hold' } }).label, 'On hold')
+  assert.equal(bookReadingState({ reading_progress: { status: 'dropped' } }).label, 'Dropped')
+})

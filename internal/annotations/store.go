@@ -218,6 +218,98 @@ func (s *Store) Apply(account, libraryID, bookID string, changes []Change) (Resu
 	return result, nil
 }
 
+// Transfer carries every account's highlights, notes and bookmarks from one
+// library's book id to another's, the same way a reading place follows a book
+// between libraries. It takes the source entries with them, so a replay after a
+// crash finds nothing left to carry and the step is safe to repeat.
+//
+// A publication already stored under the target key is kept aside and put back
+// by the undo, never discarded: the target may hold work on a file that
+// happened to have the same id.
+func (s *Store) Transfer(fromLibrary, toLibrary string, ids map[string]string) (func() error, error) {
+	if fromLibrary == "" || toLibrary == "" || fromLibrary == toLibrary {
+		return nil, errors.New("an annotation transfer needs two different libraries")
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	previous := s.snapshotLocked()
+	type displaced struct {
+		account string
+		key     string
+		value   publication
+	}
+	var restored []displaced
+	changed := false
+	for account, books := range s.data.Accounts {
+		for oldID, newID := range ids {
+			source := publicationKey(fromLibrary, oldID)
+			carried, ok := books[source]
+			if !ok {
+				continue
+			}
+			target := publicationKey(toLibrary, newID)
+			if existing, found := books[target]; found {
+				restored = append(restored, displaced{account: account, key: target, value: existing})
+			}
+			books[target] = carried
+			delete(books, source)
+			changed = true
+		}
+	}
+	if !changed {
+		return func() error { return nil }, nil
+	}
+	if err := s.saveLocked(); err != nil {
+		s.data = previous
+		return nil, err
+	}
+	// Undoing moves the publications back rather than restoring a snapshot, so
+	// highlights written after the move are carried back instead of dropped.
+	return func() error {
+		s.mu.Lock()
+		defer s.mu.Unlock()
+		before := s.snapshotLocked()
+		for _, books := range s.data.Accounts {
+			for oldID, newID := range ids {
+				source := publicationKey(fromLibrary, oldID)
+				target := publicationKey(toLibrary, newID)
+				if carried, ok := books[target]; ok {
+					books[source] = carried
+					delete(books, target)
+				}
+			}
+		}
+		for _, entry := range restored {
+			if books := s.data.Accounts[entry.account]; books != nil {
+				books[entry.key] = entry.value
+			}
+		}
+		if err := s.saveLocked(); err != nil {
+			s.data = before
+			return err
+		}
+		return nil
+	}, nil
+}
+
+// snapshotLocked is a deep copy of the stored publications, for restore after a
+// failed write.
+func (s *Store) snapshotLocked() storeData {
+	copied := storeData{Version: s.data.Version, Accounts: map[string]map[string]publication{}}
+	for account, books := range s.data.Accounts {
+		copiedBooks := make(map[string]publication, len(books))
+		for key, stored := range books {
+			items := make(map[string]Annotation, len(stored.Items))
+			for id, annotation := range stored.Items {
+				items[id] = cloneAnnotation(annotation)
+			}
+			copiedBooks[key] = publication{Revision: stored.Revision, Items: items}
+		}
+		copied.Accounts[account] = copiedBooks
+	}
+	return copied
+}
+
 func (s *Store) saveLocked() error {
 	if s.path == "" {
 		return nil

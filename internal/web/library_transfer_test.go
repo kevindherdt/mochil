@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"mochil/internal/annotations"
 	"mochil/internal/catalog"
 	"mochil/internal/reading"
 )
@@ -127,5 +128,68 @@ func TestTransferRefusesLibrariesThatAreNotFolders(t *testing.T) {
 		if response := editorCall(server, http.MethodPost, "/api/metadata/editor/transfer", body); response.Code < 400 {
 			t.Fatalf("%s should be refused, got %d", body, response.Code)
 		}
+	}
+}
+
+// A move carries the reader's own writing with the book. Without the step the
+// highlights stay under the old library's key: they are invisible in the new
+// library, and a later file that gets the same book id in the old one inherits
+// them. A copy is a new book, so it starts clean, like its reading place.
+func TestAMoveCarriesHighlightsAndNotesWithTheBook(t *testing.T) {
+	server, _, _ := transferServer(t)
+	store, err := annotations.Open("")
+	if err != nil {
+		t.Fatal(err)
+	}
+	server.annotations = store
+	if _, err := store.Apply("default", "books", "a1", []annotations.Change{{Annotation: annotations.Annotation{ID: "x1", Kind: "highlight", Quote: "fear is the mind-killer", Note: "litany"}}}); err != nil {
+		t.Fatal(err)
+	}
+	done := editorCall(server, http.MethodPost, "/api/metadata/editor/transfer", `{"library":"books","to":"shelf","ids":["a1"],"mode":"move"}`)
+	if done.Code != http.StatusOK {
+		t.Fatalf("move = %d %s", done.Code, done.Body.String())
+	}
+	newID := catalog.BookID("Dune/Dune 1.epub")
+	if carried := store.List("default", "shelf", newID, 0); len(carried.Applied) != 1 || carried.Applied[0].Quote != "fear is the mind-killer" || carried.Applied[0].Note != "litany" {
+		t.Fatalf("the highlight should follow the book: %+v", carried.Applied)
+	}
+	if left := store.List("default", "books", "a1", 0); len(left.Applied) != 0 {
+		t.Fatalf("a move leaves nothing behind under the old book: %+v", left.Applied)
+	}
+	var moved struct {
+		Token string `json:"token"`
+	}
+	if err := json.Unmarshal(done.Body.Bytes(), &moved); err != nil || moved.Token == "" {
+		t.Fatalf("the move answered no undo token: %s", done.Body.String())
+	}
+	if undo := editorCall(server, http.MethodPost, "/api/metadata/editor/undo", `{"token":"`+moved.Token+`"}`); undo.Code != http.StatusOK {
+		t.Fatalf("undo = %d %s", undo.Code, undo.Body.String())
+	}
+	if back := store.List("default", "books", "a1", 0); len(back.Applied) != 1 || back.Applied[0].Quote != "fear is the mind-killer" {
+		t.Fatalf("undo should bring the highlight back with the book: %+v", back.Applied)
+	}
+	if gone := store.List("default", "shelf", newID, 0); len(gone.Applied) != 0 {
+		t.Fatalf("undo should leave nothing behind in the other library: %+v", gone.Applied)
+	}
+}
+
+func TestACopyLeavesTheSourceHighlightsAloneAndStartsTheCopyClean(t *testing.T) {
+	server, _, _ := transferServer(t)
+	store, err := annotations.Open("")
+	if err != nil {
+		t.Fatal(err)
+	}
+	server.annotations = store
+	if _, err := store.Apply("default", "books", "a1", []annotations.Change{{Annotation: annotations.Annotation{ID: "x1", Kind: "note", Note: "quiet"}}}); err != nil {
+		t.Fatal(err)
+	}
+	if done := editorCall(server, http.MethodPost, "/api/metadata/editor/transfer", `{"library":"books","to":"shelf","ids":["a1"],"mode":"copy"}`); done.Code != http.StatusOK {
+		t.Fatalf("copy = %d %s", done.Code, done.Body.String())
+	}
+	if kept := store.List("default", "books", "a1", 0); len(kept.Applied) != 1 {
+		t.Fatalf("the source keeps its note: %+v", kept.Applied)
+	}
+	if copied := store.List("default", "shelf", catalog.BookID("Dune/Dune 1.epub"), 0); len(copied.Applied) != 0 {
+		t.Fatalf("a copy is a new book with no notes: %+v", copied.Applied)
 	}
 }

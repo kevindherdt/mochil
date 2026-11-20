@@ -518,3 +518,48 @@ func TestOpenDropsAnAnchorThatDisagreesWithThePercentage(t *testing.T) {
 		t.Fatalf("a matching anchor was dropped: %#v", got)
 	}
 }
+
+// Deleting a book's progress forgets the place and the recent positions saved for it. It used to
+// forget only the current place, so the reader's "Recent positions" list still offered the old ones
+// and every Restore answered 404 -- a row that existed only to fail. Marking a book unread is not a
+// deletion: it labels the book and keeps the place (see unread_keeps_place_test.go).
+func TestDeletingAPlaceAlsoForgetsItsHistory(t *testing.T) {
+	forgetful := []struct {
+		name   string
+		forget func(*Store) error
+	}{
+		{"delete", func(store *Store) error { return store.Delete("reader", "books", "one") }},
+	}
+	for _, reset := range forgetful {
+		t.Run(reset.name, func(t *testing.T) {
+			store, err := Open("")
+			if err != nil {
+				t.Fatal(err)
+			}
+			first, err := store.Put("reader", Position{LibraryID: "books", BookID: "one", Fraction: .2, CFI: "first"}, 0)
+			if err != nil {
+				t.Fatal(err)
+			}
+			second, err := store.Put("reader", Position{LibraryID: "books", BookID: "one", Fraction: .5, CFI: "second"}, first.Revision)
+			if err != nil {
+				t.Fatal(err)
+			}
+			history := store.History("reader", "books", "one")
+			if len(history) < 2 {
+				t.Fatalf("wanted a history to forget, got %#v", history)
+			}
+			if err := reset.forget(store); err != nil {
+				t.Fatal(err)
+			}
+			if _, ok := store.Get("reader", "books", "one"); ok {
+				t.Fatal("the place is still there")
+			}
+			if left := store.History("reader", "books", "one"); len(left) != 0 {
+				t.Fatalf("a forgotten place left %d recent positions behind: %#v", len(left), left)
+			}
+			if _, err := store.RestoreHistory("reader", "books", "one", second.UpdatedAt); !errors.Is(err, os.ErrNotExist) {
+				t.Fatalf("wanted the history entry gone, got %v", err)
+			}
+		})
+	}
+}

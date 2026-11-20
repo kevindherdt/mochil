@@ -37,19 +37,42 @@ export function changesFrom(form, collections) {
   return requests;
 }
 
+// readingFailure is the one sentence the click reports when the list cannot be
+// read. A failed request is not an empty library, and a reply that is not JSON (a
+// sign-in page, a proxy error) used to throw out of the click handler and leave
+// the button looking dead.
+const LIST_FAILURE = "Could not read the collections. Reload this page and try again.";
+
 export async function manageCollections({ state, ask, status, reload }) {
-  const reply = await (await fetch(`/api/collections?library=${encodeURIComponent(state.library)}`, { credentials: "same-origin" })).json();
-  const collections = Array.isArray(reply) ? reply : [];
+  let collections;
+  try {
+    const response = await fetch(`/api/collections?library=${encodeURIComponent(state.library)}`, { credentials: "same-origin" });
+    const reply = await response.json().catch(() => null);
+    if (!response.ok || !Array.isArray(reply)) {
+      status(reply?.error ? `Could not read the collections: ${reply.error}` : LIST_FAILURE, "problem");
+      return;
+    }
+    collections = reply;
+  } catch {
+    status(LIST_FAILURE, "problem");
+    return;
+  }
   if (!collections.length) { status("There are no collections in this library yet."); return; }
   let count = 0;
   const done = await ask("Manage collections", manageBody(collections), "Save", async (form) => {
     const requests = changesFrom(form, collections);
-    for (const request of requests) {
-      const response = await fetch(`/api/collections/${encodeURIComponent(request.id)}`, {
-        method: request.method, credentials: "same-origin", ...(request.body ? { headers: { "Content-Type": "application/json" }, body: JSON.stringify(request.body) } : {}),
-      });
-      if (!response.ok) return (await response.text()).trim() || `Could not save (${response.status}).`;
-      count++;
+    // A save that never reaches the server keeps the dialog open with the reason:
+    // the click used to reject silently and the button then did nothing at all.
+    try {
+      for (const request of requests) {
+        const response = await fetch(`/api/collections/${encodeURIComponent(request.id)}`, {
+          method: request.method, credentials: "same-origin", ...(request.body ? { headers: { "Content-Type": "application/json" }, body: JSON.stringify(request.body) } : {}),
+        });
+        if (!response.ok) return (await response.text()).trim() || `Could not save (${response.status}).`;
+        count++;
+      }
+    } catch (error) {
+      return `Could not save: ${error.message || "the server could not be reached"}.`;
     }
     return "";
   });

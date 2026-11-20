@@ -39,9 +39,16 @@ func TestStatusesMoveABookBetweenTheReadersLists(t *testing.T) {
 	if p, _ := store.SetDismissed("a", "lib", "book", false); p.Status != "" {
 		t.Fatalf("showing a book again clears its label: %+v", p)
 	}
-	set("unread")
-	if _, ok := store.Get("a", "lib", "book"); ok {
-		t.Fatal("unread forgets the place")
+	// Unread is a label, not an erasure: the place survives so reopening the book resumes where it was.
+	unread := set("unread")
+	if unread.Fraction <= 0 {
+		t.Fatalf("unread threw away the progress it had: %+v", unread)
+	}
+	if unread.Status != "unread" || !unread.Dismissed || unread.Finished {
+		t.Fatalf("unread should be labelled, out of the rails and unfinished: %+v", unread)
+	}
+	if store.Has("a", false) || store.Has("a", true) {
+		t.Fatal("an unread book must not sit on either dashboard list")
 	}
 	if _, err := store.SetStatus("a", "lib", "book", "nonsense"); err != ErrUnknownStatus {
 		t.Fatalf("want ErrUnknownStatus, got %v", err)

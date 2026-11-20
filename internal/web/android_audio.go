@@ -242,6 +242,8 @@ func androidAudioGroupingAllowed(kind, groupType string) bool {
 	return kind == "audiobooks" && (groupType == "series" || groupType == "authors")
 }
 
+// boundedAndroidAudioPage is the page window the grouped audio shelf and the
+// podcast show list share: same default, same ceiling, same end-of-list rule.
 func boundedAndroidAudioPage(r *http.Request, total int) (int, int) {
 	offset, _ := strconv.Atoi(r.URL.Query().Get("offset"))
 	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))

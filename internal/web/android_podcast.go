@@ -30,14 +30,7 @@ func (m *multiServer) androidPodcastShows(w http.ResponseWriter, r *http.Request
 		}
 	}
 	sort.Slice(filtered, func(i, j int) bool { return catalog.NaturalLess(filtered[i].Title, filtered[j].Title) })
-	offset, _ := strconv.Atoi(r.URL.Query().Get("offset"))
-	if offset < 0 || offset > len(filtered) {
-		offset = 0
-	}
-	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
-	if limit < 1 || limit > 120 {
-		limit = 60
-	}
+	offset, limit := boundedAndroidAudioPage(r, len(filtered))
 	end := min(len(filtered), offset+limit)
 	w.Header().Set("X-Total-Count", strconv.Itoa(len(filtered)))
 	if end < len(filtered) {

@@ -37,7 +37,7 @@ test("the collection list is hidden when there are none, and marks the chosen on
   assert.match(select.innerHTML, /selected>A &lt;b&gt; \(smart\) · 2/);
 });
 
-import { changesFrom, manageBody } from "../static/editor-collections-manage.js";
+import { changesFrom, manageBody, manageCollections } from "../static/editor-collections-manage.js";
 
 const smart = { id: "s1", name: "Herbert", count: 2, rule: { author: "Frank Herbert", added_days: 0 } };
 const picked = { id: "p1", name: "Mine", count: 3 };
@@ -78,4 +78,75 @@ test("the Hardcover sync message says what happened, including when nothing did"
   assert.equal(syncMessage(4, false), "4 books put back in the Hardcover sync.");
   assert.match(syncMessage(0, true), /already left out/);
   assert.match(syncMessage(0, false), /already in the sync/);
+});
+
+// The manage dialog reads the collections before it can offer them. A request
+// that fails is not an empty library: it used to be reported as "There are no
+// collections in this library yet", and a reply that was not JSON (a sign-in
+// page, a proxy error) threw out of the click handler, so the button did nothing
+// at all -- no dialog, no message.
+const failingFetch = (body, status = 500) => async () => ({
+  ok: false,
+  status,
+  json: async () => {
+    if (typeof body === "string") throw new SyntaxError("Unexpected token '<'");
+    return body;
+  },
+  text: async () => (typeof body === "string" ? body : JSON.stringify(body)),
+});
+
+const withFetch = async (stub, run) => {
+  const original = globalThis.fetch;
+  globalThis.fetch = stub;
+  try { return await run(); } finally { globalThis.fetch = original; }
+};
+
+const manageRun = async (library = "books") => {
+  const said = [];
+  const dialogs = [];
+  await manageCollections({
+    state: { library },
+    ask: (...args) => { dialogs.push(args); return Promise.resolve(false); },
+    status: (text, kind) => said.push([text, kind]),
+    reload: async () => {},
+  });
+  return { said, dialogs };
+};
+
+test("a collection request that fails says so instead of claiming the library has none", async () => {
+  const { said, dialogs } = await withFetch(failingFetch({ error: "The catalogue could not be read." }), () => manageRun());
+  assert.equal(dialogs.length, 0, "a failed load opens no dialog");
+  assert.equal(said.length, 1, "one message");
+  assert.doesNotMatch(said[0][0], /no collections in this library/, "a failure is not an empty library");
+  assert.match(said[0][0], /could not be read/i);
+  assert.equal(said[0][1], "problem");
+});
+
+test("a collection reply that is not JSON is reported, not thrown out of the click", async () => {
+  const { said, dialogs } = await withFetch(failingFetch("<!doctype html><html>Sign in</html>", 401), () => manageRun());
+  assert.equal(dialogs.length, 0);
+  assert.equal(said.length, 1);
+  assert.match(said[0][0], /could not read the collections/i);
+  assert.equal(said[0][1], "problem");
+});
+
+test("a save that cannot reach the server is shown in the dialog instead of vanishing", async () => {
+  const collections = [{ id: "p1", name: "Mine", count: 3 }];
+  const said = [];
+  let problem;
+  await withFetch(async (url, options) => {
+    if (!options?.method) return { ok: true, status: 200, json: async () => collections, text: async () => JSON.stringify(collections) };
+    throw new TypeError("Failed to fetch");
+  }, async () => {
+    await manageCollections({
+      state: { library: "books" },
+      ask: (_title, _body, _label, onOk) => {
+        return onOk(submitted({ "name:p1": "Reread", "delete:p1": null })).then((reply) => { problem = reply; return false; });
+      },
+      status: (text, kind) => said.push([text, kind]),
+      reload: async () => {},
+    });
+  });
+  assert.match(String(problem), /could not save/i);
+  assert.equal(said.length, 0, "the dialog keeps the message; the status line is not used for it");
 });

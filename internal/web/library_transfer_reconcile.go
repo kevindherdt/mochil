@@ -78,6 +78,14 @@ func (m *multiServer) replayTransfer(journal *transferJournal, entry transferJou
 			}
 			continue
 		}
+		if step.name == transferStepNotes && m.annotations == nil {
+			// Notes are off on this server. Recording the skip keeps the journal
+			// honest instead of recording a step that had nowhere to carry to.
+			if err := journal.skip(entry.ID, step.name, "the annotation store is not configured"); err != nil {
+				return step.name, err
+			}
+			continue
+		}
 		if _, err := step.apply(); err != nil {
 			return step.name, err
 		}

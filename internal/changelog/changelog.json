@@ -2,6 +2,21 @@
  "entries": [
   {
    "component": "web",
+   "version": "0.1.61",
+   "date": "2026-11-20",
+   "changes": [
+    "Marking a book unread no longer throws away where you were. It is a label: the book leaves Jump back in and the library says Unread, but opening it resumes at your place, and choosing Reading again clears the label.",
+    "A book that is marked unread says Unread rather than Dropped: only two statuses were being translated, so every other one fell through to the wrong word.",
+    "Manage collections tells you when the list could not be read, instead of showing an empty panel as if you had none.",
+    "Home no longer carries a folded shelf of every finished book. Finishing a book adds nothing to Home; the library filters finished books, and the Continue reading toggle still shows the most recent few with a Restore button.",
+    "Done buttons on the audio player keep saving after the position they were editing has gone, instead of failing silently.",
+    "A book that moves to another library takes its highlights and notes with it.",
+    "The podcast show list no longer replays its first page when you scroll back to it.",
+    "Books marked unread stay out of the On hold shelf, which is now only for books you parked on purpose."
+   ]
+  },
+  {
+   "component": "web",
    "version": "0.1.60",
    "date": "2026-11-20",
    "changes": [

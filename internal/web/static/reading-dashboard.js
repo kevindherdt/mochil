@@ -1,4 +1,4 @@
-import { mountDashboard } from './dashboard-template.js?v=11'
+import { mountDashboard } from './dashboard-template.js?v=12'
 import { readAlongMarkup } from './read-along-badge.js?v=2'
 import { compactRelativeTime } from './date-format.js?v=1'
 

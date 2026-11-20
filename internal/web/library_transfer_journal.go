@@ -28,10 +28,11 @@ const (
 	transferStepMetadata = "metadata"
 	transferStepColumns  = "columns"
 	transferStepReading  = "reading"
+	transferStepNotes    = "notes"
 )
 
 // transferStepsInOrder is the order in which every transfer applies its steps.
-var transferStepsInOrder = []string{transferStepFiles, transferStepMetadata, transferStepColumns, transferStepReading}
+var transferStepsInOrder = []string{transferStepFiles, transferStepMetadata, transferStepColumns, transferStepReading, transferStepNotes}
 
 // transferJournalEntry is one transfer that has started but has not finished
 // every step. It is written before any file or store is touched, so a crash

@@ -1,15 +1,13 @@
+// Home is what is next: Jump back in, what you are on hold for, and the two continue rails.
+// Finished books are one button away on Continue reading, and the library filters them properly.
 export const dashboardHTML = `
   <section class="jump-rail" id="jump-rail" hidden>
     <header><h2>Jump back in</h2><p>Pick up where you left off</p></header>
     <div class="jump-track" id="jump-track"></div>
   </section>
-  <details class="finished-rail" id="finished-rail" hidden>
-    <summary><span>Finished</span><b id="finished-count"></b></summary>
-    <div class="jump-track finished-track" id="finished-track"></div>
-  </details>
-  <details class="finished-rail held-rail" id="held-rail" hidden>
+  <details class="rails-fold held-rail" id="held-rail" hidden>
     <summary><span>On hold &amp; dropped</span><b id="held-count"></b></summary>
-    <div class="jump-track finished-track" id="held-track"></div>
+    <div class="jump-track rails-track" id="held-track"></div>
   </details>
   <div class="dashboard-lanes">
     <section class="reading-rail dashboard-reading" id="reading-rail" hidden>

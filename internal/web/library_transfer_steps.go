@@ -62,6 +62,9 @@ func (m *multiServer) transferSteps(from, to Library, ids map[string]string, pat
 		{name: transferStepReading, apply: func() (func() error, error) {
 			return m.applyTransferReading(from.ID, to.ID, ids, move)
 		}},
+		{name: transferStepNotes, apply: func() (func() error, error) {
+			return m.applyTransferNotes(from.ID, to.ID, ids, move)
+		}},
 	}
 }
 
@@ -183,4 +186,16 @@ func (m *multiServer) applyTransferReading(from, to string, ids map[string]strin
 		return noTransferStep(), nil
 	}
 	return m.reading.Transfer(from, to, ids)
+}
+
+// applyTransferNotes carries everyone's highlights, notes and bookmarks in the
+// books. They are keyed by library and book id like a reading place, so without
+// this step a move left them under a library that no longer holds the file:
+// invisible where the book went, and inherited by any later file that took the
+// old id. A copy is a new book and starts clean, as it does for reading.
+func (m *multiServer) applyTransferNotes(from, to string, ids map[string]string, move bool) (func() error, error) {
+	if !move || m.annotations == nil {
+		return noTransferStep(), nil
+	}
+	return m.annotations.Transfer(from, to, ids)
 }

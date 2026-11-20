@@ -166,3 +166,36 @@ func TestAndroidPodcastSubscriptionRoutesRequireDeviceAndCanRemoveFeed(t *testin
 		t.Fatalf("remove=%d feeds=%d body=%s", removed.Code, len(store.Feeds()), removed.Body.String())
 	}
 }
+
+// A show list shrinks when a feed is unsubscribed or dropped while the app is
+// scrolling. A page request past the new end must end the sequence with an empty
+// page, the way the audio shelf does, instead of replaying the first page into
+// the list the client is still appending to.
+func TestAndroidPodcastShowPagesEndAtTheEndInsteadOfReplayingTheFirst(t *testing.T) {
+	state := filepath.Join(t.TempDir(), "podcasts.json")
+	data := `{"version":1,"feeds":[
+		{"id":"a","url":"https://example.com/a","title":"Alpha","episodes":[]},
+		{"id":"b","url":"https://example.com/b","title":"Beta","episodes":[]},
+		{"id":"c","url":"https://example.com/c","title":"Gamma","episodes":[]}]}`
+	if err := os.WriteFile(state, []byte(data), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	store, err := podcast.Open(state, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	m := multiServer{podcasts: store}
+	response := httptest.NewRecorder()
+	m.androidPodcastShows(response, httptest.NewRequest(http.MethodGet, "/api/android/v1/podcast-shows?offset=2&limit=2", nil))
+	if response.Code != http.StatusOK || strings.Count(response.Body.String(), `"title"`) != 1 {
+		t.Fatalf("the last page should hold the remaining show: %d %s", response.Code, response.Body.String())
+	}
+	past := httptest.NewRecorder()
+	m.androidPodcastShows(past, httptest.NewRequest(http.MethodGet, "/api/android/v1/podcast-shows?offset=40&limit=2", nil))
+	if past.Code != http.StatusOK || strings.TrimSpace(past.Body.String()) != "[]" {
+		t.Fatalf("a page past the end should be empty, not the first page again: %d %s", past.Code, past.Body.String())
+	}
+	if past.Header().Get("X-Next-Offset") != "" || past.Header().Get("X-Total-Count") != "3" {
+		t.Fatalf("headers = %v", past.Header())
+	}
+}
