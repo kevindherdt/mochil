@@ -1,0 +1,12 @@
+/* Finished books on Home: folded by default. */
+.finished-rail{margin:0 0 28px}
+.finished-rail>summary{display:flex;align-items:center;gap:10px;min-height:44px;color:var(--muted);font:650 var(--fs-16)/1 "Source Sans","Segoe UI",sans-serif;list-style:none;cursor:pointer}
+.finished-rail>summary::-webkit-details-marker{display:none}
+.finished-rail>summary::before{content:"";width:8px;height:8px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(-45deg);transition:transform .18s ease}
+.finished-rail[open]>summary::before{transform:rotate(45deg)}
+.finished-rail>summary b{padding:2px 9px;border-radius:var(--r-pill);background:color-mix(in srgb,var(--kind-book) 16%,transparent);color:var(--kind-book);font-size:var(--fs-12)}
+.finished-rail[open]>summary{color:var(--text)}
+.finished-track{padding-top:12px}
+.finished-item :is(.finished-restore,.held-resume){position:absolute;top:20px;right:20px;min-height:30px;padding:0 12px;border:1px solid color-mix(in srgb,var(--text) 25%,transparent);border-radius:var(--r-pill);background:color-mix(in srgb,var(--bg) 72%,transparent);color:var(--text);font:650 var(--fs-12) "Source Sans",sans-serif;cursor:pointer;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+.finished-item :is(.finished-restore,.held-resume):hover{border-color:var(--accent);color:var(--accent)}
+.finished-item :is(.finished-restore,.held-resume):disabled{opacity:.5}
