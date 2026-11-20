@@ -1,6 +1,46 @@
 {
  "entries": [
   {
+   "component": "android",
+   "version": "0.1.20",
+   "date": "2026-11-20",
+   "changes": [
+    "The phone's dark themes match the browser's: Ember, Tide and Magenta Cream each moved up out of the near-black, keeping their own hue, so the same theme no longer looks like a different one depending on which screen you open it on."
+   ]
+  },
+  {
+   "component": "web",
+   "version": "0.1.58",
+   "date": "2026-11-20",
+   "changes": [
+    "The page no longer repaints itself under you. A service worker taking over fires controllerchange, and the app answered it by reloading -- so a first visit painted twice, and every new build reloaded an open tab mid-sentence. It is not reloaded now: a new version appears as \"A new version is ready - Reload\" and you decide when.",
+    "Ember's dark half moved one more step, to sit at the same lightness as Tide's: a warm brown at the same value looks darker than a cool slate, so the three were not actually level. Tide and Magenta Cream also moved up out of the near-black, each keeping its own hue.",
+    "The Android app wears the same values, so the phone and the browser no longer disagree about how dark a theme is.",
+    "Paper is gone. It was a light-only palette within about 3% of e-ink's light half, with the same near-black accent - the only difference was that it kept its shadows - so the picker now offers four: Ember, Tide, Magenta Cream and e-ink. A saved Paper moves to e-ink rather than resetting, on the web and the phone."
+   ]
+  },
+  {
+   "component": "web",
+   "version": "0.1.57",
+   "date": "2026-11-20",
+   "changes": [
+    "The dark themes are no longer near-black. What made them black was not the palette: a 40%-black vignette was painted over every page, so raising a palette changed nothing you could see. The vignette is a quarter now, and Ember, Tide and Magenta Cream each moved up to a mid tone that keeps the palette's hue - warm, cool, plum - while the light halves are untouched. All three stay as separate themes; the plan is one theme that suits both modes, but each is being brought up out of the black on its own first.",
+    "The editor's failure badge was rebuilt on the one danger ink rather than a fixed red of its own, which is what let it fall to 4.42:1 on the lighter surface."
+   ]
+  },
+  {
+   "component": "web",
+   "version": "0.1.56",
+   "date": "2026-11-20",
+   "changes": [
+    "The top bar no longer paints a strip of its own: it is transparent, so a page's background runs under it and the app reads as one surface. Once content scrolls beneath it, it frosts instead of turning opaque.",
+    "The dark themes moved off the near-black end. Ember, Tide and Magenta Cream each sat so close to black that the only alternative was a very bright light theme; every dark background and surface is lifted to a softer middle ground, and the light themes are untouched.",
+    "A first visit no longer loads the page twice. Installing the service worker claims the page it is running in, which fires controllerchange, and the app answered that by reloading itself - the second paint of a page the reader had just watched arrive. Only a worker replacing a live one reloads now.",
+    "The Settings → Editor page is gone. It held one switch, 'show the editor in the menu on this device'; the editor is a normal page in the menu, like Hermes, offered whenever the server says this person may use it.",
+    "The Hardcover shelf was loaded whole, which cannot work with a few thousand books: every request now asks for a page (25 rows) of one of four groups - needs a link, check these, matched, left alone - with a total from the server, and the search field is answered by the server too. Two matches at a time was all the old cap allowed once a shelf grew past 500, so the cap that silently dropped the oldest matches is now a runaway guard rather than a product limit."
+   ]
+  },
+  {
    "component": "web",
    "version": "0.1.55",
    "date": "2026-11-20",

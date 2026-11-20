@@ -59,6 +59,7 @@ test("palettes dropped from the picker keep their settings by moving to the near
     ["rosewood", "mochil"],
     ["ubuntu", "mochil"],
     ["nocturne", "kiln"],
+    ["paper", "eink"],
   ]) {
     const state = fixture({ "mochil-palette": saved });
     assert.equal(state.root.dataset.palette, expected, `${saved} should wear ${expected}`);

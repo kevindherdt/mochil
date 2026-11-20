@@ -31,7 +31,9 @@ test("a failing request never breaks the page", async () => {
   assert.equal(await editorAvailable(desktop, async () => { throw new Error("offline"); }), false);
 });
 
-test("the editor menu entry needs the server's offer and the person's choice, and remembers that choice", () => {
+test("the editor menu entry needs only the server's offer now", () => {
+  // The per-device "hide it" switch is gone: it was one more thing to explain, and the editor is a normal
+  // page in the menu like Hermes. What is left is permission, which the server answers.
   const store = new Map();
   const storage = { getItem: (key) => store.get(key) ?? null, setItem: (key, value) => store.set(key, value) };
   let changes = 0;
@@ -40,9 +42,9 @@ test("the editor menu entry needs the server's offer and the person's choice, an
   menu.setAvailable(true);
   assert.deepEqual(menu.entries(), [{ id: "__editor__", name: "Library editor" }]);
   menu.setShown(false);
-  assert.deepEqual(menu.entries(), []);
-  assert.equal(createEditorMenu({ storage }).shown(), false);
-  assert.equal(changes, 2);
+  assert.deepEqual(menu.entries(), [{ id: "__editor__", name: "Library editor" }], "no switch can take it away");
+  assert.equal(createEditorMenu({ storage }).shown(), true, "a stored hide is not honoured");
+  assert.equal(changes, 1);
 });
 
 test("choosing the Library editor opens it in this tab, like Hermes, not in a new window", () => {

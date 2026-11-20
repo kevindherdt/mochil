@@ -72,16 +72,14 @@ private fun light(primary: Long, background: Long, surface: Long, raised: Long, 
 
 // Mochil' own palettes. Ember (warm) is the default and Tide (cool) is its counterpart;
 // both keep a light and a dark scheme so the device's switch still means something.
-// Paper deliberately has ONE scheme, so it looks the same whatever the device reports.
 // Hexes match theme-tokens.css on the web.
-private val Ember = dark(0xFFFF7A34, 0xFF1A1512, 0xFF251E18, 0xFF382C24, 0xFFF7EFE2, 0xFFBFAE99)
+private val Ember = dark(0xFFFFA06B, 0xFF443C34, 0xFF504740, 0xFF5C5149, 0xFFF9F4EC, 0xFFD3C5B4)
 private val EmberLight = light(0xFFB8420A, 0xFFFDF1E3, 0xFFFFFAF3, 0xFFF6E2CD, 0xFF241608, 0xFF6F5540)
-private val Tide = dark(0xFF2FD6D0, 0xFF0D1618, 0xFF142023, 0xFF1C2B2F, 0xFFE9F6F7, 0xFFA3BCC1)
+private val Tide = dark(0xFF45DCD4, 0xFF334246, 0xFF3E4E53, 0xFF4A5C63, 0xFFEEF7F8, 0xFFB3C8CC)
 private val TideLight = light(0xFF0A7278, 0xFFEAF6F6, 0xFFF9FDFD, 0xFFD8EEEF, 0xFF0D2426, 0xFF4D6F73)
-private val Paper = light(0xFF1A1A18, 0xFFF7F7F5, 0xFFFFFFFF, 0xFFEDEDE9, 0xFF1A1A18, 0xFF5D5D57)
 // The mark's own colours (field #ff2e7e, pack #fff3e9, lid #8c003b), bolder than the rest on
 // purpose: Ember and Tide lean into chroma where the old palettes stayed muted.
-private val MagentaCream = dark(0xFFFF2E7E, 0xFF15121A, 0xFF1E1A24, 0xFF282230, 0xFFFFF3E9, 0xFFB8A8AE)
+private val MagentaCream = dark(0xFFFF5C96, 0xFF2E2735, 0xFF393141, 0xFF453B4E, 0xFFFDF1E9, 0xFFC3B0BD)
 private val MagentaCreamLight = light(0xFFC81A5E, 0xFFFFF3E9, 0xFFFFFAF5, 0xFFFFE8DA, 0xFF2A0F1A, 0xFF7A5A60)
 private val EInkDark = dark(0xFFFFFFFF, 0xFF000000, 0xFF000000, 0xFF171717, 0xFFFFFFFF, 0xFFC9C9C9)
 private val EInkLight = light(0xFF111111, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFEEEEEE, 0xFF111111, 0xFF4A4A4A)
@@ -120,7 +118,6 @@ fun MochilTheme(selection: AppThemeSelection? = null, glow: Boolean = true, cine
 internal fun paletteScheme(palette: AppPalette, dark: Boolean): ColorScheme = when (palette) {
     AppPalette.Ember -> if (dark) Ember else EmberLight
     AppPalette.Tide -> if (dark) Tide else TideLight
-    AppPalette.Paper -> Paper
     AppPalette.MagentaCream -> if (dark) MagentaCream else MagentaCreamLight
     AppPalette.EInk -> if (dark) EInkDark else EInkLight
 }
@@ -130,7 +127,7 @@ internal fun ColorScheme.asCinema(): ColorScheme {
     // every palette differed only in its accent and the screen never looked like the theme at all.
     // It now keeps the palette's own hue and pushes it down to near-black: a TV is watched in a dark
     // room and the artwork should carry the colour, but the page still belongs to the theme.
-    // A light palette (Paper, e-ink) is pushed much further, because a light page at ten feet is
+    // A light palette (e-ink) is pushed much further, because a light page at ten feet is
     // simply blinding and nothing on screen can be read against it.
     val dark = if (background.luminance() < .18f) background else lerp(background, Color.Black, .84f)
     val base = lerp(dark, Color.Black, .48f)
@@ -153,7 +150,7 @@ internal fun ColorScheme.asCinema(): ColorScheme {
         // A dark accent disappears against a dark base, so lift it toward white once here rather
         // than overriding it per palette, which had drifted out of step with the palette list.
         // This used to composite an *opaque* accent over a translucent white, which is just the
-        // accent again, so the lift never happened: Paper's near-black accent stayed invisible on a
+        // accent again, so the lift never happened: a near-black accent stayed invisible on a
         // TV and its buttons read as blank.
         primary = if (primary.luminance() < .35f) lerp(primary, Color.White, .5f) else primary,
         onPrimary = base,
@@ -175,7 +172,6 @@ private fun ThemeGlow(dark: Boolean, secondary: Color?) {
 fun AppPalette.swatch(dark: Boolean): Color = when (this) {
     AppPalette.Ember -> if (dark) Ember else EmberLight
     AppPalette.Tide -> if (dark) Tide else TideLight
-    AppPalette.Paper -> Paper
     AppPalette.MagentaCream -> if (dark) MagentaCream else MagentaCreamLight
     AppPalette.EInk -> if (dark) EInkDark else EInkLight
 }.primary

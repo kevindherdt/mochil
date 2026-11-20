@@ -4,7 +4,7 @@ import android.content.Context
 import net.kdhmedia.mochil.catalogue.ClientDeviceClass
 import net.kdhmedia.mochil.catalogue.detectClientDeviceClass
 
-enum class AppPalette(val label: String) { Ember("Ember"), Tide("Tide"), Paper("Paper"), MagentaCream("Magenta Cream"), EInk("E-ink") }
+enum class AppPalette(val label: String) { Ember("Ember"), Tide("Tide"), MagentaCream("Magenta Cream"), EInk("E-ink") }
 enum class AppThemeMode(val label: String) { System("Device"), Light("Light"), Dark("Dark") }
 data class AppThemeSelection(val palette: AppPalette = AppPalette.Ember, val mode: AppThemeMode = AppThemeMode.System, val reduceMotion: Boolean = false)
 
@@ -23,6 +23,8 @@ class AppThemePreferences(private val context: Context) {
     private fun legacyPaletteName(value: String): String = when (value) {
         "Nocturne", "Kiln", "Tide" -> "Tide"
         "Espresso", "Ember" -> "Ember"
+        // Paper was a light-only palette within a few points of e-ink's light half.
+        "Paper" -> "EInk"
         else -> value
     }
 }

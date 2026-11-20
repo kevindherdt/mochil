@@ -1,7 +1,6 @@
 import { createAccountsSettings } from "./accounts-settings.js?v=13";
 import { createModulesSettings } from "./modules-settings.js?v=20";
 import { createHermesSettings } from "./hermes-settings.js?v=18";
-import { createEditorSettings } from "./editor-settings.js?v=3";
 import { createAvatarSettings } from "./avatar-settings.js?v=7";
 import { offerRestart, withdrawRestart } from "./restart-prompt.js?v=2";
 import { createNarrationVoices } from "./narration-voices-settings.js?v=22";
@@ -58,7 +57,6 @@ export function createSettings({
   const hardcoverShelf = createHardcoverShelf({ document, $, requestJSON });
   const modulesSettings = createModulesSettings({ document, $, onDirty: markSettingsDirty });
   const hermesSettings = createHermesSettings({ document, $, requestJSON, onDirty: markSettingsDirty });
-  const editorSettings = createEditorSettings({ document, $, onDirty: markSettingsDirty });
   const avatarSettings = createAvatarSettings({ document, $ });
   const narrationVoices = createNarrationVoices({ document, $ });
   mountDiagnostics(document);
@@ -118,7 +116,6 @@ export function createSettings({
     if (moduleList) {
       modulesSettings.load(moduleList, settings);
       hermesSettings.load(settings, moduleList);
-      editorSettings.load(settings, moduleList);
       avatarSettings.load(settings, moduleList);
       narrationVoices.load(moduleList).catch(() => {});
     }
@@ -163,7 +160,6 @@ export function createSettings({
     storageSettings.bind();
     modulesSettings.bind();
     hermesSettings.bind();
-    editorSettings.bind();
     avatarSettings.bind();
     librarySettings.bind();
     // Settings opens on its index: one card per page, and a page replaces the

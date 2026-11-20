@@ -4,14 +4,9 @@ import { mountVaultSettings } from "./vault-settings-template.js?v=1";
 import { mountReaderEngine } from "./reader-engine.js?v=3";
 import { motionReduced } from "./motion-preference.js?v=1";
 
-const palettes = new Set([
-  "mochil",
-  "kiln",
-  "paper",
-  "eink",
-  "magenta-cream",
-]);
-// Ids saved by older builds. They wear the nearest of the four rather than being dropped.
+// Every family still carries its own dark and light block: the plan is one theme that fits both modes, but each
+// is being brought up out of the near-black separately first, so they stay separate while that is tested.
+const palettes = new Set(["mochil", "kiln", "eink", "magenta-cream"]);
 const legacyPalettes = {
   dusk: "kiln",
   twilight: "kiln",
@@ -19,6 +14,8 @@ const legacyPalettes = {
   manjaro: "kiln",
   material: "kiln",
   nocturne: "kiln",
+  // Paper was a light-only palette within a few points of e-ink's light half, so its settings land there.
+  paper: "eink",
   ember: "mochil",
   rosewood: "mochil",
   ubuntu: "mochil",

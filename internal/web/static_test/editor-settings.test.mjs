@@ -1,6 +1,5 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { createEditorSettings } from "../static/editor-settings.js";
 import {
   editorAbilityFeatures,
   hermesFeatures,
@@ -8,33 +7,8 @@ import {
 } from "../static/hermes-settings.js";
 import { modulesPanelHTML } from "../static/modules-settings.js";
 
-// The editor section is static markup in index.html now; this module only hides
-// it when the editor module is off.
-function fakeDocument() {
-  const editorPanel = { hidden: false };
-  const document = { querySelector: (selector) => (selector === '[data-settings-panel="editor"]' ? editorPanel : null) };
-  const $ = (selector) => document.querySelector(selector);
-  return { document, $, editorPanel };
-}
-
-const modules = () => [{ id: "editor" }, { id: "hermes" }];
-const settingsWith = (moduleState) => ({ modules: moduleState });
-
-test("the editor section follows the editor module and nothing else", () => {
-  const { $, editorPanel } = fakeDocument();
-  const settingsModule = createEditorSettings({ $ });
-
-  settingsModule.load(settingsWith({ editor: false }), modules());
-  assert.equal(editorPanel.hidden, true);
-
-  settingsModule.load(settingsWith({ editor: true }), modules());
-  assert.equal(editorPanel.hidden, false);
-
-  // Hermes has no say over the editor section any more; its abilities live in the Hermes panel.
-  settingsModule.load(settingsWith({ editor: true, hermes: false }), modules());
-  assert.equal(editorPanel.hidden, false);
-});
-
+// The Settings → Editor page held one switch and is gone; the editor is a page in the menu like Hermes. What
+// remains here are the Hermes-assisted editor abilities, which live in the Hermes panel.
 test("the two editor tools are Hermes abilities now, with their ids and help text unchanged", () => {
   assert.deepEqual(editorAbilityFeatures.map((feature) => feature.id), ["match", "isbn"]);
   assert.deepEqual(

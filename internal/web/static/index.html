@@ -13,7 +13,7 @@
       (() => {
         try {
           const root = document.documentElement;
-          const palettes = ["mochil", "kiln", "paper", "eink"];
+          const palettes = ["mochil", "kiln", "eink"];
           const mode = localStorage.getItem("mochil-theme-mode") || localStorage.getItem("mochil-theme") || "system";
           const resolved = mode === "system" ? (matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark") : mode;
           if (resolved === "light" || resolved === "dark") root.dataset.theme = resolved;
@@ -28,13 +28,13 @@
     <link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon.png" />
     <title>Mochil</title>
     <link rel="stylesheet" href="/assets/design-tokens.css?v=3">
-  <link rel="stylesheet" href="/assets/app.css?v=114" />
+  <link rel="stylesheet" href="/assets/app.css?v=118" />
     <link rel="stylesheet" href="/assets/card-surface.css?v=21" />
     <link rel="stylesheet" href="/assets/media-grid.css?v=3" />
-    <link rel="stylesheet" href="/assets/backdrops.css?v=5" />
+    <link rel="stylesheet" href="/assets/backdrops.css?v=7" />
     <link rel="stylesheet" href="/assets/book-list.css?v=25" />
     <link rel="stylesheet" href="/assets/series-hub.css?v=6" />
-    <link rel="stylesheet" href="/assets/theme-tokens.css?v=12" />
+    <link rel="stylesheet" href="/assets/theme-tokens.css?v=17" />
     <link rel="stylesheet" href="/assets/activity-panel.css?v=4" />
     <link rel="stylesheet" href="/assets/dashboard.css?v=46" />
     <link rel="stylesheet" href="/assets/kind-colors.css?v=27" />
@@ -210,12 +210,6 @@
         </section>
         <section class="settings-panel" data-settings-panel="diagnostics" hidden>
           <header><h2>Diagnostics</h2><p>Server health at a glance: uptime, memory, slow requests and background errors.</p></header>
-        </section>
-        <section class="settings-panel settings-subsection" data-settings-panel="editor" hidden>
-          <header><h2>Editor</h2><p>The library editor is an optional module for administrators: a spreadsheet-like table for books, with Hermes-assisted tools when Hermes is on.</p></header>
-          <div class="system-card editor-menu-card">
-            <label class="check-field" id="editor-menu-toggle" hidden><input type="checkbox" /><span><strong>Show the library editor in the Home and library menu</strong><small>Only hides the entry on this device; the editor itself stays available.</small></span></label>
-          </div>
         </section>
         <section class="settings-panel" data-settings-panel="libraries">
           <header class="libraries-head">

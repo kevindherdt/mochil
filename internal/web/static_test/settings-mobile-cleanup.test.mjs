@@ -4,11 +4,12 @@ import { readFileSync } from 'node:fs';
 const css = readFileSync(new URL('../static/settings-cards.css', import.meta.url), 'utf8');
 const html = readFileSync(new URL('../static/index.html', import.meta.url), 'utf8');
 
-test('editor menu card follows actual availability without removing its toggle', () => {
-  assert.match(html, /class="system-card editor-menu-card"/);
-  assert.match(html, /id="editor-menu-toggle" hidden/);
-  assert.match(css, /\.editor-menu-card:not\(:has\(#editor-menu-toggle:not\(\[hidden\]\)\)\)\s*\{display:none\}/);
-  assert.match(css, /#editor-menu-toggle\[hidden\]\s*\{display:none\}/);
+test('the editor menu card and its switch are gone', () => {
+  // It held one per-device switch. The editor is a normal page in the menu now, so there is no card, no
+  // switch and no rule hiding an empty card.
+  assert.doesNotMatch(html, /editor-menu-card/);
+  assert.doesNotMatch(html, /editor-menu-toggle/);
+  assert.doesNotMatch(css, /editor-menu-card/);
 });
 
 test('empty plugin status does not reserve space and module options are not nested cards', () => {

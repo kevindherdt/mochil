@@ -18,14 +18,16 @@
 :root[data-palette="ubuntu"][data-theme="dark"],
 [data-swatch][data-palette="mochil"][data-theme="dark"] {
   color-scheme: dark;
-  --bg: #1a1512;
-  --surface: #251e18;
-  --raised: #382c24;
-  --line: #5a4a38;
-  --text: #f7efe2;
-  --muted: #bfae99;
-  --accent: #ff7a34;
-  --accent-ink: #241005;
+  /* Mid rather than near-black: the whole set is being walked up the range a step at a time, so each theme can
+     be tried on its own before any of them has to work in both modes at once. */
+  --bg: #443c34;
+  --surface: #504740;
+  --raised: #5c5149;
+  --line: #78695a;
+  --text: #f9f4ec;
+  --muted: #d3c5b4;
+  --accent: #ffa06b;
+  --accent-ink: #26150b;
   --wash: #a33c12;
   --error: #ff8a6b;
   --accent-video: #b470f0;
@@ -66,13 +68,13 @@
 :root[data-palette="material"][data-theme="dark"],
 [data-swatch][data-palette="kiln"][data-theme="dark"] {
   color-scheme: dark;
-  --bg: #0d1618;
-  --surface: #142023;
-  --raised: #1c2b2f;
-  --line: #2f4247;
-  --text: #e9f6f7;
-  --muted: #a3bcc1;
-  --accent: #2fd6d0;
+  --bg: #334246;
+  --surface: #3e4e53;
+  --raised: #4a5c63;
+  --line: #5f7980;
+  --text: #eef7f8;
+  --muted: #b3c8cc;
+  --accent: #45dcd4;
   --accent-ink: #04211f;
   --wash: #0f5f61;
   --error: #ff8f9e;
@@ -106,26 +108,6 @@
   --accent-podcast: #9f1239;
   --accent-comics: #4d7c0f;
   --shadow: 0 14px 35px #0d3f401f;
-}
-
-:root[data-palette="paper"][data-theme],
-[data-swatch][data-palette="paper"][data-theme] {
-  color-scheme: light;
-  --bg: #f7f7f5;
-  --surface: #ffffff;
-  --raised: #edede9;
-  --line: #c9c9c3;
-  --text: #1a1a18;
-  --muted: #5d5d57;
-  --accent: #1a1a18;
-  --accent-ink: #ffffff;
-  --wash: #dadad4;
-  --error: #a73535;
-  --accent-video: #7e43b1;
-  --accent-music: #307e73;
-  --accent-podcast: #b1436c;
-  --accent-comics: #856f32;
-  --shadow: 0 14px 35px #2a2a241c;
 }
 
 :root[data-palette="eink"][data-theme="dark"],
@@ -176,13 +158,13 @@
 :root[data-palette="magenta-cream"][data-theme="dark"],
 [data-swatch][data-palette="magenta-cream"][data-theme="dark"] {
   color-scheme: dark;
-  --bg: #15121a;
-  --surface: #1e1a24;
-  --raised: #282230;
-  --line: #3a323f;
-  --text: #fff3e9;
-  --muted: #b8a8ae;
-  --accent: #ff2e7e;
+  --bg: #2e2735;
+  --surface: #393141;
+  --raised: #453b4e;
+  --line: #5d5069;
+  --text: #fdf1e9;
+  --muted: #c3b0bd;
+  --accent: #ff5c96;
   --accent-ink: #2a0f1a;
   --wash: #8c003b;
   --error: #ff5f7e;

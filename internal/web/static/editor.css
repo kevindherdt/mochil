@@ -163,7 +163,7 @@ html,.ed-scroll,.ed-columns-list,.ed-changes,.ed-candidates{scrollbar-color:colo
 .ed-choice-column{flex-direction:column;gap:6px}
 .ed-collection-bar button{border:1px solid var(--line);background:var(--surface);color:var(--text);border-radius:var(--r-8);padding:6px 12px}.ed-collection-bar button:hover{border-color:var(--accent)}
 .ed-badge[data-tone]::before{margin-right:4px}
-.ed-badge[data-tone=bad]{border-color:color-mix(in srgb,var(--danger,#d64545) 55%,var(--line));color:color-mix(in srgb,var(--danger,#d64545) 45%,var(--text))}
+.ed-badge[data-tone=bad]{border-color:color-mix(in srgb,var(--danger-ink,#e06b5d) 55%,var(--line));color:color-mix(in srgb,var(--danger-ink,#e06b5d) 45%,var(--text))}
 .ed-badge[data-tone=bad]::before{content:"✕"}
 .ed-badge[data-tone=warn]{border-color:color-mix(in srgb,#d99a2b 55%,var(--line));color:color-mix(in srgb,#d99a2b 45%,var(--text))}
 .ed-badge[data-tone=warn]::before{content:"⚠"}

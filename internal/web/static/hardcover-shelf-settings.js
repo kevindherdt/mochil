@@ -1,5 +1,8 @@
 // What the Hardcover shelf sync matched each book to, so a wrong guess can be spotted and changed, and the books
 // it could not match, so they can be linked by hand. It only shows while the Hardcover module is on.
+//
+// A shelf reaches thousands of books, so nothing here loads a whole list: each of the four groups is fetched a
+// page at a time with an honest total from the server, and the search field is answered by the server too.
 const escape = (value) =>
   String(value ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 
@@ -22,28 +25,80 @@ export function mountHardcoverShelf(document) {
     .insertAdjacentHTML("beforeend", hardcoverShelfHTML);
 }
 
+export const PAGE = 25;
+
+// The four things the shelf can say about a book, and the request that answers each.
+const GROUPS = {
+  skipped: { path: "/api/metadata/hardcover/skipped", heading: "Needs a link", note: "Hardcover has no book by this name" },
+  doubts: { path: "/api/metadata/hardcover/matches?doubt=1", heading: "Check these", note: "matched, but not certainly" },
+  matched: { path: "/api/metadata/hardcover/matches?doubt=0", heading: "Matched", note: "" },
+  ignored: { path: "/api/metadata/hardcover/ignored", heading: "Not syncing", note: "reading them changes nothing" },
+};
+
 export function createHardcoverShelf({ document, $, requestJSON }) {
   mountHardcoverShelf(document);
   const root = () => $("[data-hardcover-shelf]");
-  let skipped = [];
-  let matched = [];
-  let ignored = [];
+  const blank = () => ({ items: [], total: 0, done: false, busy: false });
+  const state = { skipped: blank(), doubts: blank(), matched: blank(), ignored: blank() };
+  let query = "";
+  const shown = new Set(); // groups that hold nothing wrong, opened by hand
   let open = null; // the book being linked: {library, book, query, results, busy}
-  // A library grows past a few hundred books, so the panel cannot list everything it knows. It shows what
-  // is wrong — books with no link, and matches worth a second look — and gives the rest as a count that
-  // expands on request, with one filter that searches the whole set.
-  let filter = "";
-  const expanded = new Set();
-  const PAGE = 8;
 
   const keyOf = (item) => `${item.library}/${item.book}`;
   const status = (text) => ($("#hardcover-shelf-status").textContent = text || "");
 
-  function resultsMarkup(search) {
-    if (search.busy) return "<p>Searching Hardcover…</p>";
-    if (!search.results) return "";
-    if (!search.results.length) return "<p>Nothing found. Try fewer words.</p>";
-    return `<ul class="hardcover-results">${search.results
+  function url(group, offset) {
+    const params = new URLSearchParams({ limit: String(PAGE), offset: String(offset) });
+    if (query) params.set("q", query);
+    const base = GROUPS[group].path;
+    return `${base}${base.includes("?") ? "&" : "?"}${params}`;
+  }
+
+  async function fetchPage(group, offset) {
+    const data = (await requestJSON(url(group, offset))).data || {};
+    const items = data.items || [];
+    const target = state[group];
+    target.items = offset === 0 ? items : target.items.concat(items);
+    target.total = typeof data.total === "number" ? data.total : target.items.length;
+    target.done = target.items.length >= target.total || items.length === 0;
+    if (group === "skipped" && data.enabled === false) root().hidden = true;
+  }
+
+  async function refresh() {
+    for (const group of Object.keys(GROUPS)) {
+      state[group] = blank();
+      state[group].busy = true;
+    }
+    render();
+    try {
+      await Promise.all(Object.keys(GROUPS).map((group) => fetchPage(group, 0)));
+    } catch (error) {
+      root().hidden = true; // not an administrator, or the module is unavailable
+      status("");
+      return;
+    }
+    for (const group of Object.keys(GROUPS)) state[group].busy = false;
+    render();
+  }
+
+  async function loadMore(group) {
+    if (state[group].busy || state[group].done) return;
+    state[group].busy = true;
+    render();
+    try {
+      await fetchPage(group, state[group].items.length);
+    } catch (error) {
+      status(error.message || "That could not be loaded.");
+    }
+    state[group].busy = false;
+    render();
+  }
+
+  function resultsMarkup(lookup) {
+    if (lookup.busy) return "<p>Searching Hardcover…</p>";
+    if (!lookup.results) return "";
+    if (!lookup.results.length) return "<p>Nothing found. Try fewer words.</p>";
+    return `<ul class="hardcover-results">${lookup.results
       .map(
         (result) =>
           `<li><span><strong>${escape(result.title)}</strong><small>${escape((result.authors || []).join(", "))}${result.year ? ` · ${escape(result.year)}` : ""}</small></span>` +
@@ -54,7 +109,7 @@ export function createHardcoverShelf({ document, $, requestJSON }) {
   }
 
   function rowMarkup(item, match) {
-    const search = open && keyOf(open) === keyOf(item) ? open : null;
+    const lookup = open && keyOf(open) === keyOf(item) ? open : null;
     const authors = (item.authors || []).join(", ");
     let detail = "";
     if (match) {
@@ -68,102 +123,80 @@ export function createHardcoverShelf({ document, $, requestJSON }) {
     }
     return (
       `<li data-key="${escape(keyOf(item))}"><div class="hardcover-skipped-row"><span><strong>${escape(item.title)}</strong>${authors ? `<small>${escape(authors)}</small>` : ""}${detail}</span>` +
-      (search ? "" : `<button type="button" data-action="find" data-library="${escape(item.library)}" data-book="${escape(item.book)}">${match ? "Change" : "Find on Hardcover"}</button>`) +
-      (search || !match ? "" : `<button type="button" data-action="stop" data-library="${escape(item.library)}" data-book="${escape(item.book)}">Stop syncing</button>`) +
+      (lookup ? "" : `<button type="button" data-action="find" data-library="${escape(item.library)}" data-book="${escape(item.book)}">${match ? "Change" : "Find on Hardcover"}</button>`) +
+      (lookup || !match ? "" : `<button type="button" data-action="stop" data-library="${escape(item.library)}" data-book="${escape(item.book)}">Stop syncing</button>`) +
       `</div>` +
-      (search
-        ? `<div class="hardcover-search"><input id="hardcover-search-input" value="${escape(search.query)}" aria-label="Search Hardcover" /><button type="button" data-action="search">Search</button><button type="button" data-action="cancel">Cancel</button></div>${resultsMarkup(search)}`
+      (lookup
+        ? `<div class="hardcover-search"><input id="hardcover-search-input" value="${escape(lookup.query)}" aria-label="Search Hardcover" /><button type="button" data-action="search">Search</button><button type="button" data-action="cancel">Cancel</button></div>${resultsMarkup(lookup)}`
         : "") +
       `</li>`
     );
   }
 
-  const matchesFilter = (item, match) =>
-    !filter || `${item.title} ${(item.authors || []).join(" ")} ${match?.hardcover_title || ""}`.toLowerCase().includes(filter);
+  const ignoredRow = (item) =>
+    `<li><div class="hardcover-skipped-row"><span><strong>${escape(item.title)}</strong><small>${escape(item.reason)}</small></span><button type="button" data-action="resume" data-library="${escape(item.library)}" data-book="${escape(item.book)}">Sync again</button></div></li>`;
 
-  function group(heading, items, rowFor, note) {
-    if (!items.length) return "";
-    const key = heading;
-    const shownAll = expanded.has(key) || filter;
-    const visible = shownAll ? items : items.slice(0, PAGE);
-    const more =
-      items.length > visible.length
-        ? `<button type="button" class="hardcover-more" data-action="more" data-group="${escape(key)}">Show all ${items.length}</button>`
-        : "";
-    return `<h3>${escape(heading)}${note ? ` <small>${escape(note)}</small>` : ""}</h3><ul class="hardcover-skipped">${visible
+  function section(group, rowFor, { alwaysOpen = false } = {}) {
+    const { items, total, done, busy } = state[group];
+    const meta = GROUPS[group];
+    // "Matched" and "Not syncing" hold nothing that needs a decision: they stay a count until asked for.
+    if (!alwaysOpen && !shown.has(group) && !query) {
+      if (!total) return "";
+      const phrase =
+        group === "matched"
+          ? `${total} ${total === 1 ? "book looks" : "books look"} right.`
+          : `${total} left alone.`;
+      return `<p class="hardcover-quiet">${phrase} <button type="button" class="hardcover-more" data-action="more" data-group="${group}">Show them</button></p>`;
+    }
+    if (!total) return "";
+    const more = !done
+      ? `<button type="button" class="hardcover-more" data-action="page" data-group="${group}"${busy ? " disabled" : ""}>${busy ? "Loading…" : `Show ${Math.min(PAGE, total - items.length)} more of ${total}`}</button>`
+      : "";
+    return `<h3>${escape(meta.heading)} <small>${total}</small>${meta.note ? ` <small>${escape(meta.note)}</small>` : ""}</h3><ul class="hardcover-skipped">${items
       .map(rowFor)
       .join("")}</ul>${more}`;
   }
 
   function render() {
-    const needsLink = skipped.filter((item) => matchesFilter(item, null));
-    const doubts = matched.filter((match) => match.doubt && matchesFilter(match, match));
-    const rest = matched.filter((match) => !match.doubt && matchesFilter(match, match));
-    const left = ignored.filter((item) => matchesFilter(item, null));
-
-    // Every matched book that looks right is one number, not a row: it is the normal state and there is
-    // nothing to do about it.
-    const summary = [
-      `${matched.length} sent to Hardcover`,
-      `${skipped.length} need${skipped.length === 1 ? "s" : ""} a link`,
-      doubts.length ? `${doubts.length} to check` : "",
-      ignored.length ? `${ignored.length} left alone` : "",
-    ]
-      .filter(Boolean)
-      .join(" · ");
+    const { skipped, doubts, matched, ignored } = state;
     const heading = $("#hardcover-shelf-summary");
-    if (heading) heading.textContent = summary;
-
-    const parts = [
-      group("Needs a link", needsLink, (item) => rowMarkup(item, null), "Hardcover has no book by this name"),
-      group("Check these", doubts, (match) => rowMarkup(match, match), "matched, but not certainly"),
-      filter || expanded.has("Matched")
-        ? group("Matched", rest, (match) => rowMarkup(match, match))
-        : rest.length
-          ? `<h3>Matched</h3><p class="hardcover-quiet">${rest.length} more ${rest.length === 1 ? "book looks" : "books look"} right. <button type="button" class="hardcover-more" data-action="more" data-group="Matched">Show them</button></p>`
-          : "",
-      expanded.has("Not syncing") || filter
-        ? group("Not syncing", left, (item) => `<li><div class="hardcover-skipped-row"><span><strong>${escape(item.title)}</strong><small>${escape(item.reason)}</small></span><button type="button" data-action="resume" data-library="${escape(item.library)}" data-book="${escape(item.book)}">Sync again</button></div></li>`, "reading them changes nothing")
-        : left.length
-          ? `<p class="hardcover-quiet">${left.length} left alone. <button type="button" class="hardcover-more" data-action="more" data-group="Not syncing">Show them</button></p>`
-          : "",
-    ];
-    const empty = !matched.length && !skipped.length
-      ? "<p>Nothing has been sent to Hardcover yet. Read a page of a book to see what it is matched to.</p>"
-      : matched.length || skipped.length
-        ? ""
-        : "<p>Nothing here yet.</p>";
-    const list = $("#hardcover-shelf-list");
-    list.innerHTML = parts.join("") + empty;
-  }
-
-  async function load() {
-    try {
-      const [lacking, found, left] = await Promise.all([
-        requestJSON("/api/metadata/hardcover/skipped"),
-        requestJSON("/api/metadata/hardcover/matches"),
-        requestJSON("/api/metadata/hardcover/ignored"),
-      ]);
-      ignored = left.data.items || [];
-      skipped = lacking.data.items || [];
-      // matches worth a second look come first
-      matched = [...(found.data.items || [])].sort((a, b) => Boolean(b.doubt) - Boolean(a.doubt));
-      root().hidden = !lacking.data.enabled;
-      if (lacking.data.enabled) render();
-    } catch (_) {
-      root().hidden = true; // not an administrator, or the module is unavailable
+    if (heading) {
+      heading.textContent = [
+        `${matched.total + doubts.total} sent to Hardcover`,
+        `${skipped.total} need${skipped.total === 1 ? "s" : ""} a link`,
+        doubts.total ? `${doubts.total} to check` : "",
+        ignored.total ? `${ignored.total} left alone` : "",
+      ]
+        .filter(Boolean)
+        .join(" · ");
     }
+    const parts = [
+      section("skipped", (item) => rowMarkup(item, null), { alwaysOpen: true }),
+      section("doubts", (match) => rowMarkup(match, match), { alwaysOpen: true }),
+      section("matched", (match) => rowMarkup(match, match)),
+      section("ignored", ignoredRow),
+    ];
+    const nothing = !skipped.total && !doubts.total && !matched.total && !ignored.total;
+    $("#hardcover-shelf-list").innerHTML = parts.join("")
+      || (nothing
+        ? query
+          ? "<p>No book in your shelf matches that.</p>"
+          : "<p>Nothing has been sent to Hardcover yet. Read a page of a book to see what it is matched to.</p>"
+        : "");
   }
 
   async function search() {
-    const query = $("#hardcover-search-input")?.value.trim();
-    if (!open || !query) return;
-    open.query = query;
+    const field = $("#hardcover-search-input");
+    // The box holds what the reader typed; before it is drawn it holds nothing, and the book's own title is
+    // what the first lookup uses.
+    const value = (field?.value || "").trim() || open?.query || "";
+    if (!open || !value) return;
+    open.query = value;
     open.busy = true;
     open.results = null;
     render();
     try {
-      open.results = (await requestJSON(`/api/metadata/hardcover/search?q=${encodeURIComponent(query)}`)).data;
+      open.results = (await requestJSON(`/api/metadata/hardcover/search?q=${encodeURIComponent(value)}`)).data;
       status("");
     } catch (error) {
       open.results = [];
@@ -184,7 +217,7 @@ export function createHardcoverShelf({ document, $, requestJSON }) {
       });
       open = null;
       status("Linked. The book is being sent to your Hardcover shelf now. If an earlier wrong match was already sent, remove it on hardcover.app.");
-      await load();
+      await refresh();
       return;
     } catch (error) {
       status(error.message || "The link could not be saved.");
@@ -200,7 +233,7 @@ export function createHardcoverShelf({ document, $, requestJSON }) {
         body: JSON.stringify({ library, book, ignore }),
       });
       status(ignore ? "Not syncing this book any more. It stays on Hardcover as it is." : "Syncing this book again.");
-      await load();
+      await refresh();
     } catch (error) {
       status(error.message || "That could not be saved.");
     }
@@ -211,7 +244,9 @@ export function createHardcoverShelf({ document, $, requestJSON }) {
     if (!target) return;
     const { action } = target.dataset;
     if (action === "find") {
-      const item = [...skipped, ...matched].find((entry) => entry.library === target.dataset.library && entry.book === target.dataset.book);
+      const item = [...state.skipped.items, ...state.doubts.items, ...state.matched.items].find(
+        (entry) => entry.library === target.dataset.library && entry.book === target.dataset.book,
+      );
       if (!item) return;
       open = { library: item.library, book: item.book, query: item.title, results: null, busy: false };
       status("");
@@ -222,29 +257,36 @@ export function createHardcoverShelf({ document, $, requestJSON }) {
       open = null;
       render();
     } else if (action === "choose") choose(target.dataset.id);
-    else if (action === "more") {
-      expanded.add(target.dataset.group);
-      render();
-    }
     else if (action === "stop") setIgnored(target.dataset.library, target.dataset.book, true);
     else if (action === "resume") setIgnored(target.dataset.library, target.dataset.book, false);
+    else if (action === "more") {
+      // The first page is already in hand, only hidden behind the count: opening it shows that, it does not
+      // fetch a second one.
+      shown.add(target.dataset.group);
+      if (state[target.dataset.group].items.length) render();
+      else loadMore(target.dataset.group);
+    } else if (action === "page") loadMore(target.dataset.group);
   }
 
   return {
     bind() {
       $("#hardcover-shelf-list").addEventListener("click", onClick);
-      // One field for the whole set: with hundreds of matches, finding the one wrong row is the actual job.
-      const search = $("#hardcover-shelf-filter");
-      if (search) {
-        search.addEventListener("input", () => {
-          filter = search.value.trim().toLowerCase();
-          render();
+      // One field for the whole shelf, answered by the server: the panel never holds more than a page of it.
+      const field = $("#hardcover-shelf-filter");
+      let timer = null;
+      if (field) {
+        field.addEventListener("input", () => {
+          clearTimeout(timer);
+          timer = setTimeout(() => {
+            query = field.value.trim();
+            refresh();
+          }, 250);
         });
       }
       root().addEventListener("toggle", () => {
-        if (root().open) load();
+        if (root().open) refresh();
       });
     },
-    load,
+    load: refresh,
   };
 }

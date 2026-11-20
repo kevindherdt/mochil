@@ -16,7 +16,7 @@ class AppThemePreferencesTest {
     }
 
     @Test fun thereAreFivePalettes() =
-        assertEquals(listOf("Ember", "Tide", "Paper", "MagentaCream", "EInk"), AppPalette.entries.map { it.name })
+        assertEquals(listOf("Ember", "Tide", "MagentaCream", "EInk"), AppPalette.entries.map { it.name })
 
     @Test fun aSavedNocturneBecomesTideAndKeepsTheOtherSettings() {
         val loaded = stored("Nocturne")
@@ -26,7 +26,7 @@ class AppThemePreferencesTest {
     }
 
     @Test fun otherPalettesAndMissingValuesAreUnchanged() {
-        assertEquals(AppPalette.Paper, stored("Paper").palette)
+        assertEquals(AppPalette.EInk, stored("Paper").palette)
         assertEquals(AppPalette.EInk, stored("EInk").palette)
         assertEquals(AppPalette.MagentaCream, stored("MagentaCream").palette)
         assertEquals(AppPalette.Ember, stored(null).palette)

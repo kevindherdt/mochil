@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createHardcoverShelf } from "../static/hardcover-shelf-settings.js";
+import { createHardcoverShelf, PAGE } from "../static/hardcover-shelf-settings.js";
 
 const skippedBook = { library: "light-novels", book: "b1", title: "86--EIGHTY-SIX - Volume 01", authors: ["Asato Asato"] };
 const matchedBook = {
@@ -10,19 +10,34 @@ const matchedBook = {
 const doubtful = (n) => ({ ...matchedBook, book: `d${n}`, title: `Doubt ${n}`, doubt: "Several Hardcover books have this title and author." });
 const sure = (n) => ({ ...matchedBook, book: `s${n}`, title: `Sure ${n}`, url: "" });
 
-function fixture({ enabled = true, skipped = [], matches = [], search = [], failLink = false, ignored = [] } = {}) {
+// A server that pages: it holds the whole shelf, answers limit/offset/q, and reports an honest total. The panel
+// must never receive a whole shelf, however many books it has.
+function fixture({ enabled = true, skipped = [], sure: sureBooks = [], doubts = [], ignored = [], search = [], failLink = false } = {}) {
   const nodes = {};
   const node = (selector) => (nodes[selector] ||= { textContent: "", innerHTML: "", value: "", hidden: false, listeners: {}, addEventListener(type, fn) { this.listeners[type] = fn; } });
   const calls = [];
   const document = { querySelector: (selector) => (selector === "[data-hardcover-shelf]" ? node(selector) : { insertAdjacentHTML() {} }) };
+  const page = (items, params) => {
+    const q = (params.get("q") || "").toLowerCase();
+    const found = items.filter((item) => !q || `${item.title} ${(item.authors || []).join(" ")} ${item.hardcover_title || ""}`.toLowerCase().includes(q));
+    const offset = Number(params.get("offset") || 0);
+    const limit = Number(params.get("limit") || PAGE);
+    return { items: found.slice(offset, offset + limit), total: found.length, offset, limit };
+  };
   const requestJSON = async (url, options = {}) => {
     calls.push({ url, options });
-    if (url.endsWith("/skipped")) return { data: { enabled, items: skipped } };
-    if (url.endsWith("/matches")) return { data: { enabled, items: matches } };
-    if (url.endsWith("/ignored")) return { data: { items: ignored } };
-    if (url.endsWith("/ignore")) return { data: { ignored: JSON.parse(options.body).ignore } };
-    if (url.includes("/search")) return { data: search };
-    if (url.endsWith("/link")) {
+    const [path, queryString = ""] = url.split("?");
+    const params = new URLSearchParams(queryString);
+    if (path.endsWith("/skipped")) return { data: { enabled, ...page(skipped, params) } };
+    if (path.endsWith("/matches")) {
+      const doubt = params.get("doubt");
+      const pool = doubt === "1" ? doubts : doubt === "0" ? sureBooks : [...doubts, ...sureBooks];
+      return { data: { enabled, ...page(pool, params) } };
+    }
+    if (path.endsWith("/ignored")) return { data: page(ignored, params) };
+    if (path.endsWith("/ignore")) return { data: { ignored: JSON.parse(options.body).ignore } };
+    if (path.endsWith("/search")) return { data: search };
+    if (path.endsWith("/link")) {
       if (failLink) throw new Error("The link could not be saved");
       return { data: { linked: true } };
     }
@@ -35,8 +50,11 @@ function fixture({ enabled = true, skipped = [], matches = [], search = [], fail
     node("#hardcover-shelf-filter").value = value;
     node("#hardcover-shelf-filter").listeners.input();
   };
-  const settle = () => new Promise((resolve) => setTimeout(resolve, 5));
-  return { shelf, node, calls, click, type, settle };
+  const wait = (ms = 10) => new Promise((resolve) => setTimeout(resolve, ms));
+  const settle = () => wait(320); // the field debounces
+  const html = () => node("#hardcover-shelf-list").innerHTML;
+  const callsFor = (needle) => calls.filter((call) => call.url.includes(needle));
+  return { shelf, node, calls, click, type, wait, settle, html, callsFor };
 }
 
 test("the screen stays hidden while the module is off, or for someone who may not see it", async () => {
@@ -54,130 +72,134 @@ test("the screen stays hidden while the module is off, or for someone who may no
   assert.equal(node("[data-hardcover-shelf]").hidden, true, "a reader who is not an administrator never sees it");
 });
 
-// A library grows past a few hundred books. The panel therefore cannot be a list of everything it knows:
-// it reports the whole set as one line and lists only what needs a decision.
+// A shelf grows past a thousand books. The panel cannot be a list of everything it knows: it reports the whole
+// set as one line and lists only what needs a decision.
 test("the panel opens with a count, not a wall of rows", async () => {
-  const matches = [...Array.from({ length: 40 }, (_, i) => sure(i)), doubtful(1)];
-  const { shelf, node } = fixture({ matches, skipped: [skippedBook] });
+  const { shelf, node, html } = fixture({ sure: Array.from({ length: 40 }, (_, i) => sure(i)), doubts: [doubtful(1)], skipped: [skippedBook] });
   await shelf.load();
   assert.equal(node("#hardcover-shelf-summary").textContent, "41 sent to Hardcover · 1 needs a link · 1 to check");
-  const html = node("#hardcover-shelf-list").innerHTML;
-  assert.equal((html.match(/On Hardcover:/g) || []).length, 1, "only the doubtful match is a row");
-  assert.match(html, /40 more books look right/);
-  assert.doesNotMatch(html, /Sure 7</, "a match that looks right is not rendered as a row");
-  assert.ok(html.length < 3000, `the panel stays small with 42 books (${html.length} chars)`);
+  assert.equal((html().match(/On Hardcover:/g) || []).length, 1, "only the doubtful match is a row");
+  assert.match(html(), /40 books look right/);
+  assert.ok(html().length < 4000, `the panel stays small with 42 books (${html().length} chars)`);
 });
 
-test("a sure match can still be inspected, and shows what it was matched to", async () => {
-  const { shelf, node, click } = fixture({ matches: [matchedBook] });
+test("no request ever asks for more than a page of the shelf", async () => {
+  const { shelf, calls } = fixture({ sure: Array.from({ length: 900 }, (_, i) => sure(i)) });
   await shelf.load();
-  click({ action: "more", group: "Matched" });
-  const html = node("#hardcover-shelf-list").innerHTML;
-  assert.match(html, /On Hardcover: <strong>Dune \(Deluxe Edition\)<\/strong> by Frank Herbert · matched by name/);
-  assert.match(html, /href="https:\/\/hardcover\.app\/books\/dune"/);
-  assert.match(html, />Change</);
-  assert.match(html, />Stop syncing</);
+  assert.ok(calls.length >= 4, "each group is asked for its first page");
+  for (const call of calls) {
+    const params = new URLSearchParams(call.url.split("?")[1] || "");
+    assert.ok(Number(params.get("limit")) <= PAGE, `${call.url} asks for more than a page`);
+  }
 });
 
-test("a long Needs a link list is capped until the reader asks for all of it", async () => {
-  const skipped = Array.from({ length: 12 }, (_, i) => ({ library: "books", book: `b${i}`, title: `Unmatched ${i}`, authors: ["A"] }));
-  const { shelf, node, click } = fixture({ skipped });
+test("Show them opens the matched page, and the rest arrives a page at a time", async () => {
+  const { shelf, click, html, callsFor, wait } = fixture({ sure: Array.from({ length: 60 }, (_, i) => sure(i)) });
   await shelf.load();
-  const first = node("#hardcover-shelf-list").innerHTML;
-  assert.equal((first.match(/Find on Hardcover/g) || []).length, 8, "eight rows, not twelve");
-  assert.match(first, /Show all 12/);
-  click({ action: "more", group: "Needs a link" });
-  assert.equal((node("#hardcover-shelf-list").innerHTML.match(/Find on Hardcover/g) || []).length, 12);
+  click({ action: "more", group: "matched" });
+  await wait();
+  assert.equal((html().match(/On Hardcover:/g) || []).length, PAGE);
+  assert.match(html(), new RegExp(`Show ${PAGE} more of 60`));
+  click({ action: "page", group: "matched" });
+  await wait();
+  assert.equal((html().match(/On Hardcover:/g) || []).length, PAGE * 2);
+  const offsets = callsFor("/matches?doubt=0").map((call) => new URLSearchParams(call.url.split("?")[1]).get("offset"));
+  assert.deepEqual(offsets.slice(-2), ["0", String(PAGE)], "the next page is asked for by offset");
 });
 
-test("one field finds a book among all the matches", async () => {
-  const { shelf, node, type } = fixture({ matches: [sure(1), sure(2), sure(3)] });
+test("a sure match can be inspected, and says what it was matched to", async () => {
+  const { shelf, click, html, wait } = fixture({ sure: [matchedBook] });
   await shelf.load();
-  type("sure 3");
-  const html = node("#hardcover-shelf-list").innerHTML;
-  assert.match(html, /Sure 3</);
-  assert.doesNotMatch(html, /Sure 1</, "the others are filtered out");
-  assert.equal(node("#hardcover-shelf-summary").textContent, "3 sent to Hardcover · 0 need a link", "the count still describes the whole set");
-  type("");
-  assert.match(node("#hardcover-shelf-list").innerHTML, /3 more books look right/);
+  click({ action: "more", group: "matched" });
+  await wait();
+  assert.match(html(), /On Hardcover: <strong>Dune \(Deluxe Edition\)<\/strong> by Frank Herbert · matched by name/);
+  assert.match(html(), /href="https:\/\/hardcover\.app\/books\/dune"/);
+  assert.match(html(), />Change</);
+  assert.match(html(), />Stop syncing</);
 });
 
-test("skipped books wait under Needs a link, and names from the library are escaped", async () => {
-  const { shelf, node } = fixture({ skipped: [{ library: "b", book: "1", title: "<img src=x onerror=alert(1)>", authors: ["A & B"] }] });
+test("the search field is answered by the server, not by the handful of rows on screen", async () => {
+  const { shelf, type, html, callsFor, settle } = fixture({ sure: Array.from({ length: 60 }, (_, i) => sure(i)) });
   await shelf.load();
-  const html = node("#hardcover-shelf-list").innerHTML;
-  assert.doesNotMatch(html, /<img/);
-  assert.match(html, /&lt;img/);
-  assert.match(html, /A &amp; B/);
-  assert.match(html, /Find on Hardcover/);
+  type("sure 57");
+  await settle();
+  const searched = callsFor("q=sure");
+  assert.ok(searched.length >= 2, "every group is asked again with the filter");
+  assert.equal(new URLSearchParams(searched[0].url.split("?")[1]).get("q"), "sure 57", "the field's words reach the server");
+  assert.match(html(), /Sure 57/);
+  assert.doesNotMatch(html(), /Sure 1</, "the rest of the shelf is filtered out by the server");
 });
 
-test("changing a wrong match searches by the book's title, and choosing links it and refreshes the lists", async () => {
-  const { shelf, node, calls, click, settle } = fixture({
-    matches: [matchedBook],
+test("names from the library are escaped", async () => {
+  const { shelf, html } = fixture({ skipped: [{ library: "b", book: "1", title: "<img src=x onerror=alert(1)>", authors: ["A & B"] }] });
+  await shelf.load();
+  assert.doesNotMatch(html(), /<img/);
+  assert.match(html(), /&lt;img/);
+  assert.match(html(), /A &amp; B/);
+});
+
+test("changing a wrong match searches by the book's title, and choosing links it and refreshes", async () => {
+  const { shelf, node, calls, click, settle, wait } = fixture({
+    doubts: [doubtful(1)],
     search: [{ title: "Dune", authors: ["Frank Herbert"], year: 1965, provider_id: "379", source_url: "https://hardcover.app/books/dune-1965" }],
   });
   await shelf.load();
-  click({ action: "more", group: "Matched" });
-  node("#hardcover-search-input").value = "Dune"; // what the box shows once drawn: the book's title
-  click({ action: "find", library: "books", book: "a1" });
-  await settle();
-  const search = calls.find((c) => c.url.includes("/search"));
-  assert.ok(search, "searching starts right away");
-  assert.match(decodeURIComponent(search.url), /q=Dune$/);
+  click({ action: "find", library: "books", book: "d1" });
+  await wait();
+  const lookup = calls.find((call) => call.url.includes("/search"));
+  assert.ok(lookup, "searching starts right away");
+  assert.equal(new URLSearchParams(lookup.url.split("?")[1]).get("q"), "Doubt 1");
   assert.match(node("#hardcover-shelf-list").innerHTML, /1965/);
   const before = calls.length;
   click({ action: "choose", id: "379" });
   await settle();
-  const link = calls.find((c) => c.url.endsWith("/link"));
-  assert.deepEqual(JSON.parse(link.options.body), { library: "books", book: "a1", provider_id: "379" });
+  const link = calls.find((call) => call.url.endsWith("/link"));
+  assert.deepEqual(JSON.parse(link.options.body), { library: "books", book: "d1", provider_id: "379" });
   assert.match(node("#hardcover-shelf-status").textContent, /Linked/);
-  assert.ok(calls.slice(before).some((c) => c.url.endsWith("/matches")), "the lists are reloaded to show the new match");
+  assert.ok(calls.slice(before).some((call) => call.url.includes("/matches")), "the shelf is reloaded to show the new match");
 });
 
 test("a failed link keeps everything as it was and says why", async () => {
-  const { shelf, node, click, settle } = fixture({
+  const { shelf, node, click, settle, wait } = fixture({
     skipped: [skippedBook],
     search: [{ title: "x", authors: [], provider_id: "9", source_url: "https://hardcover.app/books/x" }],
     failLink: true,
   });
   await shelf.load();
-  node("#hardcover-search-input").value = "86";
   click({ action: "find", library: "light-novels", book: "b1" });
-  await settle();
+  await wait();
   click({ action: "choose", id: "9" });
   await settle();
   assert.match(node("#hardcover-shelf-status").textContent, /could not be saved/);
   assert.match(node("#hardcover-shelf-list").innerHTML, /86--EIGHTY-SIX - Volume 01/);
 });
 
-test("a doubtful match is explained, and sits above the count of the sure ones", async () => {
-  const { shelf, node } = fixture({ matches: [sure(1), doubtful(1)] });
+test("a doubtful match is explained and says how many are left to check", async () => {
+  const { shelf, html } = fixture({ sure: [sure(1)], doubts: [doubtful(1)] });
   await shelf.load();
-  const html = node("#hardcover-shelf-list").innerHTML;
-  assert.match(html, /Check this one: Several Hardcover books have this title and author\./);
-  assert.ok(html.indexOf("Doubt 1") < html.indexOf("more book looks right"), "the doubtful one comes first");
-  assert.equal((html.match(/Check this one/g) || []).length, 1, "only the doubtful one is flagged");
+  assert.match(html(), /Check this one: Several Hardcover books have this title and author\./);
+  assert.match(html(), /Check these <small>1<\/small>/);
+  assert.equal((html().match(/Check this one/g) || []).length, 1, "only the doubtful one is flagged");
 });
 
 test("stopping and resuming the sync of a book, and the books that are left alone", async () => {
-  const { shelf, node, calls, click, settle } = fixture({
-    matches: [doubtful(1)],
+  const { shelf, node, calls, click, settle, wait } = fixture({
+    doubts: [doubtful(1)],
     ignored: [{ library: "books", book: "a9", title: "Deleted on Hardcover", reason: "removed on Hardcover" }],
   });
   await shelf.load();
-  const html = node("#hardcover-shelf-list").innerHTML;
-  assert.match(html, />Stop syncing</);
-  assert.match(html, /1 left alone/);
+  assert.match(node("#hardcover-shelf-list").innerHTML, />Stop syncing</);
+  assert.match(node("#hardcover-shelf-list").innerHTML, /1 left alone/);
   click({ action: "stop", library: "books", book: "d1" });
   await settle();
-  const stop = calls.find((c) => c.url.endsWith("/ignore"));
+  const stop = calls.find((call) => call.url.endsWith("/ignore"));
   assert.deepEqual(JSON.parse(stop.options.body), { library: "books", book: "d1", ignore: true });
 
-  click({ action: "more", group: "Not syncing" });
+  click({ action: "more", group: "ignored" });
+  await wait();
   assert.match(node("#hardcover-shelf-list").innerHTML, /Deleted on Hardcover<\/strong><small>removed on Hardcover/);
   click({ action: "resume", library: "books", book: "a9" });
   await settle();
-  const resume = calls.filter((c) => c.url.endsWith("/ignore")).pop();
+  const resume = calls.filter((call) => call.url.endsWith("/ignore")).pop();
   assert.deepEqual(JSON.parse(resume.options.body), { library: "books", book: "a9", ignore: false });
 });

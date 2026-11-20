@@ -15,8 +15,8 @@ import (
 // older version than the APK it was serving, so an installed app was told it was newer
 // than the file behind the download link.
 const (
-	androidAppVersion     = "0.1.19"
-	androidAppVersionCode = 443
+	androidAppVersion     = "0.1.20"
+	androidAppVersionCode = 444
 )
 
 func (m *multiServer) androidAppInfo(w http.ResponseWriter, r *http.Request) {

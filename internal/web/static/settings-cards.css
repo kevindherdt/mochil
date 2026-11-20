@@ -191,7 +191,6 @@
 #settings-view .hermes-catalog-desc{text-align:left;color:var(--muted)}
 
 /* The menu checkbox is desktop/permission gated; its card must follow it. */
-#settings-view .editor-menu-card:not(:has(#editor-menu-toggle:not([hidden]))){display:none}
 #settings-view #editor-menu-toggle[hidden]{display:none}
 #settings-view #plugin-status:empty{display:none}
 @media (max-width:700px){

@@ -12,7 +12,7 @@ test("appearance template retains palette, brightness, and settings contracts", 
   for (const value of [
     "mochil",
     "kiln",
-    "paper",
+    "magenta-cream",
     "eink",
     "system",
     "light",
@@ -22,7 +22,7 @@ test("appearance template retains palette, brightness, and settings contracts", 
   for (const gone of ["dusk", "twilight", "tide", "rosewood", "ember", "manjaro", "ubuntu", "material"])
     assert.doesNotMatch(themeSettingsHTML, new RegExp(`value="${gone}"`));
   assert.match(themeSettingsHTML, /E-ink removes shadows/);
-  assert.equal((themeSettingsHTML.match(/<option value="(?:mochil|kiln|paper|eink)"/g) || []).length, 4);
+  assert.equal((themeSettingsHTML.match(/<option value="(?:mochil|kiln|eink|magenta-cream)"/g) || []).length, 4);
   assert.doesNotMatch(themeSettingsHTML, /nocturne/i);
 });
 

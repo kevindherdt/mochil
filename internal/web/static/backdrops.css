@@ -2,9 +2,14 @@
    e-ink stay flat. Built from the palette (--accent and --backdrop-alt) so it follows light and dark.
    It sits behind everything, fixed, and never takes clicks.
 
+   The vignette used to be 40% black at the edges, which was most of why a "lifted" dark theme still read as
+   near-black: the palette could be raised and the corner stayed a black hole. It is a quarter now, so the
+   glow and the palette's own mid tone decide how dark a page looks.
+
+   Magenta Cream's second colour is its own lid maroon, not violet, which would fight the magenta.
    The phone gives every palette but e-ink this glow (ThemeGlow), so the web must too: leaving one
    palette out made the same theme read flat and darker here than in the app. */
-:root{--backdrop-alt:#7c5cff;--bd-strength:30%;--bd-alt-strength:24%;--bd-vignette:#00000066}
+:root{--backdrop-alt:#7c5cff;--bd-strength:26%;--bd-alt-strength:18%;--bd-vignette:#00000026}
 /* Magenta Cream's second colour is its own lid maroon, not violet, which would fight the magenta. */
 :root[data-palette=magenta-cream]{--backdrop-alt:#8c003b}
 :root[data-theme="light"]{--bd-strength:18%;--bd-alt-strength:12%;--bd-vignette:transparent}

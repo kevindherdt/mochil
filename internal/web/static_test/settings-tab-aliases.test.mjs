@@ -25,8 +25,11 @@ test('Settings no longer has Metadata, Editor or Reading tabs, and the duplicate
   assert.match(index, /data-settings-tab="playback"/, 'Playback keeps its own tab')
 })
 
-test('the editor section is static markup that moves into Modules, and the metadata review mounts into Libraries', async () => {
-  assert.match(index, /data-settings-panel="editor"/)
+test('the editor has no settings page, and the metadata review mounts into Libraries', async () => {
+  // The editor section held one switch, "show it in the menu on this device"; the editor is a normal page
+  // in the menu now, like Hermes, so the panel and its markup are gone.
+  assert.doesNotMatch(index, /data-settings-panel="editor"/)
+  assert.doesNotMatch(index, /editor-menu-toggle/)
   const settings = await readFile(new URL('../static/settings.js', import.meta.url), 'utf8')
   assert.match(settings, /settingsTabFor\(remembered\)/)
   assert.doesNotMatch(settings, /createReadingDefaults|readingDefaults/)

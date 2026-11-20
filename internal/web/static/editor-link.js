@@ -15,15 +15,11 @@ export async function editorAvailable(document, fetchImpl) {
   }
 }
 
-const storageKey = "mochil-editor-in-menu-v1";
-
 /** Whether the editor is a page in the Home/library menu: offered by the server, and not hidden on this device. */
 export function createEditorMenu({ storage = globalThis.localStorage, onChange = () => {}, document = null, fetchImpl = null, open = () => globalThis.location?.assign("/editor") } = {}) {
   let available = false;
-  const read = () => {
-    try { return storage?.getItem(storageKey) !== "0"; } catch (_) { return true; }
-  };
-  let shown = read();
+  // It is a normal page in the menu, like Hermes: no per-device hide switch to explain or to forget about.
+  let shown = true;
   const entries = () => (available && shown ? [{ id: "__editor__", name: "Library editor" }] : []);
   const menu = {
     available: () => available,
@@ -37,24 +33,13 @@ export function createEditorMenu({ storage = globalThis.localStorage, onChange =
       available = value;
       onChange();
     },
-    setShown(value) {
-      shown = Boolean(value);
-      try { storage?.setItem(storageKey, shown ? "1" : "0"); } catch (_) { /* a blocked store only forgets the choice */ }
-      onChange();
-    },
+    setShown() {},
   };
   if (document && fetchImpl) void startEditorMenu({ document, fetchImpl, menu });
   return menu;
 }
 
-/** Finds out whether the editor is offered, and wires the Settings checkbox that hides its menu entry on this device. */
+/** Finds out whether the editor is offered at all: permission and module, not a per-device preference. */
 export function startEditorMenu({ document, fetchImpl, menu }) {
-  const toggle = document.querySelector("#editor-menu-toggle");
-  const input = toggle?.querySelector("input");
-  if (input) input.onchange = () => menu.setShown(input.checked);
-  return editorAvailable(document, fetchImpl).then((available) => {
-    if (toggle) toggle.hidden = !available;
-    if (input) input.checked = menu.shown();
-    menu.setAvailable(available);
-  });
+  return editorAvailable(document, fetchImpl).then((available) => menu.setAvailable(available));
 }

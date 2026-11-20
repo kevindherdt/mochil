@@ -44,11 +44,6 @@ class ThemeChangeKeepsScreenStateTest {
     }
 
     @Test
-    fun switchingToPaperKeepsTheScreenInPlace() {
-        assertEquals("Paper rebuilt the screen instead of recolouring it", 1, creationsAfterSwitchingTo(AppPalette.Paper))
-    }
-
-    @Test
     fun switchingToEInkKeepsTheScreenInPlace() {
         assertEquals("E-ink rebuilt the screen instead of recolouring it", 1, creationsAfterSwitchingTo(AppPalette.EInk))
     }

@@ -134,7 +134,9 @@ type hardcoverMatch struct {
 	At    int64  `json:"at"`
 }
 
-const maximumHardcoverMatches = 500
+// A shelf is a reading history, so it grows without limit in principle. The cap is a guard against a runaway
+// file, not a product limit: at 500 a reader with a few thousand books silently lost the oldest matches.
+const maximumHardcoverMatches = 20000
 
 // hardcoverMatches keeps the newest matches, newest first.
 type hardcoverMatches struct {
@@ -287,8 +289,15 @@ func (m *multiServer) apiHardcover(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 			return
 		}
-		items := m.hardcoverSkipped.list()
-		writeJSON(w, http.StatusOK, map[string]any{"enabled": m.hardcoverEnqueue != nil, "items": items})
+		page := readHardcoverPage(r)
+		all := []skippedBook{}
+		for _, item := range m.hardcoverSkipped.list() {
+			if hardcoverMatchesQuery(page, item.Title, strings.Join(item.Authors, " ")) {
+				all = append(all, item)
+			}
+		}
+		items, total := window(all, page)
+		writeJSON(w, http.StatusOK, map[string]any{"enabled": m.hardcoverEnqueue != nil, "items": items, "total": total, "offset": page.offset, "limit": page.limit})
 	case "search":
 		if r.Method != http.MethodGet {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -315,7 +324,24 @@ func (m *multiServer) apiHardcover(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		m.recordLinkedMatches(r.Context(), "", "")
-		writeJSON(w, http.StatusOK, map[string]any{"enabled": m.hardcoverEnqueue != nil, "items": m.hardcoverMatches.list()})
+		page := readHardcoverPage(r)
+		// "Check these" (a match worth a second look) and the rest are counted and paged apart, because the
+		// page needs an honest total for each and never holds the whole shelf in memory.
+		wantDoubt := r.URL.Query().Get("doubt")
+		all := []hardcoverMatch{}
+		for _, item := range m.hardcoverMatches.list() {
+			if wantDoubt == "1" && item.Doubt == "" {
+				continue
+			}
+			if wantDoubt == "0" && item.Doubt != "" {
+				continue
+			}
+			if hardcoverMatchesQuery(page, item.Title, strings.Join(item.Authors, " "), item.HardcoverTitle) {
+				all = append(all, item)
+			}
+		}
+		items, total := window(all, page)
+		writeJSON(w, http.StatusOK, map[string]any{"enabled": m.hardcoverEnqueue != nil, "items": items, "total": total, "offset": page.offset, "limit": page.limit})
 	case "match":
 		if r.Method != http.MethodGet {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
