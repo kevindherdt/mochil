@@ -18,6 +18,6 @@ export const metadataProviderSettingsHTML = `
 export function mountMetadataProviderSettings(document) {
   if (document.querySelector("[data-metadata-provider-settings]")) return;
   document
-    .querySelector('[data-settings-panel="metadata"]')
+    .querySelector('[data-settings-panel="libraries"]')
     .insertAdjacentHTML("beforeend", metadataProviderSettingsHTML);
 }

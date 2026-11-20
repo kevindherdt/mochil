@@ -6,6 +6,10 @@ services:
     build:
       context: .
       dockerfile: Containerfile
+      # Pass the tree's version in (MOCHIL_VERSION=$(cat VERSION) docker compose ...), or the binary
+      # reports the linker default and the settings page cannot tell one local build from another.
+      args:
+        VERSION: ${MOCHIL_VERSION:-local}
     image: mochil:local
     restart: unless-stopped
     healthcheck:

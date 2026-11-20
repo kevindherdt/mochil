@@ -29,13 +29,16 @@ const maximumKoSyncStateBytes int64 = 64 << 20
 var koSyncDocumentID = regexp.MustCompile(`^[a-fA-F0-9]{32}$`)
 
 type koSyncProgress struct {
-	Document   string         `json:"document"`
-	Progress   string         `json:"progress"`
-	Percentage float64        `json:"percentage"`
-	Device     string         `json:"device"`
-	DeviceID   string         `json:"device_id"`
-	Timestamp  int64          `json:"timestamp"`
-	Metadata   map[string]any `json:"metadata,omitempty"`
+	Document   string  `json:"document"`
+	Progress   string  `json:"progress"`
+	Percentage float64 `json:"percentage"`
+	Device     string  `json:"device"`
+	DeviceID   string  `json:"device_id"`
+	Timestamp  int64   `json:"timestamp"`
+	// SeenAt is when this server received the save, in its own clock. The device stamp above cannot be
+	// used to judge how recent a position is: it is whatever that device's clock says.
+	SeenAt   int64          `json:"seen_at,omitempty"`
+	Metadata map[string]any `json:"metadata,omitempty"`
 }
 
 type koSyncUser struct {
@@ -131,6 +134,7 @@ func (s *koSyncStore) setProgress(username string, progress koSyncProgress) (koS
 	if current, ok := user.Progress[progress.Document]; ok && current.Timestamp >= progress.Timestamp {
 		progress.Timestamp = current.Timestamp + 1
 	}
+	progress.SeenAt = time.Now().Unix()
 	previous, existed := user.Progress[progress.Document]
 	user.Progress[progress.Document] = progress
 	if err := s.saveLocked(); err != nil {

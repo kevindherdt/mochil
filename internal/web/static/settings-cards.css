@@ -239,3 +239,8 @@
 #settings-view .storage-settings{width:100%;margin:0 0 10px}
 #settings-view [data-settings-panel="metadata"] .settings-accordion>summary,
 #settings-view .storage-settings>summary{min-height:60px}
+/* A thumb needs 44x44 and these were 30x30: the ordering arrows sit in a row of their own, so growing
+   them costs nothing but padding. Where a mouse is what points, they stay compact. */
+@media (pointer:coarse),(max-width:700px){
+  .library-order-move{width:44px;height:44px}
+}

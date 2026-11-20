@@ -88,7 +88,7 @@ func (a *sessionAuth) serveSetup(w http.ResponseWriter, r *http.Request) {
 func (a *sessionAuth) setupPage(w http.ResponseWriter, r *http.Request, status int, message string) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Header().Set("Cache-Control", "no-store")
-	w.Header().Set("Content-Security-Policy", "default-src 'self'; style-src 'self'; font-src 'self'; img-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'; object-src 'none'")
+	w.Header().Set("Content-Security-Policy", "default-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data:; form-action 'self'; frame-ancestors 'none'; base-uri 'none'; object-src 'none'")
 	csrf, ok := randomToken(24)
 	if !ok {
 		http.Error(w, "Could not prepare the first-run page", http.StatusServiceUnavailable)

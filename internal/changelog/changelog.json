@@ -2,6 +2,17 @@
  "entries": [
   {
    "component": "web",
+   "version": "0.1.55",
+   "date": "2026-11-20",
+   "changes": [
+    "Saving anything that did not change a module failed with `withdrawRestart is not defined`: the caller was added but its import was not, so the last step of every such save threw and the settings page answered 'Could not save'. The import is there, and a new test walks every module for a sibling helper it calls without binding it, so a missing import fails the suite instead of a save.",
+    "The theme no longer flashes dark for a light, paper or e-ink reader. The inline script that applies the saved palette before the first paint was blocked by the page's own Content-Security-Policy, whose hash is now computed from the bytes actually served, so editing that script cannot silently disable it again. The sign-in and first-run pages also allow the data: images they draw their field icons from; those icons were being refused by their own policy.",
+    "The Hardcover shelf no longer grows into a wall of rows. It opens with one line - how many books were sent, how many need a link, how many want checking, how many are left alone - one field that finds a book by title or author, and rows only where something is wrong. A match that looks right is a count with a 'Show them' button, a long list of unmatched books is capped until asked for, and the panel stays small with several hundred books.",
+    "The Metadata page is retired: it was inserted inside the Libraries panel, which is why its header showed above a row of library settings and 'Advanced' appeared at the bottom of it in a different width. Naming and checking new files is Import, editing existing metadata is the library editor, and the metadata providers and Hardcover shelf are now cards on the Libraries page. The scan-interval and cover-cache knobs are gone; 'Scan all libraries now' remains for the times it is wanted."
+   ]
+  },
+  {
+   "component": "web",
    "version": "0.1.54",
    "date": "2026-11-20",
    "changes": [

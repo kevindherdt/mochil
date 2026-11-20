@@ -174,6 +174,12 @@ func (m *multiServer) serveStatic(w http.ResponseWriter, r *http.Request, name s
 		// WebAssembly on this page only; it does not allow eval.
 		policy = strings.Replace(policy, "script-src 'self'", "script-src 'self' 'wasm-unsafe-eval'", 1)
 	}
+	// A page that carries an inline script needs its hash in the policy: script-src 'self' blocks it.
+	// The theme pre-paint is such a script, and it is the only thing that stops a light or e-ink reader
+	// from seeing the dark palette on every page load.
+	if hashes := inlineScriptHashes(string(asset.data)); len(hashes) > 0 {
+		policy = strings.Replace(policy, "script-src 'self'", "script-src 'self' "+strings.Join(hashes, " "), 1)
+	}
 	w.Header().Set("Content-Security-Policy", policy)
 	if r.Header.Get("If-None-Match") == asset.etag {
 		w.WriteHeader(http.StatusNotModified)

@@ -125,7 +125,9 @@ test("only switches the user moved become explicit settings", () => {
   assert.deepEqual(target.modules, { audio: true, video: false });
 });
 
-test("the Editor section inside Modules moves in once and follows the editor switch", () => {
+test("the Editor page stays its own page, and follows the editor switch", () => {
+  // It used to be moved inside the Modules panel, so it showed on the Modules page and vanished from its
+  // own. Its visibility follows the module switch; its home is the settings view like every other page.
   const editor = { hidden: true, parent: null };
   const panel = { appended: [], append(node) { this.appended.push(node); node.parent = this; } };
   const view = { insertAdjacentHTML() { panel.mounted = true; } };
@@ -136,12 +138,12 @@ test("the Editor section inside Modules moves in once and follows the editor swi
   const elements = new Map([["#module-list", list], ['[data-settings-panel="editor"]', editor]]);
   const $ = (selector) => elements.get(selector) || { focus() {} };
   const modules = createModulesSettings({ document, $, onDirty() {} });
-  assert.deepEqual(panel.appended, [editor], "editor section nested in the Modules panel");
+  assert.deepEqual(panel.appended, [], "the editor page was nested inside Modules again");
   modules.bind();
   modules.load([{ id: "editor", name: "Editor", kinds: [] }, video], { modules: { editor: false } });
   assert.equal(editor.hidden, true);
   list.listener({ target: { closest: () => ({ dataset: { module: "editor" } }) } });
-  assert.equal(editor.hidden, false, "switching the editor on shows its section at once");
+  assert.equal(editor.hidden, false, "switching the editor on shows its page at once");
 });
 
 function fixture(settings, modules = [video, audio]) {

@@ -5,7 +5,7 @@
 // The Hermes-assisted editor tools ("Ask about Hardcover matches", "Ask about ISBNs") are Hermes
 // abilities like any other, so they are drawn and saved by hermes-settings.js under
 // settings.hermes.features; this module only owns the editor section's own visibility.
-import { effectiveModuleState } from "./modules-settings.js?v=19";
+import { effectiveModuleState } from "./modules-settings.js?v=20";
 
 export function createEditorSettings({ $ }) {
   return {

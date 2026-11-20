@@ -1,6 +1,6 @@
 // Settings → Hermes: where the chat module connects, what the assistant is called, and how she behaves.
 // The key is write-only: the server never sends it back, and leaving the field blank keeps the saved one.
-import { effectiveModuleState } from "./modules-settings.js?v=19";
+import { effectiveModuleState } from "./modules-settings.js?v=20";
 import { catalogHTML, createCatalog } from "./hermes-catalog.js?v=1";
 
 export const personaTemplates = {

@@ -19,6 +19,9 @@ type SyncProgress struct {
 	Device     string
 	DeviceID   string
 	Timestamp  int64
+	// SeenAt is when this server received the position, in server time. Timestamp above is the device's
+	// clock and cannot be compared with ours; this one can.
+	SeenAt int64
 }
 
 type storeData struct {

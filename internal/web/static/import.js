@@ -1,4 +1,4 @@
-import { destinationOf, groupByDestination, tally, readyRows, STATUS_FILTERS, STATUS_TEXT, chunk, entriesFor, fieldText, parseEdit, sidecarFor, splitPreview, statusesFor, nextSort, rangeBetween, sortRows, targetOf, validateEdit, view, withoutRepeatedTargets } from "./import-model.js?v=6";
+import { destinationOf, groupByDestination, tally, readyRows, STATUS_FILTERS, STATUS_TEXT, chunk, entriesFor, fieldText, parseEdit, sidecarFor, splitPreview, statusesFor, nextSort, rangeBetween, sortRows, targetOf, validateEdit, view, withoutRepeatedTargets, shouldDeferRender } from "./import-model.js?v=7";
 import { createFolderPicker, attachFolderBrowse } from "./folder-picker.js?v=4";
 import { requestJSON } from "./http-json.js?v=2";
 
@@ -69,6 +69,9 @@ async function load(append = false) {
 const applySort = () => { state.rows = sortRows(state.rows, state.sort.key, state.sort.dir, state.edits, state.targets); state.focus = { row: 0, col: 0 }; };
 
 function render() {
+  // An edit in progress owns the table: rendering under it would remove the input the person is typing
+  // into, and the editor would never finish. See shouldDeferRender.
+  if (shouldDeferRender(state)) return;
   $("#im-filters").innerHTML = STATUS_FILTERS.map(([id, label]) => `<button type="button" data-filter="${id}" aria-pressed="${state.filter === id}">${label}</button>`).join("");
   const heading = (key, label, extra = "") => `<th ${extra} data-col-id="${key}" aria-sort="${state.sort.key === key ? (state.sort.dir === "desc" ? "descending" : "ascending") : "none"}"><button type="button" class="ed-sort" data-sort="${key}">${label}<span class="ed-arrow" aria-hidden="true"></span></button></th>`;
   $("#im-head").innerHTML = '<th class="ed-check"><input type="checkbox" id="im-all" aria-label="Select all shown"></th>' + heading("status", "Status") + heading("title", "Title") + heading("authors", "Author") + heading("series", "Series") + heading("series_index", "#", 'class="ed-num"') + '<th data-col-id="library">Library</th>' + heading("target", "Will be saved as") + heading("source", "From the drop folder");

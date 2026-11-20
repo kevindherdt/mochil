@@ -49,8 +49,8 @@ export function createDeferredRouteControllers({
     $("#settings-status").textContent = "Opening settings…";
     if (!settingsLoading) {
       settingsLoading = Promise.all([
-        loadFeatureStyles(document, ["/assets/metadata-review.css?v=8", "/assets/settings-controls.css?v=3", "/assets/settings-navigation.css?v=1", "/assets/settings-unified.css?v=28", "/assets/settings-modern.css?v=5", "/assets/settings-shell.css?v=4", "/assets/settings-cards.css?v=14", "/assets/settings-index.css?v=10"]),
-        import("./settings.js?v=99"),
+        loadFeatureStyles(document, ["/assets/metadata-review.css?v=8", "/assets/settings-controls.css?v=3", "/assets/settings-navigation.css?v=1", "/assets/settings-unified.css?v=33", "/assets/settings-modern.css?v=5", "/assets/settings-shell.css?v=4", "/assets/settings-cards.css?v=15", "/assets/settings-index.css?v=10"]),
+        import("./settings.js?v=100"),
         import("./metadata-review.js?v=19"),
       ]).then(([, { createSettings }, { createMetadataReview }]) => {
         const metadataReview = createMetadataReview({ document, $, $$, escapeHTML, requestJSON });

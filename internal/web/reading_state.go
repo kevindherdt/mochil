@@ -17,7 +17,7 @@ type webAnchor = reading.Anchor
 var errReadingConflict = reading.ErrConflict
 
 func readingProgress(value koSyncProgress) reading.SyncProgress {
-	return reading.SyncProgress{Document: value.Document, Progress: value.Progress, Percentage: value.Percentage, Device: value.Device, DeviceID: value.DeviceID, Timestamp: value.Timestamp}
+	return reading.SyncProgress{Document: value.Document, Progress: value.Progress, Percentage: value.Percentage, Device: value.Device, DeviceID: value.DeviceID, Timestamp: value.Timestamp, SeenAt: value.SeenAt}
 }
 
 func validWebAnchor(anchor *webAnchor) bool {

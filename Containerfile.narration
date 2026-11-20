@@ -4,13 +4,14 @@
 # variant is built on Debian with Python 3.13. It is the same server; only the
 # base and the extra runtime differ. Use it through compose.narration.yaml.
 FROM golang:1.26-alpine AS build
+ARG VERSION=0.0.0-dev
 WORKDIR /src
 RUN apk add --no-cache ca-certificates
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
 RUN CGO_ENABLED=0 go run ./cmd/assetbuild
-RUN GOMAXPROCS=1 CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/mochil ./cmd/mochil \
+RUN GOMAXPROCS=1 CGO_ENABLED=0 go build -trimpath -ldflags="-s -w -X mochil/internal/version.Version=${VERSION}" -o /out/mochil ./cmd/mochil \
     && mkdir -p /out/data \
     && chown 65532:65532 /out/data
 

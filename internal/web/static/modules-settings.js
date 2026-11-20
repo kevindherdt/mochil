@@ -16,8 +16,8 @@ export function mountModulesSettings(document) {
   document.querySelector("#settings-view").insertAdjacentHTML("beforeend", modulesPanelHTML);
   // The library editor's options live with the module that switches it on; its section is static markup in index.html
   // because editor-link.js wires the menu checkbox before this lazy module exists, and moving a node keeps that wiring.
-  const editor = document.querySelector('[data-settings-panel="editor"]');
-  if (editor) document.querySelector('[data-settings-panel="modules"]')?.append(editor);
+  // The editor page stays a sibling: moving it inside this panel made it appear on the Modules page and
+  // disappear from its own. Its visibility is decided by the module switch, not by where it lives.
 }
 
 // A module's on/off state is decided authoritatively by the server (GET /api/modules'

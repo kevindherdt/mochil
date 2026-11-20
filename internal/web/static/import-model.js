@@ -198,3 +198,10 @@ export function groupByDestination(entries) {
   }
   return [...groups];
 }
+
+// Cells are rebuilt wholesale, so re-rendering while one is being edited removes the input the person
+// is typing into: focus is lost without a blur, the editor never finishes, and editing stays switched
+// off for the rest of the page. A render asked for during an edit is held until the edit ends.
+export function shouldDeferRender(state) {
+  return Boolean(state && state.editing);
+}

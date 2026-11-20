@@ -1,6 +1,6 @@
 // Settings → Avatar: which Live2D model she wears. Models are folders in the avatar folder on the server; this lists
 // them and saves the choice straight away with its own Save button (it does not wait for the page's Save).
-import { effectiveModuleState } from "./modules-settings.js?v=19";
+import { effectiveModuleState } from "./modules-settings.js?v=20";
 
 const tabHTML = `<button data-settings-tab="avatar" data-hint="The speaking character you can show" aria-pressed="false" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg><span>Avatar</span></button>`;
 

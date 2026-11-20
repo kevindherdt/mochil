@@ -8,6 +8,10 @@ import { createPublicationMatcher } from './publication-matcher.js?v=2'
 export function createMetadataReview({ document, $, $$, escapeHTML, requestJSON }) {
 mountMetadataReview(document)
 mountMetadataApplyDialog(document)
+// The inspection UI is retired: naming and checking new files happens in Import, and existing metadata
+// is edited in the library editor. The controller stays mounted for installs that still render it, and
+// returns a no-op when it is not on the page, instead of binding handlers to elements that are gone.
+if (!$('#inspect-metadata')) return { bind() {}, setLibraries() {} }
 let metadataJob
 let metadataApplyPreview
 let metadataLibraries = []

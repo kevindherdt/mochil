@@ -1,9 +1,9 @@
 import { createAccountsSettings } from "./accounts-settings.js?v=13";
-import { createModulesSettings } from "./modules-settings.js?v=19";
+import { createModulesSettings } from "./modules-settings.js?v=20";
 import { createHermesSettings } from "./hermes-settings.js?v=18";
 import { createEditorSettings } from "./editor-settings.js?v=3";
 import { createAvatarSettings } from "./avatar-settings.js?v=7";
-import { offerRestart } from "./restart-prompt.js?v=1";
+import { offerRestart, withdrawRestart } from "./restart-prompt.js?v=2";
 import { createNarrationVoices } from "./narration-voices-settings.js?v=22";
 import { mountDiagnostics } from "./diagnostics-panel.js?v=4";
 import { createLibrarySettings } from "./library-settings.js?v=27";

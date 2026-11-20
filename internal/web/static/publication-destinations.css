@@ -8,7 +8,16 @@
   .browse-controls .publication-destinations{justify-self:center;max-width:100%}
   .browse-controls .view-menu{justify-self:end}
 }
-@media(max-width:760px){.publication-destinations{flex:1;max-width:100%}}
+@media(max-width:760px){
+  /* Four labels plus a layout button do not fit 390px, and the row used to be clipped by its parent:
+     the fourth tab was cut mid-word and its target sat half outside the box. Scrolling keeps every
+     label whole; the fade says there is more instead of hiding it. */
+  .publication-destinations{flex:1;min-width:0;max-width:100%;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;overscroll-behavior-inline:contain;
+    -webkit-mask-image:linear-gradient(to right,#000 0,#000 calc(100% - 18px),transparent 100%);
+    mask-image:linear-gradient(to right,#000 0,#000 calc(100% - 18px),transparent 100%)}
+  .publication-destinations::-webkit-scrollbar{display:none}
+  .publication-destinations>button{flex:0 0 auto}
+}
 .layout-toggle{display:inline-flex;gap:2px;padding:3px;border-radius:var(--r-10);background:var(--surface)}
 .layout-toggle button{width:38px;height:36px;display:grid;place-items:center;border:0;border-radius:var(--r-8);background:transparent;color:var(--muted);cursor:pointer}
 .layout-toggle button svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}

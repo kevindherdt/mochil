@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
-import { destinationOf, groupByDestination, tally, readyRows, STATUS_FILTERS, chunk, entriesFor, fieldText, parseEdit, sidecarFor, splitPreview, nextSort, sortRows, statusesFor, rangeBetween, targetOf, validateEdit, view, withoutRepeatedTargets } from "../static/import-model.js";
+import { destinationOf, groupByDestination, tally, readyRows, STATUS_FILTERS, chunk, entriesFor, fieldText, parseEdit, sidecarFor, splitPreview, nextSort, sortRows, statusesFor, rangeBetween, targetOf, validateEdit, view, withoutRepeatedTargets, shouldDeferRender } from "../static/import-model.js";
 
 const row = { source_path: "S/S - Volume 01.epub", suggested_target: "S/S - Vol 01.epub", proposal: { title: "T", authors: ["A"], series: "S", series_index: 1, identifiers: { isbn: "9" } } };
 
@@ -141,4 +142,19 @@ test("clicking a heading cycles ascending, descending, then back to the folder o
   sort = nextSort(sort, "title"); assert.deepEqual(sort, { key: "title", dir: "desc" });
   sort = nextSort(sort, "title"); assert.deepEqual(sort, { key: "", dir: "asc" });
   assert.deepEqual(nextSort({ key: "title", dir: "desc" }, "series"), { key: "series", dir: "asc" });
+});
+
+// A late name refresh used to re-render the table while a cell was being edited. The input was removed
+// with the cell, no blur fired, so nothing cleared state.editing and the table refused every later edit.
+test("a render is held while a cell is being edited", () => {
+  assert.equal(shouldDeferRender({ editing: true }), true);
+  assert.equal(shouldDeferRender({ editing: false }), false);
+  assert.equal(shouldDeferRender(undefined), false);
+});
+
+test("the render path actually asks, rather than deciding for itself", () => {
+  // The policy is only worth testing if the table consults it; this reads the caller.
+  const source = readFileSync(new URL("../static/import.js", import.meta.url), "utf8");
+  assert.match(source, /if \(shouldDeferRender\(state\)\) return;/, "render no longer defers to an open editor");
+  assert.match(source, /state\.editing = false;\s*\n\s*render\(\);/, "finishing an edit must still draw the deferred change");
 });

@@ -59,8 +59,34 @@ func SyncMatchKind(candidate, linked, filename string) string {
 	}
 	return "binary"
 }
+
+// ShouldOfferCandidate reports whether another reader's position is worth offering as "sync to here".
+//
+// The two questions it asks come from different clocks, so each is asked of the clock that can answer it.
+// "Is this newer than what we already have?" is an ordering question between two device stamps, and only
+// the device's clock needs to agree with itself. "Is this recent?" cannot be answered by a device stamp at
+// all: comparing it with our own time meant an e-reader a minute behind was never offered (its save looked
+// old the moment it arrived) and one running ahead kept a week-old position looking fresh forever. When the
+// server recorded the arrival, that is used; a stored position from before that was recorded falls back to
+// the stamp, which is at least what it was judged by until now.
 func ShouldOfferCandidate(local Position, remote SyncProgress, now time.Time, maxAge time.Duration) bool {
-	return remote.Timestamp > local.KoSyncSeenAt && now.Unix()-remote.Timestamp < int64(maxAge.Seconds())
+	if remote.Timestamp <= local.KoSyncSeenAt {
+		return false
+	}
+	if maxAge <= 0 {
+		return true
+	}
+	receivedAt := remote.SeenAt
+	if receivedAt == 0 {
+		// Nothing recorded when this arrived (a position stored before that existed, or a position read
+		// from a foreign KoSync server). The stamp is all there is: it can still say the position is
+		// older than the window, but a stamp from the future cannot be vouched for at all.
+		if remote.Timestamp > now.Unix() {
+			return false
+		}
+		receivedAt = remote.Timestamp
+	}
+	return now.Unix()-receivedAt < int64(maxAge.Seconds())
 }
 
 func DevicePosition(position Position) Position {
