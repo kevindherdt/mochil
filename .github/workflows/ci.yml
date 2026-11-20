@@ -32,7 +32,11 @@ jobs:
       - run: go vet ./...
       # Formatting is a gate, not a preference: an unformatted file went out in a release because the
       # only thing that looked at gofmt printed its output and carried on.
-      - run: test -z "$(gofmt -l internal cmd)" || { gofmt -l internal cmd; echo "run: gofmt -w internal cmd"; exit 1; }
+      # A block scalar, not a one-liner: an unquoted scalar containing ": " is parsed as a nested
+      # mapping, so this line made the whole workflow invalid and every run on main failed in zero
+      # seconds with no jobs -- the gate it carries never ran at all.
+      - run: |
+          test -z "$(gofmt -l internal cmd)" || { gofmt -l internal cmd; echo "run: gofmt -w internal cmd"; exit 1; }
       - run: ./scripts/check-store-readiness.sh
       - run: ./scripts/check-module-sizes.sh
       - run: CGO_ENABLED=0 go build -trimpath ./...

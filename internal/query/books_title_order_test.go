@@ -67,6 +67,36 @@ func TestSeriesVolumesFallBackToNaturalTitleOrder(t *testing.T) {
 	}
 }
 
+// The author shelf is sorted from references held next to each library's index,
+// so the page has to be built from the book each reference points at, in the
+// library it came from.
+func TestBooksAuthorSortAcrossLibraries(t *testing.T) {
+	one, two := &testBackend{}, &testBackend{}
+	one.replace([]catalog.Book{
+		{ID: "ten", Title: "Ten", Authors: []string{"Ada Author 10"}},
+		{ID: "beta", Title: "Beta", Authors: []string{"Bea Writer"}},
+	})
+	two.replace([]catalog.Book{{ID: "two", Title: "Two", Authors: []string{"Ada Author 2"}}})
+	service := New([]Library{
+		{ID: "one", Name: "One", Store: one},
+		{ID: "two", Name: "Two", Store: two},
+	})
+
+	var got []string
+	for _, item := range service.Books(BooksRequest{Sort: "author", Limit: 10}).Items {
+		got = append(got, item.LibraryID+"/"+item.LibraryName+"/"+item.Book.ID)
+	}
+	want := []string{"two/Two/two", "one/One/ten", "one/One/beta"}
+	if len(got) != len(want) {
+		t.Fatalf("author shelf: got %v, want %v", got, want)
+	}
+	for index := range want {
+		if got[index] != want[index] {
+			t.Fatalf("author shelf: got %v, want %v", got, want)
+		}
+	}
+}
+
 // The same rule for the grouped sorts: an author list that counts up as numbers,
 // not bytes, so "Author 2" does not sit after "Author 10".
 func TestSortBooksByNameCountsNumbersAsNumbers(t *testing.T) {
