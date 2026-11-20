@@ -106,8 +106,29 @@ func (m *multiServer) jellyfinSeasonByID(id string) (Library, string, int, bool)
 	}
 	return Library{}, "", 0, false
 }
+
+// placed attaches the reader's own resume point to one item of this library. Both
+// progress routes (the browser's and /Sessions/Playing) already store it; this is
+// the read that lets a client offer "continue from 4:12" and tick a finished item.
+func (m *multiServer) placed(library Library, account string, view map[string]any, itemID string, isAudio bool) map[string]any {
+	position, played := 0.0, false
+	if isAudio {
+		if m.audioProgress != nil {
+			if saved, ok := m.audioProgress.Get(account, library.ID, itemID); ok {
+				position, played = saved.Position, saved.Finished
+			}
+		}
+	} else if m.videoProgress != nil {
+		if saved, ok := m.videoProgress.Get(account, library.ID, itemID); ok {
+			position, played = saved.Position, saved.Finished
+		}
+	}
+	return jellyfin.UserData(view, position, played)
+}
+
 func (m *multiServer) jellyfinItems(w http.ResponseWriter, r *http.Request) {
 	parent := r.URL.Query().Get("ParentId")
+	account := m.readingAccount(r)
 	items := []map[string]any{}
 	if parent == "" {
 		items = m.jellyfinLibraries()
@@ -117,7 +138,7 @@ func (m *multiServer) jellyfinItems(w http.ResponseWriter, r *http.Request) {
 				seen := map[string]bool{}
 				for _, item := range library.Video.Items() {
 					if item.Show == "" {
-						items = append(items, jellyfin.Video(item.ID, item.Title, item.Show, item.Season, item.Episode, item.Duration, m.jellyfinServerID(), false))
+						items = append(items, m.placed(library, account, jellyfin.Video(item.ID, item.Title, item.Show, item.Season, item.Episode, item.Duration, m.jellyfinServerID(), false), item.ID, false))
 						continue
 					}
 					if !seen[item.Show] {
@@ -127,13 +148,13 @@ func (m *multiServer) jellyfinItems(w http.ResponseWriter, r *http.Request) {
 				}
 			} else {
 				for _, item := range library.Video.Items() {
-					items = append(items, jellyfin.Video(item.ID, item.Title, item.Show, item.Season, item.Episode, item.Duration, m.jellyfinServerID(), false))
+					items = append(items, m.placed(library, account, jellyfin.Video(item.ID, item.Title, item.Show, item.Season, item.Episode, item.Duration, m.jellyfinServerID(), false), item.ID, false))
 				}
 			}
 		}
 		if library.Audio != nil {
 			for _, item := range library.Audio.Items() {
-				items = append(items, jellyfin.Audio(item.ID, item.Title, item.Artist, item.Album, item.Duration, m.jellyfinServerID()))
+				items = append(items, m.placed(library, account, jellyfin.Audio(item.ID, item.Title, item.Artist, item.Album, item.Duration, m.jellyfinServerID()), item.ID, true))
 			}
 		}
 	} else if library, show, ok := m.jellyfinSeriesByID(parent); ok {
@@ -152,7 +173,7 @@ func (m *multiServer) jellyfinItems(w http.ResponseWriter, r *http.Request) {
 	} else if library, show, season, ok := m.jellyfinSeasonByID(parent); ok {
 		for _, item := range library.Video.Items() {
 			if item.Show == show && item.Season == season {
-				items = append(items, jellyfin.Video(item.ID, item.Title, item.Show, item.Season, item.Episode, item.Duration, m.jellyfinServerID(), false))
+				items = append(items, m.placed(library, account, jellyfin.Video(item.ID, item.Title, item.Show, item.Season, item.Episode, item.Duration, m.jellyfinServerID(), false), item.ID, false))
 			}
 		}
 	}
@@ -169,6 +190,7 @@ func (m *multiServer) jellyfinShows(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
+	account := m.readingAccount(r)
 	items := []map[string]any{}
 	switch parts[1] {
 	case "Seasons":
@@ -193,7 +215,7 @@ func (m *multiServer) jellyfinShows(w http.ResponseWriter, r *http.Request) {
 			if seasonID != "" && jellyfin.ID("season", seasonKey(library.ID, show, item.Season)) != seasonID {
 				continue
 			}
-			items = append(items, jellyfin.Video(item.ID, item.Title, item.Show, item.Season, item.Episode, item.Duration, m.jellyfinServerID(), false))
+			items = append(items, m.placed(library, account, jellyfin.Video(item.ID, item.Title, item.Show, item.Season, item.Episode, item.Duration, m.jellyfinServerID(), false), item.ID, false))
 		}
 	default:
 		http.NotFound(w, r)
@@ -252,12 +274,12 @@ func (m *multiServer) jellyfinItemRoute(w http.ResponseWriter, r *http.Request) 
 		writeJSON(w, http.StatusOK, jellyfin.Season(seasonKey(library.ID, show, season), name, seriesKey(library.ID, show), show, season, m.jellyfinServerID()))
 		return
 	}
-	if _, item, ok := m.jellyfinVideoByID(suffix); ok {
-		writeJSON(w, http.StatusOK, jellyfin.Video(item.ID, item.Title, item.Show, item.Season, item.Episode, item.Duration, m.jellyfinServerID(), false))
+	if library, item, ok := m.jellyfinVideoByID(suffix); ok {
+		writeJSON(w, http.StatusOK, m.placed(library, m.readingAccount(r), jellyfin.Video(item.ID, item.Title, item.Show, item.Season, item.Episode, item.Duration, m.jellyfinServerID(), false), item.ID, false))
 		return
 	}
-	if _, item, ok := m.jellyfinAudioByID(suffix); ok {
-		writeJSON(w, http.StatusOK, jellyfin.Audio(item.ID, item.Title, item.Artist, item.Album, item.Duration, m.jellyfinServerID()))
+	if library, item, ok := m.jellyfinAudioByID(suffix); ok {
+		writeJSON(w, http.StatusOK, m.placed(library, m.readingAccount(r), jellyfin.Audio(item.ID, item.Title, item.Artist, item.Album, item.Duration, m.jellyfinServerID()), item.ID, true))
 		return
 	}
 	http.NotFound(w, r)

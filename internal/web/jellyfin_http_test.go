@@ -3,6 +3,7 @@ package web
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
@@ -206,5 +207,96 @@ func TestJellyfinTVLibraryExposesSeriesAndSeasons(t *testing.T) {
 	handler.ServeHTTP(response, request)
 	if response.Code != http.StatusOK || !bytes.Contains(response.Body.Bytes(), []byte(`"Type":"Season"`)) {
 		t.Fatalf("seasons=%d %s", response.Code, response.Body.String())
+	}
+}
+
+// A Jellyfin client draws its resume bar and its watched ticks from UserData. The
+// progress routes have always stored where the reader stopped; the browse response
+// never carried it back, so a half-watched film started over in the client and a
+// finished one was never ticked as watched.
+func TestJellyfinItemsCarryWhereTheReaderStopped(t *testing.T) {
+	root := t.TempDir()
+	for _, name := range []string{"Alpha.mp4", "Omega.mp4"} {
+		if err := os.WriteFile(filepath.Join(root, name), []byte("0123456789"), 0o640); err != nil {
+			t.Fatal(err)
+		}
+	}
+	store := video.NewStore("movies", root, "")
+	if _, err := store.Scan(); err != nil {
+		t.Fatal(err)
+	}
+	byName := map[string]video.Item{}
+	for _, item := range store.Items() {
+		byName[item.Title] = item
+	}
+	// What the browser already recorded: Alpha is a hundred seconds in, Omega was
+	// watched to the end. The files were never probed, so the catalogue itself
+	// knows no duration for either.
+	state := fmt.Sprintf(`{"version":1,"accounts":{"reader":{
+		"movies\u0000%s":{"library_id":"movies","item_id":%q,"position_seconds":100,"duration_seconds":600,"updated_at":1,"revision":1},
+		"movies\u0000%s":{"library_id":"movies","item_id":%q,"position_seconds":600,"duration_seconds":600,"updated_at":2,"revision":1,"finished":true}}}}`,
+		byName["Alpha"].ID, byName["Alpha"].ID, byName["Omega"].ID, byName["Omega"].ID)
+	progressPath := filepath.Join(t.TempDir(), "video-progress.json")
+	if err := os.WriteFile(progressPath, []byte(state), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	handler, err := NewMulti(MultiConfig{PublicURL: "https://media.example", Username: "reader", Password: "secret", VideoState: progressPath}, []Library{{ID: "movies", Name: "Movies", Kind: "movies", Video: store}}, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	token := jellyfinLogin(t, handler, "reader", "secret")
+	userData := func() map[string]struct {
+		Ticks     int64
+		Played    bool
+		PlayCount int
+	} {
+		t.Helper()
+		request := httptest.NewRequest(http.MethodGet, "/Items?ParentId="+jellyfin.ID("library", "movies"), nil)
+		request.Header.Set("X-Emby-Token", token)
+		response := httptest.NewRecorder()
+		handler.ServeHTTP(response, request)
+		var page struct {
+			Items []struct {
+				Name     string `json:"Name"`
+				UserData struct {
+					PlaybackPositionTicks int64 `json:"PlaybackPositionTicks"`
+					Played                bool  `json:"Played"`
+					PlayCount             int   `json:"PlayCount"`
+				} `json:"UserData"`
+			} `json:"Items"`
+		}
+		if response.Code != http.StatusOK || json.Unmarshal(response.Body.Bytes(), &page) != nil || len(page.Items) != 2 {
+			t.Fatalf("items=%d %s", response.Code, response.Body.String())
+		}
+		out := map[string]struct {
+			Ticks     int64
+			Played    bool
+			PlayCount int
+		}{}
+		for _, item := range page.Items {
+			out[item.Name] = struct {
+				Ticks     int64
+				Played    bool
+				PlayCount int
+			}{item.UserData.PlaybackPositionTicks, item.UserData.Played, item.UserData.PlayCount}
+		}
+		return out
+	}
+	if seen := userData(); seen["Alpha"].Ticks != 1_000_000_000 || seen["Alpha"].Played || seen["Omega"].Ticks != 6_000_000_000 || !seen["Omega"].Played || seen["Omega"].PlayCount != 1 {
+		t.Fatalf("user data = %#v, want Alpha at 100s unwatched and Omega watched", seen)
+	}
+	// A Jellyfin client reports 150s for Alpha. The catalogue duration is zero, and
+	// writing that over the known six hundred seconds made the report invalid, so it
+	// was thrown away and the client's own position never moved.
+	request := httptest.NewRequest(http.MethodPost, "/Sessions/Playing", bytes.NewBufferString(`{"ItemId":"`+jellyfin.ID("video", byName["Alpha"].ID)+`","PositionTicks":1500000000}`))
+	request.Header.Set("Content-Type", "application/json")
+	request.Header.Set("X-Emby-Token", token)
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, request)
+	if response.Code != http.StatusNoContent {
+		t.Fatalf("progress=%d %s", response.Code, response.Body.String())
+	}
+	if seen := userData(); seen["Alpha"].Ticks != 1_500_000_000 {
+		t.Fatalf("ticks=%d, want the device's 150s", seen["Alpha"].Ticks)
 	}
 }

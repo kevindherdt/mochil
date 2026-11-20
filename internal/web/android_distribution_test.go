@@ -73,31 +73,40 @@ func TestAndroidAppInfo(t *testing.T) {
 	}
 }
 
-// The download screen and the in-app update check both answer from the constants in
-// android_distribution.go, while the file people actually install is built from
-// android/app/build.gradle.kts. Those drifted once: the server kept advertising 0.1.11
-// after 0.1.13 had shipped, so a phone already on 0.1.13 was offered nothing while a
-// fresh install from the same server got a newer file than the one advertised.
-// Bumping the Gradle version is now a gate failure until this matches.
+// The download screen and the in-app update check both answer from what the server was built as, and the
+// file people install is built by Gradle from the same VERSION. Those used to be three copies of the same
+// number, and all three drifted: the app was labelled 0.1.20 for forty releases, the server advertised
+// 444, and a phone was told it was up to date while a newer APK sat behind the download link.
+//
+// There is one source now. This pins both ends: Gradle must derive its labels from VERSION, and the number
+// the server advertises must be the one the release carries.
 func TestAndroidAppInfoMatchesTheAppThatIsActuallyBuilt(t *testing.T) {
-	path := filepath.Join("..", "..", "android", "app", "build.gradle.kts")
-	gradle, err := os.ReadFile(path)
+	gradlePath := filepath.Join("..", "..", "android", "app", "build.gradle.kts")
+	gradle, err := os.ReadFile(gradlePath)
 	if err != nil {
 		t.Skipf("android build file not present (%v); the public export may exclude it", err)
 	}
-	code := regexp.MustCompile(`versionCode\s*=\s*(\d+)`).FindSubmatch(gradle)
-	name := regexp.MustCompile(`versionName\s*=\s*"([^"]+)"`).FindSubmatch(gradle)
-	if code == nil || name == nil {
-		t.Fatalf("could not read versionCode/versionName from %s", path)
+	build := string(gradle)
+	if !regexp.MustCompile(`versionName\s*=\s*mochilVersion`).MatchString(build) ||
+		!regexp.MustCompile(`versionCode\s*=\s*mochilVersionCode`).MatchString(build) {
+		t.Fatal("android/app/build.gradle.kts must take versionName and versionCode from the VERSION file, not literals")
 	}
-	wantCode, err := strconv.Atoi(string(code[1]))
+	if regexp.MustCompile(`versionCode\s*=\s*\d`).MatchString(build) || regexp.MustCompile(`versionName\s*=\s*"`).MatchString(build) {
+		t.Fatal("android/app/build.gradle.kts still hard-codes a version; that is the drift this test exists for")
+	}
+
+	raw, err := os.ReadFile(filepath.Join("..", "..", "VERSION"))
 	if err != nil {
-		t.Fatalf("versionCode in %s is not a number: %q", path, code[1])
+		t.Fatalf("VERSION is missing: %v", err)
 	}
-	if wantCode != androidAppVersionCode {
-		t.Errorf("versionCode: build.gradle.kts says %d, android_distribution.go advertises %d", wantCode, androidAppVersionCode)
+	release := strings.TrimSpace(string(raw))
+	if got := androidVersionCode(release); got != androidAppVersionCode {
+		t.Errorf("the server advertises version_code %d for %s; the app builds %d", androidAppVersionCode, release, got)
 	}
-	if wantName := string(name[1]); wantName != androidAppVersion {
-		t.Errorf("versionName: build.gradle.kts says %q, android_distribution.go advertises %q", wantName, androidAppVersion)
+	if androidAppVersionCode <= 444 {
+		t.Errorf("version_code %d would be refused as a downgrade over the releases that were all 444", androidAppVersionCode)
+	}
+	if androidAppVersion != release {
+		t.Errorf("the server advertises %s; the release is %s", androidAppVersion, release)
 	}
 }

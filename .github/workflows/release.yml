@@ -307,6 +307,20 @@ jobs:
         run: |
           cp android/app/build/outputs/apk/direct/optimized/app-direct-optimized.apk artifacts-mochil-android.apk.tmp
           mkdir -p apk && mv artifacts-mochil-android.apk.tmp apk/mochil-android.apk
+      # The APK carries its own version, and everything a phone decides about an update reads it:
+      # whether to offer one, whether the installer will accept the replacement, whether a removed
+      # palette is really gone. Build it here and check it against VERSION rather than trusting Gradle.
+      - name: The APK says what this release is
+        run: |
+          want=$(tr -d '[:space:]' < VERSION)
+          sdk="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          aapt=$(ls "$sdk"/build-tools/*/aapt2 2>/dev/null | sort -V | tail -1)
+          got=$("$aapt" dump badging apk/mochil-android.apk | sed -n "s/^package: name='[^']*' versionCode='[0-9]*' versionName='\([^']*\)'.*/\1/p")
+          echo "APK versionName: ${got:-<none>} (VERSION: $want)"
+          [ "$got" = "$want" ] || {
+            echo "the APK is labelled '$got' but this release is $want" >&2
+            exit 1
+          }
       - uses: actions/upload-artifact@v7
         with:
           name: mochil-android.apk

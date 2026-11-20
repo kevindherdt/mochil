@@ -5,6 +5,7 @@ package jellyfin
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"math"
 	"strings"
 )
 
@@ -57,6 +58,23 @@ func Season(id, name, seriesID, seriesName string, index int, server string) map
 func Audio(id, title, artist, album string, duration float64, server string) map[string]any {
 	return map[string]any{"Name": title, "ServerId": server, "Id": ID("audio", id), "Type": "Audio", "MediaType": "Audio", "Artists": nonempty(artist), "Album": album, "RunTimeTicks": int64(duration * 10_000_000), "LocationType": "FileSystem", "CanDownload": true, "PlayAccess": "Full"}
 }
+
+// UserData is the reader's own place in one item, in the units a Jellyfin client
+// reads. Without it a client shows every item as never played, so it restarts a
+// half-watched film and never ticks a finished one as watched, even though the
+// progress routes have stored both facts all along.
+func UserData(item map[string]any, positionSeconds float64, played bool) map[string]any {
+	if positionSeconds < 0 || math.IsNaN(positionSeconds) || math.IsInf(positionSeconds, 0) {
+		positionSeconds = 0
+	}
+	count := 0
+	if played {
+		count = 1
+	}
+	item["UserData"] = map[string]any{"PlaybackPositionTicks": int64(positionSeconds * 10_000_000), "Played": played, "PlayCount": count, "IsFavorite": false}
+	return item
+}
+
 func nonempty(value string) []string {
 	if strings.TrimSpace(value) == "" {
 		return []string{}

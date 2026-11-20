@@ -54,6 +54,18 @@ func List(component string, limit int) []Entry {
 	return out
 }
 
+// Latest returns the newest entry for a component: an app's update screen wants the last thing that changed
+// in the app, and not every release changes it.
+func Latest(component string) (Entry, bool) {
+	once.Do(load)
+	for _, e := range entries {
+		if e.Component == component {
+			return e, true
+		}
+	}
+	return Entry{}, false
+}
+
 // For returns the entry of one release.
 func For(component, version string) (Entry, bool) {
 	once.Do(load)

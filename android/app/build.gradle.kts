@@ -37,6 +37,20 @@ val releaseStoreFile = providers.environmentVariable("MOCHIL_KEYSTORE_PATH").orN
 val releaseStorePassword = providers.environmentVariable("MOCHIL_KEYSTORE_PASSWORD").orNull
 val releaseKeyAlias = providers.environmentVariable("MOCHIL_KEY_ALIAS").orNull
 val releaseKeyPassword = providers.environmentVariable("MOCHIL_KEY_PASSWORD").orNull
+// The release number, read once. The code rises with the name and clears the whole hard-coded past:
+// releases up to 0.1.61 were all shipped as 444, so anything at or below that cannot install over an
+// existing app. 0.1.61 -> 16100, 0.2.0 -> 20000.
+val mochilVersion: String = rootProject.file("../VERSION").let { file ->
+    require(file.isFile) { "VERSION is missing at ${file.absolutePath}" }
+    file.readText().trim().ifEmpty { error("VERSION is empty") }
+}
+val mochilVersionCode: Int = mochilVersion.split(".").let { parts ->
+    require(parts.size == 3) { "VERSION must be MAJOR.MINOR.PATCH, got '$mochilVersion'" }
+    val numbers = parts.map { part -> part.toIntOrNull() ?: error("VERSION part '$part' is not a number") }
+    require(numbers.all { it in 0..99 }) { "VERSION parts must be 0-99, got '$mochilVersion'" }
+    (numbers[0] * 10000 + numbers[1] * 100 + numbers[2]) * 100
+}
+
 val releaseSigningReady = listOf(releaseStoreFile, releaseStorePassword, releaseKeyAlias, releaseKeyPassword).all { !it.isNullOrBlank() }
 val optimizedStoreFile = providers.environmentVariable("MOCHIL_OPTIMIZED_KEYSTORE_PATH").orNull
     ?.let(::file)
@@ -51,8 +65,13 @@ android {
         applicationId = "net.kdhmedia.mochil"
         minSdk = 26
         targetSdk = 37
-        versionCode = 444
-        versionName = "0.1.20"
+        // Both come from the repository's VERSION file. They used to be literals, and stayed at
+        // 0.1.20 / 444 for every release after it: the app then told every phone it was already up to
+        // date, the installer refused to replace a package with an equal versionCode, and a palette
+        // that had been removed on the server lived on in whatever APK people had. A version that can
+        // disagree with the release is a version that will.
+        versionName = mochilVersion
+        versionCode = mochilVersionCode
     }
     flavorDimensions += "distribution"
     productFlavors {

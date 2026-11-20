@@ -1,6 +1,16 @@
 {
  "entries": [
   {
+   "component": "android",
+   "version": "0.1.62",
+   "date": "2026-11-20",
+   "changes": [
+    "The app carries the release's own version now. Every build since 0.1.20 called itself 0.1.20 in the file, so a phone was told it was already up to date, and Android refused to install a newer APK over an equal version number — which is why the removed Paper theme was still on your phone.",
+    "Paper is gone on the phone as well as the server once this APK is installed: a stored Paper preference moves to e-ink rather than resetting your choice.",
+    "The release build now refuses to publish an APK whose version does not match the release, and a unit test fails if the app's label ever drifts from VERSION again."
+   ]
+  },
+  {
    "component": "web",
    "version": "0.1.61",
    "date": "2026-11-20",

@@ -288,28 +288,47 @@ func (m *multiServer) jellyfinProgress(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if m.audioProgress != nil {
+			account := m.readingAccount(r)
 			position := float64(value.PositionTicks) / 10_000_000
 			if position < 0 {
 				position = 0
 			}
-			// A zero duration means the probe did not learn one; it is not a ceiling.
-			if audioItem.Duration > 0 && position > audioItem.Duration {
-				position = audioItem.Duration
+			// A catalogue duration of zero means nothing probed the file; it is not the
+			// length. Writing it over the duration the browser already learned loses the
+			// known length, and the store then rejects a position past five seconds as
+			// unplaceable, so the device's report vanished. Keep what is known instead.
+			duration := audioItem.Duration
+			if duration <= 0 {
+				if saved, ok := m.audioProgress.Get(account, audioLibrary.ID, audioItem.ID); ok {
+					duration = saved.Duration
+				}
 			}
-			_ = m.audioProgress.Put(m.readingAccount(r), audio.Progress{LibraryID: audioLibrary.ID, ItemID: audioItem.ID, Position: position, Duration: audioItem.Duration, PlaybackRate: 1})
+			if duration > 0 && position > duration {
+				position = duration
+			}
+			_ = m.audioProgress.Put(account, audio.Progress{LibraryID: audioLibrary.ID, ItemID: audioItem.ID, Position: position, Duration: duration, PlaybackRate: 1})
 		}
 		w.WriteHeader(http.StatusNoContent)
 		return
 	}
 	if m.videoProgress != nil {
+		account := m.readingAccount(r)
 		position := float64(value.PositionTicks) / 10_000_000
 		if position < 0 {
 			position = 0
 		}
-		if item.Duration > 0 && position > item.Duration {
-			position = item.Duration
+		// Same rule as the audio branch: a zero catalogue duration is a missing probe,
+		// not the file's length, and overwriting the known one drops the report.
+		duration := item.Duration
+		if duration <= 0 {
+			if saved, ok := m.videoProgress.Get(account, library.ID, item.ID); ok {
+				duration = saved.Duration
+			}
 		}
-		_ = m.videoProgress.Put(m.readingAccount(r), video.Progress{LibraryID: library.ID, ItemID: item.ID, Position: position, Duration: item.Duration, DeviceID: "jellyfin"})
+		if duration > 0 && position > duration {
+			position = duration
+		}
+		_ = m.videoProgress.Put(account, video.Progress{LibraryID: library.ID, ItemID: item.ID, Position: position, Duration: duration, DeviceID: "jellyfin"})
 	}
 	w.WriteHeader(http.StatusNoContent)
 }
