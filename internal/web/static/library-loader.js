@@ -1,7 +1,6 @@
 export function createLibraryLoader({
   requestJSON,
   libraryVisibility,
-  readingDashboard,
   videoLibrary,
   audioLibrary,
   libraryState,
@@ -44,7 +43,6 @@ export function createLibraryLoader({
   win?.addEventListener("pagehide", pagehide);
   doc?.addEventListener("visibilitychange", wake);
   const auxiliary = [
-    { run: () => readingDashboard.load() },
     { run: () => videoLibrary.loadContinue?.() },
     { run: () => audioLibrary.loadContinue?.() },
   ];

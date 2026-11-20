@@ -9,8 +9,7 @@
 @media(prefers-reduced-motion:reduce){.dashboard-reading :is(.reading-dismiss,.video-reading-dismiss,.audio-dismiss){transition:none}}
 @media(min-width:1180px){
   .dashboard-lanes{grid-template-columns:repeat(2,minmax(0,1fr));column-gap:clamp(28px,3vw,52px);row-gap:4px;align-items:start}
-  .dashboard-lanes>#reading-rail{grid-column:1}
-  .dashboard-lanes>.dashboard-media-lane{grid-column:2}
+  .dashboard-lanes>.dashboard-media-lane{grid-column:1}
   .dashboard-lanes>.dashboard-reading,
   .dashboard-media-lane>.dashboard-reading{margin-top:clamp(28px,4vh,44px)}
   .dashboard-lanes>.dashboard-reading .reading-track{

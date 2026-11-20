@@ -65,10 +65,6 @@ test("dashboard retains reading, watching, listening, and undo contracts", () =>
   assert.match(dashboardHTML, /class="dashboard-media-lane"/);
   assert.doesNotMatch(dashboardHTML, /<h1>Home<\/h1>/);
   for (const id of [
-    "reading-rail",
-    "reading-heading",
-    "finished-toggle",
-    "reading-track",
     "video-reading-rail",
     "video-reading-track",
     "audio-reading-rail",

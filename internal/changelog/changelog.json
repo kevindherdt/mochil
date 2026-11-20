@@ -1,6 +1,15 @@
 {
  "entries": [
   {
+   "component": "web",
+   "version": "0.1.64",
+   "date": "2026-11-20",
+   "changes": [
+    "Home stops asking the server for a reading list it never shows. The book continue rail was already hidden behind the media lanes, which exist only so a video or audio card can be started from Home, so deleting it removes two requests from every Home load and a toggle nobody could press. Nothing visible changes.",
+    "The dashboard's own relative-time helper is gone with it; every Home shelf already used the shared formatter."
+   ]
+  },
+  {
    "component": "android",
    "version": "0.1.63",
    "date": "2026-11-20",

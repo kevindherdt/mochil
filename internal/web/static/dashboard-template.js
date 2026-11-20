@@ -10,10 +10,6 @@ export const dashboardHTML = `
     <div class="jump-track rails-track" id="held-track"></div>
   </details>
   <div class="dashboard-lanes">
-    <section class="reading-rail dashboard-reading" id="reading-rail" hidden>
-      <header><h2 id="reading-heading">Continue reading</h2><button id="finished-toggle" aria-pressed="false">Finished</button></header>
-      <div class="reading-track" id="reading-track"></div>
-    </section>
     <div class="dashboard-media-lane">
       <section class="reading-rail dashboard-reading video-reading" id="video-reading-rail" hidden>
         <header><h2>Continue watching</h2></header>

@@ -1,7 +1,6 @@
 import { createBookCards } from "./book-cards.js?v=16";
 import { openSettingsWhenEmpty } from "./first-run.js?v=1";
 import { createCollections } from "./collections.js?v=22";
-import { createReadingDashboard } from "./reading-dashboard.js?v=18";
 import { createJumpBackIn } from "./jump-back-in.js?v=24";
 import { createDeferredVideoController } from "./deferred-video-controller.js?v=20";
 import { createDeferredAudioController } from "./deferred-audio-controller.js?v=70";
@@ -92,11 +91,10 @@ const activateLibraries = (ids) =>
 // Every Home shelf reads the same lists; one in-flight GET per URL is enough.
 const homeRequests = createRequestCache(requestJSON), homeRails = createHomeRails({
   requests: homeRequests, document, $, $$, escapeHTML, releaseCovers, installCoverFallbacks,
-  isLibraryVisible: libraryVisibility.isVisible, createReadingDashboard, createJumpBackIn, createHeldRail,
+  isLibraryVisible: libraryVisibility.isVisible, createJumpBackIn, createHeldRail,
 });
 // Every card on every shelf takes its glow from its own artwork; one observer serves them all.
 createCardTint({ root: document.body });
-const readingDashboard = homeRails.reading;
 const jumpBackIn = homeRails.jumpBackIn;
 const mediaNavigator = createMediaSectionNavigator($("#media-alphabet"));
 const videoLibrary = createDeferredVideoController({
@@ -237,7 +235,7 @@ const viewController = createAppViewController({
   openSettings: deferredRoutes.openSettings,
   loadLibrary: loadCurrentView,
   loadDashboard: () => {
-    readingDashboard.load();
+    homeRails.load();
     videoLibrary.loadContinue?.();
     audioLibrary.loadContinue?.();
   },
@@ -298,7 +296,6 @@ catalogueToolbar = createCatalogueToolbarFor({
 libraryLoader = createLibraryLoader({
   requestJSON,
   libraryVisibility,
-  readingDashboard,
   videoLibrary,
   audioLibrary,
   libraryState,
@@ -316,7 +313,6 @@ libraryLoader = createLibraryLoader({
   },
   clearProblem: () => { $("#app-problem").hidden = true; },
 });
-$("#finished-toggle").onclick = () => readingDashboard.toggle();
 
 bindPopupDismissal({
   document,

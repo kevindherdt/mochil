@@ -10,7 +10,6 @@ export function createHomeRails({
   releaseCovers,
   installCoverFallbacks,
   isLibraryVisible,
-  createReadingDashboard,
   createJumpBackIn,
   createHeldRail,
   requests,
@@ -24,16 +23,9 @@ export function createHomeRails({
     installCoverFallbacks,
     isLibraryVisible,
   };
-  const reading = createReadingDashboard({ ...shared, $$ });
   const jumpBackIn = createJumpBackIn(shared);
   const held = createHeldRail(shared);
 
   // Opening Home refreshes them together, as one action.
-  const loadReading = reading.load;
-  reading.load = (...args) => {
-    jumpBackIn.load();
-    held.load();
-    return loadReading(...args);
-  };
-  return { reading, jumpBackIn, held };
+  return { jumpBackIn, held, load: () => { jumpBackIn.load(); held.load(); } };
 }

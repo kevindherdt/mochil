@@ -32,9 +32,15 @@ test("the compact dashboard style never goes negative for a clock-skewed future 
   assert.equal(compactRelativeTime(now + 60_000, now), "Just now");
 });
 
-test("the dashboard reuses the shared relative-time module instead of its own copy", async () => {
-  const source = await readFile(new URL("../static/reading-dashboard.js", import.meta.url), "utf8");
-  assert.doesNotMatch(source, /function relativeTime\(/);
-  assert.match(source, /compactRelativeTime/);
-  assert.match(source, /from ['"]\.\/date-format\.js/);
+test("no Home module keeps its own relative-time copy", async () => {
+  // The dashboard used to own one and the jump cards imported the shared formatter; Home's modules are
+  // few enough to check them all, so a second copy cannot come back unnoticed.
+  for (const name of ["jump-back-in.js", "held-rail.js", "finished-rail.js", "reading-dashboard.js"]) {
+    let source;
+    try { source = await readFile(new URL(`../static/${name}`, import.meta.url), "utf8"); } catch { continue; }
+    assert.doesNotMatch(source, /function relativeTime\(/, `${name} keeps a private formatter`);
+    if (source.includes("compactRelativeTime")) {
+      assert.match(source, /from ['"]\.\/date-format\.js/, `${name} imports the formatter from somewhere else`);
+    }
+  }
 });

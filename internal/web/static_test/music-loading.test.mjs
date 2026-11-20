@@ -32,7 +32,6 @@ test("every resumable media type shares one card size and one text scale", () =>
 
 test("wide dashboards put books on one side and watching and listening on the other", () => {
   assert.match(dashboardCSS, /@media\(min-width:1180px\)/);
-  assert.match(dashboardCSS, /#reading-rail\{grid-column:1\}/);
-  assert.match(dashboardCSS, />\.dashboard-media-lane\{grid-column:2\}/);
+  assert.match(dashboardCSS, />\.dashboard-media-lane\{grid-column:1\}/);
   assert.doesNotMatch(dashboardCSS, /#(?:video|audio)-reading-rail\{grid-column:/);
 });

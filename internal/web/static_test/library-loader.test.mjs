@@ -16,7 +16,6 @@ function fixture(savedLibrary = null, libraries = [{ id: "books" }, { id: "manga
       data: libraries,
     }),
     libraryVisibility: { setLibraries: (libraries) => libraries },
-    readingDashboard: { load: () => calls.push("dashboard") },
     videoLibrary: { loadContinue: () => calls.push("video") },
     audioLibrary: { loadContinue: () => calls.push("audio") },
     libraryState: {
@@ -142,7 +141,7 @@ test("failed discovery does not start auxiliary dashboard requests", async () =>
 test("repeated refreshes do not overlap a stalled auxiliary request", async () => {
   let calls = 0, finish;
   const { loader } = fixture(null, undefined, {
-    readingDashboard: { load: () => { calls++; return new Promise((resolve) => { finish = resolve; }); } },
+    videoLibrary: { loadContinue: () => { calls++; return new Promise((resolve) => { finish = resolve; }); } },
   });
   await loader.load();
   await loader.load();

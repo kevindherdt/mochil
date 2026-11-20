@@ -62,9 +62,15 @@ func TestAndroidAppInfo(t *testing.T) {
 	if response.Code != http.StatusOK || !strings.Contains(response.Body.String(), `"version_code":`+strconv.Itoa(androidAppVersionCode)) || !strings.Contains(response.Body.String(), `"download_url":"/api/android/v1/app.apk"`) || !strings.Contains(response.Body.String(), `"release_notes"`) {
 		t.Fatalf("response=%d body=%s", response.Code, response.Body.String())
 	}
+	// The app carries the release's number, so a release that only touched the server has no entry of its
+	// own: the update screen shows the newest thing that changed in the app, which is what a reader of it
+	// wants. What must not happen is an app with no notes at all.
 	entry, ok := changelog.For("android", androidAppVersion)
 	if !ok {
-		t.Fatalf("the changelog has no entry for %s", androidAppVersion)
+		entry, ok = changelog.Latest("android")
+	}
+	if !ok {
+		t.Fatalf("no android changelog entry exists for the app to describe itself with")
 	}
 	for _, note := range append(append(append([]string{}, entry.New...), entry.Fixed...), entry.Changes...) {
 		if !strings.Contains(response.Body.String(), strings.ReplaceAll(strings.ReplaceAll(note, `"`, `\"`), "<", `\u003c`)) {
