@@ -1,0 +1,44 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  html, body { margin: 0; height: 100%; background: transparent; overflow: hidden; } /* full height, or a scene (painted relative to this box) has no area to show in */
+  #host { position: fixed; inset: 0; }
+  canvas { display: block; width: 100%; height: 100%; }
+</style>
+</head>
+<body>
+<div id="host"></div>
+<script type="module">
+// The same avatar code as the website (/assets/hermes-avatar.js). Here her voice is played by the phone, not by the
+// browser, so the app sends the loudness of what is playing and this page presents it as the analyser the avatar reads.
+import { createAvatar } from "/assets/hermes-avatar.js";
+import { sceneCss } from "/assets/hermes-scenes.js";
+
+let level = 0;
+const analyser = () => ({ fftSize: 256, getFloatTimeDomainData(samples) { samples.fill(level); } });
+const host = document.getElementById("host");
+const avatar = createAvatar({
+  host,
+  analyser,
+  onError: (error) => Android.error(String((error && error.message) || error)),
+});
+window.hermesAvatar = {
+  show: (info) => avatar.show(info),
+  level: (value) => { level = value; },
+  react: (text) => avatar.react(text),
+  calm: () => avatar.calm(),
+  // The saved background (a scene, or the picture uploaded on the website) and where she sits in the frame.
+  look: (look) => {
+    host.dataset.corner = look.scene === "clear" ? "1" : "";
+    host.style.background = sceneCss(look.scene, look.image ? `/api/avatar/background?v=${look.image}` : "");
+    avatar.setFrame(look.frame);
+  },
+  hide: () => avatar.hide(),
+};
+Android.ready();
+</script>
+</body>
+</html>

@@ -1,0 +1,77 @@
+body.vault-reading{overflow:hidden}
+/* The note pane is a <main> too, so this has to name the page's own main or the pane takes a
+   full-window height inside the workspace and its last 20px hangs past the bottom edge. */
+body.vault-reading>main{height:calc(var(--visible-height,100dvh) - var(--masthead-height,62px));padding-bottom:0}
+.vault-library-view{height:100%;min-height:0;display:grid;grid-template-rows:auto auto minmax(0,1fr)}
+.vault-browser{width:calc(100vw - 2 * clamp(18px,5vw,84px));height:100%;min-height:0;margin-inline:calc(50% - 50vw + clamp(18px,5vw,84px));border-top:1px solid var(--line);overflow:hidden}
+.vault-workspace{position:relative;height:100%;min-height:0;display:grid;grid-template-columns:272px minmax(0,1fr);overflow:hidden}
+.vault-workspace>aside{height:100%;min-width:0;overflow:hidden;display:flex;flex-direction:column;border-right:1px solid var(--line);background:var(--bg)}
+.vault-workspace button[data-vault-sidebar]{width:44px;height:44px;display:grid;place-items:center;border:0;border-radius:var(--r-8);background:transparent;color:var(--muted);cursor:pointer}
+.vault-workspace button[data-vault-sidebar]:hover{background:var(--surface);color:var(--text)}
+.vault-workspace button[data-vault-sidebar] svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.7}.vault-workspace[data-sidebar=closed]{grid-template-columns:0 minmax(0,1fr)}.vault-workspace[data-sidebar=closed]>aside{visibility:hidden}
+.vault-sidebar-toggle{position:absolute;z-index:15;top:4px;left:4px}.vault-workspace[data-sidebar=open]>.vault-sidebar-toggle{display:none}.vault-sidebar-tools{flex:0 0 52px;display:flex;align-items:center;justify-content:space-between;padding:4px;border-bottom:1px solid var(--line);background:var(--bg)}.vault-sidebar-tools .vault-sidebar-toggle{position:static}.vault-create-actions{display:flex;align-items:center;gap:2px}.vault-create-actions button{width:44px;height:44px;display:grid;place-items:center;border:0;border-radius:var(--r-8);background:transparent;color:var(--muted);cursor:pointer}.vault-create-actions button:hover,.vault-create-actions button:focus-visible{background:var(--surface);color:var(--text)}.vault-create-actions svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.7}.vault-pane{min-width:0;min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-gutter:stable;padding:60px clamp(18px,4vw,64px) 64px}.vault-empty{display:grid;justify-items:center;gap:var(--sp-8);margin:18vh auto 0;color:var(--muted);font-size:var(--fs-16);text-align:center}
+.vault-empty::before{content:"";width:48px;height:48px;margin-bottom:var(--sp-8);background:currentColor;opacity:.5;-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M7 3h7l5 5v13H7zM14 3v5h5M10 13h6M10 17h6'/%3E%3C/svg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M7 3h7l5 5v13H7zM14 3v5h5M10 13h6M10 17h6'/%3E%3C/svg%3E") center/contain no-repeat}
+@media (hover:hover) and (pointer:fine){.vault-empty::after{content:"Press Ctrl+O to jump to any page";font-size:var(--fs-13);opacity:.75}}
+.vault-sidebar-title small{margin-left:var(--sp-4);color:var(--muted);font-weight:500}
+.vault-document.document-reader{max-width:none;margin:0}.vault-document>header,.vault-document>article{width:min(72ch,100%);margin-inline:auto}.vault-document.document-reader>header{grid-template-columns:minmax(0,1fr) auto}.vault-workspace[data-width=wide] .vault-document>header,.vault-workspace[data-width=wide] .vault-document>article{width:100%;margin-inline:0;padding-inline-start:20px}
+.vault-workspace[data-sidebar=closed][data-width=wide] .vault-document>header{padding-inline-start:76px}
+.vault-tree{min-height:0;overflow:auto;padding:8px 0 40px}.vault-folder>summary,.vault-page{width:100%;min-height:44px;display:grid;grid-template-columns:20px minmax(0,1fr) auto;align-items:center;gap:9px;padding:4px 4px 4px calc(4px + var(--vault-indent,0px));border:0;border-radius:var(--r-8);background:transparent;color:var(--text);text-align:left;list-style:none;cursor:pointer}.vault-folder>summary::-webkit-details-marker{display:none}.vault-folder>summary:hover,.vault-page:hover,.vault-page.active{background:var(--surface);color:var(--text)}
+.vault-folder>summary svg,.vault-page svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.6}.vault-folder>summary span,.vault-page span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.vault-folder>summary span{font-weight:650}.vault-folder>summary small{padding-right:7px;color:var(--muted);font-size:var(--fs-12);font-variant-numeric:tabular-nums}.vault-page{color:var(--muted)}
+.document-reader>article pre{position:relative;padding-top:46px}.code-copy{position:absolute;top:6px;right:6px;min-height:34px;padding:0 9px;border:0;border-radius:var(--r-6);background:var(--raised);color:var(--muted);font:650 12px/1 "Source Sans","Segoe UI",sans-serif;cursor:pointer}.code-copy:hover,.code-copy:focus-visible{color:var(--text)}
+@media(max-width:760px){.vault-browser{width:calc(100vw - 28px);margin-inline:calc(50% - 50vw + 14px)}.vault-workspace{display:block}.vault-workspace>aside{position:absolute;z-index:12;inset:0 auto 0 0;width:min(84vw,310px);border-right:1px solid var(--line);transition:transform 180ms cubic-bezier(.16,1,.3,1)}:root:not([data-palette=eink]) .vault-workspace>aside{box-shadow:14px 0 34px #0005}.vault-workspace[data-sidebar=closed]>aside{visibility:visible;transform:translateX(-105%);pointer-events:none}.vault-pane{padding-inline:14px}.vault-document.document-reader>header{grid-template-columns:minmax(0,1fr) auto;padding-inline-start:72px}}
+.vault-document .vault-embed-image{display:block;max-width:100%;height:auto;margin-block:1em;object-fit:contain}
+.vault-properties{margin-block:0 1rem;min-width:0}
+.vault-properties>summary{min-height:44px;align-content:center;width:fit-content;max-width:100%;color:var(--text);cursor:pointer;font:inherit}
+.vault-properties>summary:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+.vault-properties>pre{max-width:100%;overflow:auto;white-space:pre}
+.vault-table-scroll{max-width:100%;overflow:auto;margin-block:1rem;overscroll-behavior-inline:contain}
+.vault-table-scroll:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+.vault-table-scroll table{width:100%;border-collapse:collapse;color:var(--text)}
+.vault-table-scroll th,.vault-table-scroll td{padding:.5rem .75rem;border-bottom:1px solid var(--line);vertical-align:top;min-width:8ch}
+.vault-table-scroll th{font-weight:650}
+.vault-task{list-style:none}
+.vault-task>label{display:flex;align-items:baseline;gap:.65rem;min-height:44px;cursor:pointer}
+.vault-task input{accent-color:var(--accent);flex:none}
+.vault-task-status{color:var(--text);font-size:.875rem}
+
+/* The wiki fills the screen and never scrolls as a page: the sidebar and the note each scroll inside their own box. */
+html:has(body.vault-reading){overflow:hidden;overscroll-behavior:none}
+body.vault-reading{position:fixed;inset:0;width:100%}
+.vault-library-view{overflow:hidden}
+.vault-library-view>.document-index{min-height:0;height:100%}
+.vault-browser{box-sizing:border-box}
+.vault-workspace>aside>.vault-tree{flex:1 1 auto;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+.vault-workspace{grid-template-rows:minmax(0,1fr)}
+.vault-workspace>aside{min-height:0}
+
+/* The wiki is edge to edge: the page has no side padding while it is open, so the panel is exactly the screen wide
+   (the earlier "100vw minus margins" arithmetic was off by the page padding and clipped the sidebar's left edge). */
+body.vault-reading>main{padding-inline:0}
+body.vault-reading .vault-library-view .vault-browser{width:100%;margin-inline:0}
+body.vault-reading #document-index{padding-inline:0}
+.vault-properties a.vault-prop{color:inherit;text-decoration:none;border-bottom:1px dotted var(--muted)}
+.vault-properties a.vault-prop:hover{color:var(--accent);border-bottom-color:var(--accent)}
+.vault-properties-edit{margin:6px 0 0;padding:4px 12px;border:1px solid var(--line);border-radius:var(--r-pill);background:none;color:var(--muted);font:inherit;font-size:var(--fs-13);cursor:pointer}
+.vault-properties-edit:hover{border-color:var(--accent);color:var(--accent)}
+.vault-prop-dialog{width:min(34rem,calc(100vw - 32px));padding:20px;border:1px solid var(--line);border-radius:var(--r-16);background:var(--surface);color:var(--text)}
+.vault-prop-dialog::backdrop{background:rgb(0 0 0/.45)}
+.vault-prop-dialog h2{margin:0 0 14px;font:650 22px/1.1 Newsreader,Georgia,serif}
+.prop-row{display:grid;grid-template-columns:minmax(0,9rem) minmax(0,1fr) auto;gap:8px;margin-bottom:8px}
+.prop-row input{min-height:var(--control-h,40px);padding:0 10px;border:1px solid var(--line);border-radius:var(--control-r,8px);background:var(--bg,transparent);color:inherit;font:inherit}
+.prop-row button{width:36px;border:0;background:none;color:var(--muted);font-size:20px;cursor:pointer}
+.prop-actions{display:flex;align-items:center;gap:14px;margin:12px 0}
+.prop-actions label{color:var(--muted);font-size:var(--fs-13)}
+.prop-error{min-height:1.2em;margin:0;color:var(--danger,#d64545)}
+.vault-prop-dialog footer{display:flex;justify-content:flex-end;gap:8px}
+
+/* The bar spans the pane so it still covers the outline column, but its contents belong to the
+   note's reading column: the wrapper keeps the breadcrumb above the title it names and the
+   actions at the end of the text line, instead of letting them drift to the window edges. The
+   horizontal padding sits outside the 46rem column, so a narrow window keeps its edge air
+   while a wide one lines the contents up with the text. */
+.vault-workspace .vault-pane>header.vault-notebar{display:block;width:auto;min-height:0;padding:0}
+.vault-workspace .vault-pane>header.vault-notebar>.vault-notebar-column{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-rows:auto auto;align-items:center;gap:0 12px;box-sizing:border-box;width:100%;min-height:46px;margin-inline:0;padding-inline:20px}
+/* Only the reading view has a text column for the bar to line up with; the editor and the
+   tag/graph views keep the bar full width, which is what their toolbars need. */
+.vault-workspace .vault-pane.vault-document>header.vault-notebar>.vault-notebar-column{width:min(46rem,calc(100% - 28px));padding-inline:0;margin-inline:auto}
+
