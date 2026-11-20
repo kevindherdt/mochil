@@ -85,74 +85,46 @@ func (s *Service) Books(request BooksRequest) BooksResult {
 		return BooksResult{Items: items, Total: total, AnchorFound: anchorFound, HasMore: anchorFound && start+len(items) < total}
 	}
 
-	items := make([]BookResult, 0)
+	matched := make([]matchRef, 0, 1024)
 	for _, library := range selected {
-		for _, indexed := range library.snapshot() {
-			if matches(indexed) {
-				items = append(items, BookResult{LibraryID: library.library.ID, LibraryName: library.library.Name, Book: indexed.book})
+		books := library.snapshot()
+		for index := range books {
+			if matches(books[index]) {
+				matched = append(matched, matchRef{library: library, indexed: &books[index]})
 			}
 		}
 	}
 	if request.Sort == "series_volume" {
 		// Sort the complete result before paging; depth is intentionally ignored
-		// here because KOReader presents every volume in numeric order.
-		sort.Slice(items, func(i, j int) bool {
-			a, b := items[i], items[j]
-			x, y := a.Book.SeriesIndex, b.Book.SeriesIndex
-			if x == nil || y == nil {
-				if x != y {
-					return x != nil
-				}
-			} else if *x != *y {
-				return *x < *y
-			}
-			if a.Book.Title != b.Book.Title {
-				return a.Book.Title < b.Book.Title
-			}
-			if a.LibraryID != b.LibraryID {
-				return a.LibraryID < b.LibraryID
-			}
-			return a.Book.ID < b.Book.ID
-		})
+		// here because KOReader presents every volume in numeric order. Two volumes
+		// of one series can share an index (or carry none at all), and the reader
+		// still expects volume 2 before volume 10.
+		sort.Sort(sortedByVolume(matched))
 	} else if request.Sort == "recent" {
-		sort.SliceStable(items, func(i, j int) bool {
-			if !items[i].Book.Modified.Equal(items[j].Book.Modified) {
-				return items[i].Book.Modified.After(items[j].Book.Modified)
+		sort.SliceStable(matched, func(i, j int) bool {
+			if !matched[i].indexed.book.Modified.Equal(matched[j].indexed.book.Modified) {
+				return matched[i].indexed.book.Modified.After(matched[j].indexed.book.Modified)
 			}
-			if items[i].LibraryID != items[j].LibraryID {
-				return items[i].LibraryID < items[j].LibraryID
+			if matched[i].libraryID() != matched[j].libraryID() {
+				return matched[i].libraryID() < matched[j].libraryID()
 			}
-			return items[i].Book.ID < items[j].Book.ID
+			return matched[i].indexed.book.ID < matched[j].indexed.book.ID
 		})
 	} else if request.Sort == "author" || request.Sort == "series" {
-		sortBooksByName(items, request.Sort)
-	} else if request.Series != nil || len(selected) > 1 {
-		sort.SliceStable(items, func(i, j int) bool {
-			if request.Series != nil && items[i].LibraryID == items[j].LibraryID {
-				if seriesLess(items[i].Book, items[j].Book) {
-					return true
-				}
-				if seriesLess(items[j].Book, items[i].Book) {
-					return false
-				}
-				return items[i].Book.ID < items[j].Book.ID
-			}
-			left, right := catalog.SortKey(items[i].Book.Title), catalog.SortKey(items[j].Book.Title)
-			if left != right {
-				return left < right
-			}
-			if items[i].LibraryID != items[j].LibraryID {
-				return items[i].LibraryID < items[j].LibraryID
-			}
-			return items[i].Book.ID < items[j].Book.ID
-		})
+		sortBooksByName(matched, request.Sort)
+	} else if request.Series != nil {
+		sort.Stable(sortedBySeriesTitle(matched))
+	} else if len(selected) > 1 {
+		// The per-library index already sorts titles naturally; this keeps an
+		// all-libraries shelf in the same order one library shows.
+		sort.Stable(sortedByTitle(matched))
 	}
-	total := len(items)
+	total := len(matched)
 	anchorFound := request.AfterBookID == ""
 	if request.AfterBookID != "" {
 		offset = 0
-		for index, item := range items {
-			if item.LibraryID == request.AfterLibraryID && item.Book.ID == request.AfterBookID {
+		for index, item := range matched {
+			if item.libraryID() == request.AfterLibraryID && item.indexed.book.ID == request.AfterBookID {
 				offset, anchorFound = index+1, true
 				break
 			}
@@ -165,8 +137,13 @@ func (s *Service) Books(request BooksRequest) BooksResult {
 	if end > total {
 		end = total
 	}
-	return BooksResult{Items: items[offset:end], Total: total, AnchorFound: anchorFound, HasMore: end < total}
+	items := make([]BookResult, 0, end-offset)
+	for _, item := range matched[offset:end] {
+		items = append(items, BookResult{LibraryID: item.libraryID(), LibraryName: item.library.library.Name, Book: item.indexed.book})
+	}
+	return BooksResult{Items: items, Total: total, AnchorFound: anchorFound, HasMore: end < total}
 }
+
 func bookHasAuthor(book catalog.Book, wanted string) bool {
 	if strings.EqualFold(strings.TrimSpace(wanted), "Unknown author") {
 		return len(book.Authors) == 0
@@ -202,35 +179,29 @@ func seriesLess(a, b catalog.Book) bool {
 // title bucket in the same ordering used by Books.
 func (s *Service) BookNavigation(libraryID, queryValue string) []BookNavigationResult {
 	queryValue = strings.ToLower(strings.TrimSpace(queryValue))
-	items := make([]BookResult, 0)
+	matched := make([]matchRef, 0)
 	selected := 0
 	for _, library := range s.libraries {
 		if libraryID != "" && libraryID != library.library.ID {
 			continue
 		}
 		selected++
-		for _, indexed := range library.snapshot() {
-			if queryValue == "" || strings.Contains(indexed.searchKey, queryValue) {
-				items = append(items, BookResult{LibraryID: library.library.ID, LibraryName: library.library.Name, Book: indexed.book})
+		books := library.snapshot()
+		for index := range books {
+			if queryValue == "" || strings.Contains(books[index].searchKey, queryValue) {
+				matched = append(matched, matchRef{library: library, indexed: &books[index]})
 			}
 		}
 	}
 	if selected > 1 {
-		sort.SliceStable(items, func(i, j int) bool {
-			left, right := catalog.SortKey(items[i].Book.Title), catalog.SortKey(items[j].Book.Title)
-			if left != right {
-				return left < right
-			}
-			if items[i].LibraryID != items[j].LibraryID {
-				return items[i].LibraryID < items[j].LibraryID
-			}
-			return items[i].Book.ID < items[j].Book.ID
-		})
+		// The letter offsets below are read as positions in this same order, so it
+		// has to be the order the shelf itself is rendered in.
+		sort.Stable(sortedByTitle(matched))
 	}
 	positions := make(map[string]int)
 	counts := make(map[string]int)
-	for index, item := range items {
-		bucket := catalog.Bucket(item.Book.Title)
+	for index, item := range matched {
+		bucket := catalog.Bucket(item.indexed.book.Title)
 		if counts[bucket] == 0 {
 			positions[bucket] = index
 		}

@@ -97,9 +97,9 @@ fun DashboardScreen(
                 }
             }
         }
-        if (state.loading && state.reading.isEmpty() && state.held.isEmpty() && state.finished.isEmpty() && state.listening.isEmpty() && state.watching.isEmpty()) {
+        if (state.loading && state.reading.isEmpty() && state.held.isEmpty() && state.listening.isEmpty() && state.watching.isEmpty()) {
             item { HomeSkeleton() }
-        } else if (state.reading.isEmpty() && state.held.isEmpty() && state.finished.isEmpty() && state.listening.isEmpty() && state.watching.isEmpty()) {
+        } else if (state.reading.isEmpty() && state.held.isEmpty() && state.listening.isEmpty() && state.watching.isEmpty()) {
             if (state.error == null) item { Text("Media you start will wait for you here.", Modifier.padding(20.dp), color = MaterialTheme.colorScheme.onSurfaceVariant) }
         } else {
             val kindOf = { libraryId: String -> libraries.firstOrNull { it.id == libraryId }?.kind.orEmpty() }
@@ -116,12 +116,6 @@ fun DashboardScreen(
                 item { DashboardSectionTitle("On hold & dropped") }
                 items(state.held, key = { "held:${it.book.libraryId}:${it.book.id}" }) { item ->
                     HeldRow(item, coverUrl(item.book), authorizationHeader, if (item.book.status == "dropped") "Dropped" else "On hold", "Resume") { onResumeHeld(item.book) }
-                }
-            }
-            if (state.finished.isNotEmpty()) {
-                item { DashboardSectionTitle("Finished") }
-                items(state.finished, key = { "finished:${it.book.libraryId}:${it.book.id}" }) { item ->
-                    HeldRow(item, coverUrl(item.book), authorizationHeader, "Read", "Restore") { onResumeHeld(item.book) }
                 }
             }
         }

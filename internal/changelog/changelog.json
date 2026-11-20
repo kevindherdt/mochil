@@ -2,6 +2,15 @@
  "entries": [
   {
    "component": "android",
+   "version": "0.1.63",
+   "date": "2026-11-20",
+   "changes": [
+    "The phone's Home no longer ends with a Finished list. Finishing a book adds nothing to Home: the library filters finished books, and a book you want back is one tap from its own menu. A Home that would otherwise be empty now says so instead of showing nothing.",
+    "The app is labelled 0.1.63 (version 16300) by the build itself, so it installs over the previous one normally."
+   ]
+  },
+  {
+   "component": "android",
    "version": "0.1.62",
    "date": "2026-11-20",
    "changes": [

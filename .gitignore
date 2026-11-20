@@ -38,6 +38,8 @@ internal/web/static/dist/
 *.bak-*
 
 # Build output and installers: produced by the image build or by Gradle, never committed.
+# `go test -cpuprofile/-memprofile` also leaves its linked test binary behind.
+*.test
 android/app/build/
 *.apk
 internal/web/static/dist/

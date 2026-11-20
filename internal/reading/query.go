@@ -44,15 +44,30 @@ func (s *Store) Get(account, libraryID, bookID string) (Position, bool) {
 	return clonePosition(position), ok
 }
 
+// FindKoSyncDocument answers which book a KoSync document hash refers to. The same file can sit in
+// more than one library and be linked from each, so the answer cannot be whichever copy the account
+// map yields first: a push carries only the hash, and alternated between the copies, dropping the
+// reading position, highlights and notes of one of them. The copy read most recently wins, with the
+// key as a stable tie-break, so the same document always resolves to the same book.
 func (s *Store) FindKoSyncDocument(account, document string) (Position, bool) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
+	var newest Position
+	found := false
 	for _, position := range s.data.Accounts[account] {
-		if position.KoSyncDocument == document || containsString(position.KoSyncDocuments, document) {
-			return clonePosition(position), true
+		if position.KoSyncDocument != document && !containsString(position.KoSyncDocuments, document) {
+			continue
+		}
+		if !found || position.UpdatedAt > newest.UpdatedAt ||
+			position.UpdatedAt == newest.UpdatedAt && (position.LibraryID < newest.LibraryID ||
+				position.LibraryID == newest.LibraryID && position.BookID < newest.BookID) {
+			newest, found = position, true
 		}
 	}
-	return Position{}, false
+	if !found {
+		return Position{}, false
+	}
+	return clonePosition(newest), true
 }
 
 func (s *Store) List(account string, finished bool) []Position {
