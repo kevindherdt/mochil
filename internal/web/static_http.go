@@ -162,26 +162,21 @@ func (m *multiServer) serveStatic(w http.ResponseWriter, r *http.Request, name s
 	} else {
 		w.Header().Set("Cache-Control", "no-cache")
 	}
-	policy := "default-src 'self'; img-src 'self' data: blob:; style-src 'self' blob: 'unsafe-inline'; font-src 'self' data: blob:; media-src 'self' data: blob:; script-src 'self'; frame-src 'self' blob: data:; worker-src 'self' blob:; connect-src 'self'; form-action 'self'; object-src 'none'; base-uri 'none'"
-	// A page that carries an inline script needs its hash in the policy: script-src 'self' blocks it.
-	// This runs before the per-page rewrites below, which replace this same anchor and would otherwise
-	// swallow the hash.
-	// The theme pre-paint is such a script, and it is the only thing that stops a light or e-ink reader
-	// from seeing the dark palette on every page load.
-	if hashes := inlineScriptHashes(string(asset.data)); len(hashes) > 0 {
-		policy = strings.Replace(policy, "script-src 'self'", "script-src 'self' "+strings.Join(hashes, " "), 1)
-	}
+	// One policy builder for every page: the per-page differences are options, not string surgery, so a
+	// directive cannot drift between the pages that carry it.
+	options := policyOptions{}
 	if name == "static/reader-readium.html" {
-		// The Readium navigator renders each chapter in a blob: frame, injects its
-		// own blob: scripts and sets a <base>. Allow exactly that on this page only.
-		policy = strings.Replace(policy, "script-src 'self'", "script-src 'self' blob:", 1)
-		policy = strings.Replace(policy, "base-uri 'none'", "base-uri 'self'", 1)
+		// The Readium navigator renders each chapter in a blob: frame, injects its own blob: scripts and
+		// sets a <base>. Allow exactly that on this page only.
+		options.Script = []string{"blob:"}
+		options.BaseSelf = true
 	}
 	if name == "static/hermes.html" {
 		// The optional avatar draws a Live2D model whose Cubism core is WebAssembly. This allows compiling
 		// WebAssembly on this page only; it does not allow eval.
-		policy = strings.Replace(policy, "script-src 'self'", "script-src 'self' 'wasm-unsafe-eval'", 1)
+		options.Script = []string{"'wasm-unsafe-eval'"}
 	}
+	policy := documentPolicy(inlineScriptHashes(string(asset.data)), options)
 	w.Header().Set("Content-Security-Policy", policy)
 	if r.Header.Get("If-None-Match") == asset.etag {
 		w.WriteHeader(http.StatusNotModified)

@@ -4,6 +4,7 @@ import { dashboardReadingTitle } from './reading-dashboard.js?v=18'
 const LABELS = { books: 'Book', lightnovels: 'Light novel', 'light-novels': 'Light novel', novels: 'Light novel', manga: 'Manga', comics: 'Comic', movies: 'Movie', tv: 'TV show', video: 'Video', anime: 'Anime', music: 'Music', audiobooks: 'Audiobook', podcasts: 'Podcast' }
 
 import { kindIconSVG } from './kind-icons.js?v=2'
+import { libraryHue } from './library-identity.js?v=2'
 
 export const kindIcon = item => kindIconSVG(item.library_kind)
 
@@ -70,7 +71,7 @@ export function jumpCardHTML(entry, escapeHTML) {
   // The headphones icon alone is too subtle: a read-along book can otherwise sit next to its own
   // plain EPUB progress card with no visible difference, and look like an accidental duplicate.
   // A short text label next to the title makes the two kinds of card tell themselves apart.
-  return `${open} data-kind="${escapeHTML(item.library_kind || type)}"><span class="jump-art"${backdrop}>${art}<span class="jump-tag" role="img" aria-label="${escapeHTML(kindLabel(item))}" title="${escapeHTML(kindLabel(item))}">${kindIcon(item)}${type === 'book' && item.read_along ? `<span class="jump-tag-audio" title="Has its own recording" role="img" aria-label="Has its own recording">${headphones}</span>` : ''}</span></span><strong>${escapeHTML(title)}</strong><span class="jump-badge">${type === 'book' ? readAlongMarkup(item, 'label') : ''}</span><small>${escapeHTML([who, jumpDetail(entry)].filter(Boolean).join(' · '))}</small></${close}>`
+  return `${open} data-kind="${escapeHTML(item.library_kind || type)}"><span class="jump-art"${backdrop}>${art}<span class="jump-tag" role="img" aria-label="${escapeHTML(kindLabel(item))}" title="${escapeHTML(kindLabel(item))}" style="--kind-h:${libraryHue(item.library_id)}">${kindIcon(item)}${type === 'book' && item.read_along ? `<span class="jump-tag-audio" title="Has its own recording" role="img" aria-label="Has its own recording">${headphones}</span>` : ''}</span></span><strong>${escapeHTML(title)}</strong><span class="jump-badge">${type === 'book' ? readAlongMarkup(item, 'label') : ''}</span><small>${escapeHTML([who, jumpDetail(entry)].filter(Boolean).join(' · '))}</small></${close}>`
 }
 
 /** How to hide (or bring back) one in-progress item: each kind has its own endpoint. */

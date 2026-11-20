@@ -12,8 +12,12 @@
 :is(.jump-card,.library-menu-list li,.library-menu-mark)[data-kind=music]{--kind:#5cc8f2;--kind-ink:#06293a}
 :is(.jump-card,.library-menu-list li,.library-menu-mark)[data-kind=audiobooks]{--kind:#4fd1b8;--kind-ink:#062e27}
 :is(.jump-card,.library-menu-list li,.library-menu-mark)[data-kind=podcasts]{--kind:var(--kind-podcast);--kind-ink:var(--kind-podcast-ink)}
-/* The tag is an icon on a solid chip of the kind colour. */
-.jump-card .jump-tag{padding:5px;border-radius:var(--r-pill);line-height:0}
+/* The tag on a Home card is the kind's icon in the library's own hue: the shape says what it is, the
+   colour says which shelf it came from, the same identity the switcher uses. The icon alone is enough -
+   no caption is needed once the colour carries the library. */
+.jump-card .jump-tag{padding:5px;border-radius:var(--r-8);line-height:0;
+  background:hsl(var(--kind-h,30) 70% 62%);color:#171513}
+:root[data-theme="light"] .jump-card .jump-tag{background:hsl(var(--kind-h,30) 58% 34%);color:#fff}
 .jump-tag .kind-icon{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .library-menu-list li[data-kind=home],.library-menu-list li[data-kind=settings],.library-menu-list li[data-kind=editor]{--kind:var(--muted)}
 .library-menu-list li{display:flex;align-items:center;gap:10px}

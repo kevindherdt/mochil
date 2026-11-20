@@ -37,11 +37,12 @@ test('details speak the language of each kind', () => {
 test('a book card is a link, a video card is a button, and both carry their type tag and escape the title', () => {
   const b = jumpCardHTML({ type: 'book', item: { ...book('x', 1), title: '<b>"x"' } }, escapeHTML)
   assert.match(b, /^<a class="jump-card" href="\/r\/x"/)
-  assert.match(b, /jump-tag" role="img" aria-label="Book" title="Book"><svg class="kind-icon"/)
+  assert.match(b, /jump-tag" role="img" aria-label="Book" title="Book" style="--kind-h:\d+"><svg class="kind-icon"/)
   assert.doesNotMatch(b, /<b>/)
   const v = jumpCardHTML({ type: 'video', item: video('x', 1) }, escapeHTML)
   assert.match(v, /^<button type="button" class="jump-card" data-jump-type="video" data-library="v" data-item="x"/)
-  assert.match(v, /jump-tag" role="img" aria-label="Video" title="Video"><svg class="kind-icon"/)
+  // The tag is the kind's icon in the library's own hue: the shape says what it is, the colour says which shelf.
+  assert.match(v, /jump-tag" role="img" aria-label="Video" title="Video" style="--kind-h:\d+"><svg class="kind-icon"/)
 })
 
 test('a manga chapter card names its series in the visible title and remove action', () => {

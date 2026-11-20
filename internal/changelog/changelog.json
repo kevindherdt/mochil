@@ -2,6 +2,16 @@
  "entries": [
   {
    "component": "web",
+   "version": "0.1.60",
+   "date": "2026-11-20",
+   "changes": [
+    "A book recorded while you are scrolling the Hardcover shelf no longer appears twice. The list is kept newest-first and grows at the front, so paging by offset shifted every row down by one and repeated the last one; the panel now pages by how many rows the server has actually handed over, and drops any row it has already shown.",
+    "Home cards wear their library's badge: the kind's icon on a chip in that library's own hue, the same identity the switcher and the settings list use. The shape says what it is, the colour says which shelf it came from.",
+    "One place builds the page's security policy. The shell, the reader and the avatar page had three hand-edited copies of the same header, and the copy was the one that dropped the inline-script hash for two of them; they now share a single builder whose per-page differences are options."
+   ]
+  },
+  {
+   "component": "web",
    "version": "0.1.59",
    "date": "2026-11-20",
    "changes": [

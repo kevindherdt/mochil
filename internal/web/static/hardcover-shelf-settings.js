@@ -38,7 +38,10 @@ const GROUPS = {
 export function createHardcoverShelf({ document, $, requestJSON }) {
   mountHardcoverShelf(document);
   const root = () => $("[data-hardcover-shelf]");
-  const blank = () => ({ items: [], total: 0, done: false, busy: false });
+  // cursor is how many rows the server has handed over, which is not the same as how many are on screen:
+  // a row can arrive twice when something is recorded or inserted while the reader is paging, and it must
+  // not be shown twice.
+  const blank = () => ({ items: [], total: 0, cursor: 0, done: false, busy: false });
   const state = { skipped: blank(), doubts: blank(), matched: blank(), ignored: blank() };
   let query = "";
   const shown = new Set(); // groups that hold nothing wrong, opened by hand
@@ -58,9 +61,14 @@ export function createHardcoverShelf({ document, $, requestJSON }) {
     const data = (await requestJSON(url(group, offset))).data || {};
     const items = data.items || [];
     const target = state[group];
-    target.items = offset === 0 ? items : target.items.concat(items);
+    const seen = new Set(offset === 0 ? [] : target.items.map(keyOf));
+    const fresh = offset === 0 ? items : items.filter((item) => !seen.has(keyOf(item)));
+    target.items = offset === 0 ? items : target.items.concat(fresh);
+    target.cursor = offset + items.length;
     target.total = typeof data.total === "number" ? data.total : target.items.length;
-    target.done = target.items.length >= target.total || items.length === 0;
+    // Paging is by offset, and the store is prepended to: an insert between two pages shifts the window, so
+    // "did this page bring anything new" cannot decide whether the list is finished — the cursor can.
+    target.done = target.cursor >= target.total || items.length === 0;
     // The module decides whether this card exists at all. It is mounted hidden, so it has to be shown
     // explicitly — setting hidden only on the way out left it invisible for everyone, always.
     if (group === "skipped" && data.enabled !== undefined) root().hidden = data.enabled === false;
@@ -96,7 +104,7 @@ export function createHardcoverShelf({ document, $, requestJSON }) {
     state[group].busy = true;
     render();
     try {
-      await fetchPage(group, state[group].items.length);
+      await fetchPage(group, state[group].cursor);
     } catch (error) {
       status(error.message || "That could not be loaded.");
     }

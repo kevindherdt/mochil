@@ -79,3 +79,36 @@ test("a lookup answers for the book that asked, even when the reader moved on", 
   assert.match(html, /id-for-Book 2/, "the second book's own result is shown");
   assert.ok(calls.some((url) => url.includes("/search")), "both lookups were attempted");
 });
+
+test("a row inserted while the reader pages does not appear twice", async () => {
+  // The store is prepended to: between page one and "Show more", a book that was just recorded lands at the
+  // front and every later row shifts down by one. Paging by offset without care shows the last row twice.
+  const rows = Array.from({ length: 30 }, (_, i) => ({ library: "books", book: `b${i}`, title: `Book ${i}` }));
+  const nodes = {};
+  const node = (selector) => (nodes[selector] ||= { textContent: "", innerHTML: "", value: "", hidden: false, open: true, listeners: {}, addEventListener(type, fn) { this.listeners[type] = fn; } });
+  const document = { querySelector: (selector) => (selector === "[data-hardcover-shelf]" ? node(selector) : { insertAdjacentHTML() {} }) };
+  let prepended = false;
+  const requestJSON = async (url) => {
+    const [path, queryString = ""] = url.split("?");
+    const params = new URLSearchParams(queryString);
+    if (!path.endsWith("/matches")) return { data: { enabled: true, items: [], total: 0, offset: 0, limit: 25 } };
+    // only the sure matches come from this fixture; "check these" is a different list
+    if (params.get("doubt") === "1") return { data: { enabled: true, items: [], total: 0, offset: 0, limit: 25 } };
+    const all = prepended ? [{ library: "books", book: "new", title: "Just recorded" }, ...rows] : rows;
+    const offset = Number(params.get("offset") || 0);
+    const limit = Number(params.get("limit") || 25);
+    return { data: { enabled: true, items: all.slice(offset, offset + limit), total: all.length, offset, limit } };
+  };
+  const shelf = createHardcoverShelf({ document, $: node, requestJSON });
+  shelf.bind();
+  await shelf.load();
+  await new Promise((resolve) => setTimeout(resolve, 10));
+  prepended = true;
+  node("#hardcover-shelf-list").listeners.click({ target: { closest: () => ({ dataset: { action: "more", group: "matched" } }) } });
+  await new Promise((resolve) => setTimeout(resolve, 10));
+  node("#hardcover-shelf-list").listeners.click({ target: { closest: () => ({ dataset: { action: "page", group: "matched" } }) } });
+  await new Promise((resolve) => setTimeout(resolve, 20));
+  const html = node("#hardcover-shelf-list").innerHTML;
+  const keys = [...html.matchAll(/data-key="([^"]+)"/g)].map((match) => match[1]);
+  assert.equal(new Set(keys).size, keys.length, `a row was listed twice: ${keys.join(", ")}`);
+});

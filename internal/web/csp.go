@@ -39,15 +39,27 @@ func inlineScriptHashes(document string) []string {
 	return hashes
 }
 
-// documentPolicy is the policy for a page Mochil serves itself. It allows the generated covers and scenes
-// (data: and blob: images) that the shell draws, and the inline theme script by hash.
-func documentPolicy(inlineHashes []string) string {
-	script := "script-src 'self'"
-	if len(inlineHashes) > 0 {
-		script += " " + strings.Join(inlineHashes, " ")
+// policyOptions are the per-page exceptions. Two pages need more than the shell does, and nothing else.
+type policyOptions struct {
+	// Script is appended to script-src: the reader injects blob: scripts, the avatar compiles wasm.
+	Script []string
+	// BaseSelf lets a page set a <base>, which the reader needs to resolve chapter resources.
+	BaseSelf bool
+}
+
+// documentPolicy is the one policy for a page Mochil serves itself; every page goes through it, so a
+// directive can only be introduced in one place. It allows the generated covers and scenes (data: and blob:
+// images) the shell draws, and any inline script by the hash of the bytes actually served.
+func documentPolicy(inlineHashes []string, options policyOptions) string {
+	script := append([]string{"'self'"}, inlineHashes...)
+	script = append(script, options.Script...)
+	base := "base-uri 'none'"
+	if options.BaseSelf {
+		base = "base-uri 'self'"
 	}
-	return "default-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; " +
-		"img-src 'self' data: blob:; media-src 'self' data: blob:; " + script + "; " +
+	return "default-src 'self'; style-src 'self' blob: 'unsafe-inline'; font-src 'self' data: blob:; " +
+		"img-src 'self' data: blob:; media-src 'self' data: blob:; " +
+		"script-src " + strings.Join(script, " ") + "; " +
 		"connect-src 'self'; frame-src 'self' blob: data:; worker-src 'self' blob:; " +
-		"form-action 'self'; frame-ancestors 'none'; base-uri 'none'; object-src 'none'"
+		"form-action 'self'; frame-ancestors 'none'; " + base + "; object-src 'none'"
 }

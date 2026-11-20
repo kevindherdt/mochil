@@ -76,7 +76,7 @@
 .jump-card[data-family=video]{--kind:var(--kind-video);--kind-ink:var(--kind-video-ink)}
 .jump-card[data-family=audio]{--kind:var(--kind-audio);--kind-ink:var(--kind-audio-ink)}
 .jump-card[data-family=podcast]{--kind:var(--kind-podcast);--kind-ink:var(--kind-podcast-ink)}
-.jump-tag{position:absolute;top:8px;left:8px;padding:2px 8px;border-radius:var(--r-6);background:var(--kind,var(--accent));color:var(--kind-ink,var(--accent-ink));font:700 var(--fs-11)/1.5 "Source Sans",sans-serif;letter-spacing:.04em;text-transform:uppercase}
+.jump-tag{position:absolute;top:8px;left:8px;padding:2px 8px;border-radius:var(--r-6);font:700 var(--fs-11)/1.5 "Source Sans",sans-serif;letter-spacing:.04em;text-transform:uppercase}
 .jump-card strong{margin-top:8px;overflow:hidden;font-size:var(--fs-14);font-weight:620;text-overflow:ellipsis;white-space:nowrap}
 /* The slot is exactly as tall as a read-along label, so a card with one and a card without measure the same. */
 .jump-card .jump-badge{display:flex;align-items:center;min-height:20px}
