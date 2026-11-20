@@ -61,23 +61,33 @@ export function createHardcoverShelf({ document, $, requestJSON }) {
     target.items = offset === 0 ? items : target.items.concat(items);
     target.total = typeof data.total === "number" ? data.total : target.items.length;
     target.done = target.items.length >= target.total || items.length === 0;
-    if (group === "skipped" && data.enabled === false) root().hidden = true;
+    // The module decides whether this card exists at all. It is mounted hidden, so it has to be shown
+    // explicitly — setting hidden only on the way out left it invisible for everyone, always.
+    if (group === "skipped" && data.enabled !== undefined) root().hidden = data.enabled === false;
   }
 
   async function refresh() {
-    for (const group of Object.keys(GROUPS)) {
+    const names = Object.keys(GROUPS);
+    for (const group of names) {
       state[group] = blank();
       state[group].busy = true;
     }
     render();
-    try {
-      await Promise.all(Object.keys(GROUPS).map((group) => fetchPage(group, 0)));
-    } catch (error) {
+    // One failing group must not take the card away or claim the shelf is empty: the other three loaded
+    // fine, and a transient 500 on "left alone" says nothing about the matches.
+    const settled = await Promise.allSettled(names.map((group) => fetchPage(group, 0)));
+    const failures = settled.filter((result) => result.status === "rejected");
+    for (const group of names) state[group].busy = false;
+    if (failures.length === names.length) {
       root().hidden = true; // not an administrator, or the module is unavailable
       status("");
       return;
     }
-    for (const group of Object.keys(GROUPS)) state[group].busy = false;
+    if (failures.length) {
+      status("Part of the shelf could not be loaded. Try again in a moment.");
+    } else if ($("#hardcover-shelf-status").textContent.startsWith("Part of the shelf")) {
+      status(""); // a reloaded shelf clears its own warning, not a message about what the reader just did
+    }
     render();
   }
 
@@ -191,18 +201,25 @@ export function createHardcoverShelf({ document, $, requestJSON }) {
     // what the first lookup uses.
     const value = (field?.value || "").trim() || open?.query || "";
     if (!open || !value) return;
-    open.query = value;
-    open.busy = true;
-    open.results = null;
+    // The answer belongs to the book that asked for it. A slow lookup for one book must not land under the
+    // next one, where Choose would link the wrong provider id to the wrong book.
+    const lookup = open;
+    lookup.query = value;
+    lookup.busy = true;
+    lookup.results = null;
     render();
+    let results;
+    let failure = "";
     try {
-      open.results = (await requestJSON(`/api/metadata/hardcover/search?q=${encodeURIComponent(value)}`)).data;
-      status("");
+      results = (await requestJSON(`/api/metadata/hardcover/search?q=${encodeURIComponent(value)}`)).data;
     } catch (error) {
-      open.results = [];
-      status(error.message || "Hardcover could not be reached.");
+      results = [];
+      failure = error.message || "Hardcover could not be reached.";
     }
-    open.busy = false;
+    if (open !== lookup) return; // the reader moved to another book, or cancelled
+    lookup.results = results;
+    lookup.busy = false;
+    status(failure);
     render();
   }
 

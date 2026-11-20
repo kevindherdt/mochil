@@ -130,7 +130,16 @@ func (m *multiServer) apiHardcoverIgnore(w http.ResponseWriter, r *http.Request)
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 			return
 		}
-		writeJSON(w, http.StatusOK, map[string]any{"items": m.hardcoverIgnored.list()})
+		page := readHardcoverPage(r)
+		all := m.hardcoverIgnored.list()
+		filtered := make([]ignoredBook, 0, len(all))
+		for _, item := range all {
+			if hardcoverMatchesQuery(page, item.Title, item.Reason) {
+				filtered = append(filtered, item)
+			}
+		}
+		items, total := window(filtered, page)
+		writeJSON(w, http.StatusOK, map[string]any{"items": items, "total": total, "offset": page.offset, "limit": page.limit})
 		return
 	}
 	if r.Method != http.MethodPost {

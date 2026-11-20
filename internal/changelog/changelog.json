@@ -1,6 +1,21 @@
 {
  "entries": [
   {
+   "component": "web",
+   "version": "0.1.59",
+   "date": "2026-11-20",
+   "changes": [
+    "The Hardcover shelf card is visible again. It is mounted hidden and the paging rewrite only ever set that attribute to true, so nobody could open the shelf at all - the strongest reason to look at a panel after rewriting it rather than only at its data.",
+    "One failing request no longer takes the shelf away or claims nothing is matched: the four lists load independently, so a transient error on one of them leaves the other three on screen and says which part failed.",
+    "A slow Hardcover lookup can no longer answer under another book. Clicking Find on a second book before the first search returned put the first book's results under the second, where Choose would have linked the wrong Hardcover book to it.",
+    "Choosing a different library or view clears a selection made on the previous one, instead of leaving a bar that says \"3 selected\" about books that are no longer on screen.",
+    "The matches file can no longer be written larger than the server will read back at startup. The read limit is now derived from the number of records it is allowed to keep, and a save that would overflow it drops the oldest records instead - previously the store could write a file that made the process refuse to start, taking every settings save with it.",
+    "A long search query is trimmed on a character boundary, so a pasted non-Latin title is no longer cut into invalid text that matches nothing.",
+    "The \"left alone\" list pages like the other three, and the inline theme script now knows about Magenta Cream, so that theme no longer paints in the default colours before the app loads.",
+    "Recording hand-linked books on Hardcover is batched into one write and throttled, instead of one Hardcover call and one full-file rewrite per book inside the request that opens the shelf."
+   ]
+  },
+  {
    "component": "android",
    "version": "0.1.20",
    "date": "2026-11-20",

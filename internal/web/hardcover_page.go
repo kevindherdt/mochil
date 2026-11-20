@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"unicode/utf8"
 )
 
 // hardcoverPage reads the window a list request asks for. A shelf can hold thousands of books, so a list is
@@ -27,8 +28,11 @@ func readHardcoverPage(r *http.Request) hardcoverPage {
 		}
 	}
 	page.query = strings.ToLower(strings.TrimSpace(r.URL.Query().Get("q")))
-	if len(page.query) > 200 {
-		page.query = page.query[:200]
+	// 200 bytes, not 200 characters: cutting a byte slice can split a character, and an invalid rune can
+	// never be found in a valid string, so a pasted long title would silently match nothing.
+	for len(page.query) > 200 {
+		_, size := utf8.DecodeLastRuneInString(page.query)
+		page.query = page.query[:len(page.query)-size]
 	}
 	return page
 }
@@ -57,4 +61,3 @@ func window[T any](items []T, page hardcoverPage) ([]T, int) {
 	}
 	return items[page.offset:end], total
 }
-

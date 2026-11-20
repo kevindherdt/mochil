@@ -1,7 +1,7 @@
 // Builds the catalogue toolbar, which needs a dozen answers about the current
 // view. Keeping the wiring here leaves the app shell readable and the toolbar's
 // inputs in one place.
-import { createCatalogueToolbar } from "./catalogue-toolbar.js?v=16";
+import { createCatalogueToolbar } from "./catalogue-toolbar.js?v=17";
 import { createModuleMenus } from "./hermes-link.js?v=3";
 import { captureCataloguePlace, restoreCataloguePlace } from "./catalogue-place.js?v=1";
 
@@ -20,6 +20,7 @@ export function createCatalogueToolbarFor({
   publicationDestinations,
   state,
   helpers,
+  onLibraryChanged,
 }) {
   // Where the visible catalogue starts: under the sticky masthead/toolbars.
   const catalogueTop = () =>
@@ -34,6 +35,7 @@ export function createCatalogueToolbarFor({
       fetchImpl,
       onChange: () => getToolbar()?.render(),
     }),
+    onLibraryChanged,
     openSettings: () => viewController.show("settings"),
     reflowCollection: () => collectionsController.reflow(),
     capturePlace: () => captureCataloguePlace(document, catalogueTop()),

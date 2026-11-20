@@ -13,7 +13,7 @@
       (() => {
         try {
           const root = document.documentElement;
-          const palettes = ["mochil", "kiln", "eink"];
+          const palettes = ["mochil", "kiln", "eink", "magenta-cream"];
           const mode = localStorage.getItem("mochil-theme-mode") || localStorage.getItem("mochil-theme") || "system";
           const resolved = mode === "system" ? (matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark") : mode;
           if (resolved === "light" || resolved === "dark") root.dataset.theme = resolved;

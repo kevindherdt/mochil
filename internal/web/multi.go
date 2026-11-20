@@ -149,56 +149,60 @@ type MultiConfig struct {
 type SettingsApplyResult = settingssvc.ApplyResult
 
 type multiServer struct {
-	cfg                    MultiConfig
-	libraries              []Library
-	handlers               map[string]http.Handler
-	root                   *Server
-	covers                 *coverCache
-	publications           *acquisition.PublicationCache
-	koSyncContent          koSyncDigests
-	kosync                 *koSyncStore
-	kosyncRemote           *koSyncRemote
-	reading                *reading.Store
-	readingOwned           bool // false when a live reload handed its store over
-	readingSync            *reading.SyncCoordinator
-	annotations            *annotations.Store
-	videoProgress          *video.ProgressStore
-	audioProgress          *audio.ProgressStore
-	hermesPlays            *hermesPlayStore
-	hermesPlaysOnce        sync.Once
-	audioQueue             *audio.QueueStore
-	audioFavorites         *audio.QueueStore
-	audioPlaylists         *audio.PlaylistStore
-	podcasts               *podcast.Store
-	podcastDownloads       *podcast.Downloader
-	videoPreferences       *video.PreferenceStore
-	videoMetadata          *video.MetadataStore
-	metadataArtwork        *enrichment.ArtworkCache
-	subtitles              video.SubtitleExtractor
-	hls                    *video.HLSStore
-	videoViewers           videoViewers
-	videoArtwork           *video.ArtworkStore
-	videoPreviews          *video.PreviewStore
-	audioArtwork           *audio.ArtworkStore
-	audioHLS               *audio.HLSStore
-	audioAnalysis          *audio.AnalysisQueue
-	collections            *collectionStore
-	externalLibrary        *externallibrary.Store
-	metadataJobs           *metadata.JobStore
-	metadataOverrides      *catalog.OverrideStore
-	customColumns          *customcolumns.Store
-	bookCounts             sync.Map   // see health_http.go
-	hermesTurn             sync.Mutex // one helper request to Hermes at a time, see hermes_ask.go
-	musicEngines           sync.Map   // library id -> *musicrename.Engine
-	polishMu               sync.Mutex // guards polishJobs, see hermes_polish.go
-	polishJobs             map[string]*polishJob
-	bookStats              *bookstats.Store              // words and pages counted for the editor
-	bookQuality            *bookcheck.Store              // what the editor's quality check found in each file
-	isbnFound              *filefacts.Store[isbn.Result] // the ISBNs the editor found by reading books
-	matchFound             *filefacts.Store[bulkMatch]   // what the editor's Hardcover lookups found for each book
-	hardcoverLinks         *hardcoverLinkStore
-	hardcoverSkipped       hardcoverSkipped
-	hardcoverMatches       hardcoverMatches
+	cfg               MultiConfig
+	libraries         []Library
+	handlers          map[string]http.Handler
+	root              *Server
+	covers            *coverCache
+	publications      *acquisition.PublicationCache
+	koSyncContent     koSyncDigests
+	kosync            *koSyncStore
+	kosyncRemote      *koSyncRemote
+	reading           *reading.Store
+	readingOwned      bool // false when a live reload handed its store over
+	readingSync       *reading.SyncCoordinator
+	annotations       *annotations.Store
+	videoProgress     *video.ProgressStore
+	audioProgress     *audio.ProgressStore
+	hermesPlays       *hermesPlayStore
+	hermesPlaysOnce   sync.Once
+	audioQueue        *audio.QueueStore
+	audioFavorites    *audio.QueueStore
+	audioPlaylists    *audio.PlaylistStore
+	podcasts          *podcast.Store
+	podcastDownloads  *podcast.Downloader
+	videoPreferences  *video.PreferenceStore
+	videoMetadata     *video.MetadataStore
+	metadataArtwork   *enrichment.ArtworkCache
+	subtitles         video.SubtitleExtractor
+	hls               *video.HLSStore
+	videoViewers      videoViewers
+	videoArtwork      *video.ArtworkStore
+	videoPreviews     *video.PreviewStore
+	audioArtwork      *audio.ArtworkStore
+	audioHLS          *audio.HLSStore
+	audioAnalysis     *audio.AnalysisQueue
+	collections       *collectionStore
+	externalLibrary   *externallibrary.Store
+	metadataJobs      *metadata.JobStore
+	metadataOverrides *catalog.OverrideStore
+	customColumns     *customcolumns.Store
+	bookCounts        sync.Map   // see health_http.go
+	hermesTurn        sync.Mutex // one helper request to Hermes at a time, see hermes_ask.go
+	musicEngines      sync.Map   // library id -> *musicrename.Engine
+	polishMu          sync.Mutex // guards polishJobs, see hermes_polish.go
+	polishJobs        map[string]*polishJob
+	bookStats         *bookstats.Store              // words and pages counted for the editor
+	bookQuality       *bookcheck.Store              // what the editor's quality check found in each file
+	isbnFound         *filefacts.Store[isbn.Result] // the ISBNs the editor found by reading books
+	matchFound        *filefacts.Store[bulkMatch]   // what the editor's Hardcover lookups found for each book
+	hardcoverLinks    *hardcoverLinkStore
+	hardcoverSkipped  hardcoverSkipped
+	hardcoverMatches  hardcoverMatches
+	// When the linked-match sweep last ran: it costs one Hardcover call per unrecorded link, so a page
+	// load must not trigger it every time.
+	linkedRecordMu         sync.Mutex
+	linkedRecordedAt       time.Time
 	hardcoverIgnored       hardcoverIgnored
 	editorUndo             editorUndo
 	hardcoverEnqueue       func(hardcoverJob) // set only while the Hardcover module runs

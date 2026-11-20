@@ -1,7 +1,6 @@
 package web
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -136,7 +135,13 @@ type hardcoverMatch struct {
 
 // A shelf is a reading history, so it grows without limit in principle. The cap is a guard against a runaway
 // file, not a product limit: at 500 a reader with a few thousand books silently lost the oldest matches.
+//
+// The cap has to be a size the file can still be read back at. A match marshals to roughly 550 bytes, so the
+// read limit below is derived from the cap rather than picked by hand — otherwise the store writes a file
+// larger than it will accept on the next start, and the server refuses to boot with no way back except
+// deleting the file.
 const maximumHardcoverMatches = 20000
+const maximumHardcoverMatchBytes = maximumHardcoverMatches * 1024
 
 // hardcoverMatches keeps the newest matches, newest first.
 type hardcoverMatches struct {
@@ -155,11 +160,34 @@ func (s *hardcoverMatches) open(path string) error {
 	var stored struct {
 		Items []hardcoverMatch `json:"items"`
 	}
-	if err := statefile.DecodeJSON(path, 4<<20, &stored); err != nil && !os.IsNotExist(err) {
+	if err := statefile.DecodeJSON(path, maximumHardcoverMatchBytes, &stored); err != nil && !os.IsNotExist(err) {
 		return err
 	}
 	s.items = stored.Items
 	return nil
+}
+
+// putAll records a batch with a single write: a page load that discovers several links must not rewrite the
+// whole store once per record.
+func (s *hardcoverMatches) putAll(matches []hardcoverMatch) {
+	if len(matches) == 0 {
+		return
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for _, match := range matches {
+		for i, existing := range s.items {
+			if existing.Library == match.Library && existing.Book == match.Book {
+				s.items = append(s.items[:i:i], s.items[i+1:]...)
+				break
+			}
+		}
+		s.items = append([]hardcoverMatch{match}, s.items...)
+	}
+	if len(s.items) > maximumHardcoverMatches {
+		s.items = s.items[:maximumHardcoverMatches]
+	}
+	s.saveLocked()
 }
 
 func (s *hardcoverMatches) put(match hardcoverMatch) {
@@ -175,8 +203,27 @@ func (s *hardcoverMatches) put(match hardcoverMatch) {
 	if len(s.items) > maximumHardcoverMatches {
 		s.items = s.items[:maximumHardcoverMatches]
 	}
-	if s.path != "" {
-		_ = writeJSONFile(s.path, map[string]any{"items": s.items}, ".hardcover-matches-*")
+	s.saveLocked()
+}
+
+// saveLocked writes the list, refusing to produce a file this build could not read back. The encoded size is
+// what the read limit is spent on, and it only grows with the number of records, so dropping the oldest until
+// it fits is the same eviction the cap already performs - just measured in bytes.
+func (s *hardcoverMatches) saveLocked() {
+	if s.path == "" {
+		return
+	}
+	for {
+		// Measure exactly what will be written: the file is indented, which is larger than the compact form.
+		encoded, err := json.MarshalIndent(map[string]any{"items": s.items}, "", "  ")
+		if err != nil {
+			return
+		}
+		if len(encoded) <= maximumHardcoverMatchBytes-1024 || len(s.items) == 0 {
+			_ = writeJSONFile(s.path, map[string]any{"items": s.items}, ".hardcover-matches-*")
+			return
+		}
+		s.items = s.items[:len(s.items)-1]
 	}
 }
 
@@ -434,29 +481,6 @@ func (m *multiServer) apiHardcoverLink(w http.ResponseWriter, r *http.Request) {
 
 // recordLinkedMatches gives a record to links made before records were kept (or by a Metadata suggestion), by asking
 // Hardcover what each linked id is. With a library and book it handles only that one.
-func (m *multiServer) recordLinkedMatches(ctx context.Context, onlyLibrary, onlyBook string) {
-	if m.hardcoverLinks == nil || m.hardcoverEnqueue == nil {
-		return
-	}
-	for _, link := range m.hardcoverLinks.all() {
-		if onlyLibrary != "" && (link[0] != onlyLibrary || link[1] != onlyBook) {
-			continue
-		}
-		if existing, ok := m.hardcoverMatches.get(link[0], link[1]); ok && existing.HardcoverID == link[2] {
-			continue
-		}
-		lib, book, ok := m.findBook(link[0] + "/" + link[1])
-		if !ok {
-			continue
-		}
-		info := m.hardcoverBookInfo(ctx, lib.ID, book.ID, link[2])
-		m.hardcoverMatches.put(hardcoverMatch{
-			Library: lib.ID, Book: book.ID, Title: book.Title, Authors: append([]string{}, book.Authors...),
-			HardcoverID: link[2], HardcoverTitle: info.Title, HardcoverAuthors: info.Authors, URL: info.SourceURL,
-			How: "linked", Result: "linked", At: time.Now().Unix(),
-		})
-	}
-}
 
 // apiHardcoverPreview shows what a book would be matched to, and the closest alternatives, without sending anything.
 func (m *multiServer) apiHardcoverPreview(w http.ResponseWriter, r *http.Request) {

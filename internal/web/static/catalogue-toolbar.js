@@ -7,6 +7,8 @@ export function createCatalogueToolbar({
   libraryState,
   getCollectionMode,
   setCollectionMode,
+  // Called when the reader moves to another shelf or view, so a selection that points at the old one can go.
+  onLibraryChanged = () => {},
   getBrowseMode,
   getSeriesLayout,
   setSeriesLayout,
@@ -111,6 +113,7 @@ export function createCatalogueToolbar({
       // Home it still has to take you there.
       if (event.target.value === libraryState.selected() && getActiveView() === "library") return;
       setCollectionMode(false);
+      onLibraryChanged();
       libraryState.select(event.target.value);
       render();
       event.target.focus();

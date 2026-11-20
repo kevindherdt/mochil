@@ -77,7 +77,8 @@ const collectionsController = createCollections({
   },
 });
 collectionsController.bind();
-createBookSelection({ document, collections: collectionsController, reload: () => loadCurrentView() });
+// Kept so a shelf change can drop a selection pointing at books that are no longer on screen.
+const bookSelection = createBookSelection({ document, collections: collectionsController, reload: () => loadCurrentView() });
 loadPlaybackQualityPolicy(requestJSON);
 
 let libraryLoader;
@@ -263,6 +264,7 @@ viewRoute = createViewRoute({
 });
 
 catalogueToolbar = createCatalogueToolbarFor({
+  onLibraryChanged: () => bookSelection.clear(),
   document,
   window: globalThis,
   $,
