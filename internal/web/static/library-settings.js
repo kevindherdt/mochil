@@ -312,14 +312,15 @@ export function createLibrarySettings({
     renderOrder();
     const hint = $("#first-library-hint");
     if (hint) hint.hidden = !shouldShowFirstLibraryHint(libraries);
-    let migratedFormats = false;
     libraries.forEach((library, index) => {
       if (
         ["comics", "manga"].includes(library.kind) &&
         sameFormats(library.preferred_formats, defaultPreferredFormats("books"))
       ) {
+        // Upgrade to the formats this kind actually ships, without treating it as an edit: the page
+        // used to mark itself dirty the moment it opened because of this, and warn on the way out of a
+        // page nobody had touched. The value is normalised again on the next open, so nothing is lost.
         library.preferred_formats = defaultPreferredFormats(library.kind);
-        migratedFormats = true;
       }
       const node = $("#library-form").content.cloneNode(true);
       const card = node.querySelector(".library-form");
@@ -439,7 +440,6 @@ export function createLibrarySettings({
       syncMetadataLine(card, library);
       host.append(node);
     });
-    if (migratedFormats) onDirty();
   }
 
   function appendLibrary(library) {

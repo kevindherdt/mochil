@@ -63,6 +63,9 @@ func (s Service) Read() ([]byte, error) {
 	}
 	redactProviderSecrets(document)
 	redactHermesKey(document)
+	// The narration token is a Hugging Face credential for the gated voice weights. It is only ever
+	// read by the server, and the settings page has no field for it, so it must not travel to a browser.
+	redactNarrationToken(document)
 	// Report the address devices are actually handed, not the file's copy: with public_url in the
 	// environment the two can differ, and the page is where someone goes to find out what their
 	// server is called.
@@ -110,6 +113,8 @@ func (s Service) Update(data []byte) (ApplyResult, error) {
 	// Read() adds fields the page displays; they are not settings, and the config decoder is strict,
 	// so a page that saves back what it was shown must not write them into the file.
 	delete(incoming, "public_url_source")
+	delete(incoming, "narration_token_configured")
+	preserveNarrationToken(incoming, s.ReadSource)
 	// While the environment owns the address, the page is showing that value rather than the file's.
 	// Writing it back would quietly rewrite the file to match a variable that is already in charge, and
 	// the file would then claim an address nobody chose.
@@ -147,6 +152,45 @@ func (s Service) restoreStoredPublicURL(incoming map[string]any) {
 		return
 	}
 	delete(incoming, "public_url")
+}
+
+func redactNarrationToken(document map[string]any) {
+	narration, ok := document["narration"].(map[string]any)
+	if !ok {
+		return
+	}
+	if value, _ := narration["token"].(string); value != "" {
+		narration["narration_token_configured"] = true
+	}
+	delete(narration, "token")
+}
+
+// preserveNarrationToken keeps the saved token when the page saves everything else, the way the KoSync
+// password and the provider secrets are kept.
+func preserveNarrationToken(incoming map[string]any, readSource func() ([]byte, error)) {
+	narration, ok := incoming["narration"].(map[string]any)
+	if !ok {
+		return
+	}
+	delete(narration, "narration_token_configured")
+	if token, _ := narration["token"].(string); token != "" {
+		return
+	}
+	data, err := readSource()
+	if err != nil {
+		return
+	}
+	current, err := decode(data)
+	if err != nil {
+		return
+	}
+	saved, ok := current["narration"].(map[string]any)
+	if !ok {
+		return
+	}
+	if token, _ := saved["token"].(string); token != "" {
+		narration["token"] = token
+	}
 }
 
 func redactProviderSecrets(document map[string]any) {

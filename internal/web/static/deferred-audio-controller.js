@@ -40,7 +40,7 @@ export function createDeferredAudioController({ document, $, escapeHTML, request
 
   const ensure = lazyOnce(() =>
     Promise.all([
-      loadFeatureStyles(document, ["/assets/audio-library.css?v=2", "/assets/audio-player.css?v=28", "/assets/audio-player-wide.css?v=1", "/assets/audio-table.css?v=3", "/assets/music-discovery.css?v=6", "/assets/music-library.css?v=42", "/assets/podcast-badges.css?v=1"]),
+      loadFeatureStyles(document, ["/assets/audio-library.css?v=2", "/assets/audio-player.css?v=28", "/assets/audio-player-wide.css?v=3", "/assets/audio-table.css?v=5", "/assets/music-discovery.css?v=6", "/assets/music-library.css?v=42", "/assets/podcast-badges.css?v=1"]),
       import("./audio-library.js?v=164"),
     ]).then(([, { createAudioLibrary }]) => {
       controller = createAudioLibrary({ document, $, escapeHTML, requestJSON, isLibraryVisible, setNavigation });

@@ -12,7 +12,7 @@ export function createDeferredVideoController({ document, $, escapeHTML, request
 
   const ensure = lazyOnce(() =>
     Promise.all([
-      loadFeatureStyles(document, ["/assets/video-player.css?v=5", "/assets/video-controls.css?v=2"]),
+      loadFeatureStyles(document, ["/assets/video-player.css?v=7", "/assets/video-controls.css?v=4"]),
       import("./video-library.js?v=66"),
     ]).then(([, { createVideoLibrary }]) => {
       controller = createVideoLibrary({ document, $, escapeHTML, requestJSON, isLibraryVisible, setNavigation });

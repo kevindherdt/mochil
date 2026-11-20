@@ -90,3 +90,29 @@ func TestHermesKeyIsRedactedAndKeptWhenLeftBlank(t *testing.T) {
 		t.Fatalf("replace: %v %s", err, saved)
 	}
 }
+
+func TestTheNarrationTokenNeverLeavesTheServer(t *testing.T) {
+	config := []byte(`{"narration":{"token":"hf_secret_value","engine":"pocket"},"libraries":[]}`)
+	service := Service{ReadSource: func() ([]byte, error) { return config, nil }, SaveSource: func(data []byte) error { config = data; return nil }}
+	document, err := service.Read()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(document), "hf_secret_value") || strings.Contains(string(document), `"token"`) {
+		t.Fatalf("the narration token reached the browser: %s", document)
+	}
+	if !strings.Contains(string(document), `"narration_token_configured":true`) {
+		t.Fatalf("the page cannot say a token is saved: %s", document)
+	}
+	// Saving everything else must not wipe the token the page never saw.
+	edited := strings.Replace(string(document), `"engine":"pocket"`, `"engine":"pocket","threads":4`, 1)
+	if _, err := service.Update([]byte(edited)); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(config), "hf_secret_value") {
+		t.Fatalf("the saved token was lost by a settings save: %s", config)
+	}
+	if strings.Contains(string(config), "narration_token_configured") {
+		t.Fatalf("a display-only field was written into the config: %s", config)
+	}
+}

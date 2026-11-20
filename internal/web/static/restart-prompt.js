@@ -34,3 +34,13 @@ export function offerRestart({ document, status, fetchImpl = fetch, wait = (ms) 
   };
   return button;
 }
+
+// A later save that needs no restart must withdraw the earlier offer: the button is created once and
+// stayed live, so the page went on asking for a restart nothing was waiting for.
+export function withdrawRestart(document) {
+  const button = document.querySelector("#restart-now");
+  if (!button) return;
+  button.hidden = true;
+  button.disabled = true;
+  button.onclick = null;
+}

@@ -100,14 +100,28 @@ export function createSettings({
     );
   }
 
+  // The module list decides which sections exist. An empty list because the request failed used to hide
+  // the Hermes, Avatar and Editor pages with nothing on screen to say why, so a failure is reported and
+  // those sections are left alone rather than switched off.
+  async function loadModules() {
+    try {
+      return (await requestJSON("/api/modules")).data || [];
+    } catch (error) {
+      $("#settings-status").textContent = `Module list unavailable: ${error.message}`;
+      return null;
+    }
+  }
+
   function renderSettings() {
     librarySettings.load(settings.libraries, settings.metadata_providers);
     storageSettings.load(settings);
-    modulesSettings.load(moduleList, settings);
-    hermesSettings.load(settings, moduleList);
-    editorSettings.load(settings, moduleList);
-    avatarSettings.load(settings, moduleList);
-    narrationVoices.load(moduleList).catch(() => {});
+    if (moduleList) {
+      modulesSettings.load(moduleList, settings);
+      hermesSettings.load(settings, moduleList);
+      editorSettings.load(settings, moduleList);
+      avatarSettings.load(settings, moduleList);
+      narrationVoices.load(moduleList).catch(() => {});
+    }
     playbackSettings.load(settings.playback);
     readingSyncSettings.load(settings.kosync, settings.public_url, settings.public_url_source);
     metadataProviderSettings.load(
@@ -121,7 +135,7 @@ export function createSettings({
   async function openSettings() {
     try {
       settings = (await requestJSON("/api/settings")).data;
-      moduleList = (await requestJSON("/api/modules").catch(() => ({ data: [] }))).data;
+      moduleList = await loadModules();
       persistedLibraryIDs = new Set(
         (settings.libraries || []).map((library) => library.id),
       );
@@ -259,9 +273,13 @@ export function createSettings({
         );
         await onSaved?.(result);
         if (modulesChanged) offerRestart({ document, status });
-        else status.textContent = result.restart_required?.length
-          ? `Saved and applied. Restart only to change ${result.restart_required.join(", ")}.`
-          : "Saved and applied. Libraries are ready.";
+        else {
+          // Nothing is waiting for a restart now, so an offer left over from an earlier save has to go.
+          withdrawRestart(document);
+          status.textContent = result.restart_required?.length
+            ? `Saved and applied. Restart only to change ${result.restart_required.join(", ")}.`
+            : "Saved and applied. Libraries are ready.";
+        }
         save.textContent = "Saved";
         setTimeout(() => {
           save.textContent = "Save changes";

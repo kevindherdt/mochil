@@ -9,6 +9,7 @@ import (
 
 	"mochil/internal/jobs"
 	settingssvc "mochil/internal/settings"
+	"strings"
 )
 
 func (m *multiServer) settings(w http.ResponseWriter, r *http.Request) {
@@ -28,6 +29,9 @@ func (m *multiServer) settings(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")
+		// This document names library paths, the sync user and the public address. Every other JSON
+		// response here is no-store; this one was written by hand and was the only one cacheable.
+		w.Header().Set("Cache-Control", "no-store")
 		_, _ = w.Write(data)
 		return
 	}
@@ -46,7 +50,13 @@ func (m *multiServer) settings(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, err.Error(), http.StatusNotImplemented)
 			return
 		}
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		// The read path deliberately keeps server paths out of the browser; the write path used to hand
+		// them over, because a failed save bubbles up appconfig's decode error, which quotes the file it
+		// was reading. Say what went wrong without saying where the server keeps its files.
+		if m.root != nil && m.root.log != nil {
+			m.root.log.Error("save managed settings", "error", err)
+		}
+		http.Error(w, settingsSaveFailure(err), http.StatusBadRequest)
 		return
 	}
 	writeJSON(w, http.StatusOK, result)
@@ -73,4 +83,21 @@ func (m *multiServer) restart(w http.ResponseWriter) {
 		return
 	}
 	writeJSON(w, http.StatusAccepted, map[string]bool{"restarting": true})
+}
+
+// settingsSaveFailure turns a save error into something safe to show. Decode errors quote the file the
+// server was reading and permission errors quote its directory, and neither is the browser's business;
+// the reason a person can act on is whether it was their JSON or the server's own file.
+func settingsSaveFailure(err error) string {
+	message := err.Error()
+	switch {
+	case strings.Contains(message, "invalid settings JSON"), strings.Contains(message, "settings exceed"):
+		return message
+	case strings.Contains(message, "decode config"), strings.Contains(message, "unknown field"):
+		return "Mochil could not read the settings it was asked to save. Nothing was changed."
+	case strings.Contains(message, "permission"), strings.Contains(message, "no such file"):
+		return "Mochil could not write its settings file. Nothing was changed."
+	default:
+		return "Mochil could not save these settings. Nothing was changed."
+	}
 }

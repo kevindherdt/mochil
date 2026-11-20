@@ -2,6 +2,18 @@
  "entries": [
   {
    "component": "web",
+   "version": "0.1.54",
+   "date": "2026-11-20",
+   "changes": [
+    "Stylesheets are no longer served stale after an update. A stylesheet requested as `file.css?v=N` is cached for a year, and eighteen of them had changed without their version being bumped, so returning visitors kept the old sheet - the settings page stayed two columns wide for weeks after it became one. Every stale version is bumped, one stylesheet now carries one version everywhere instead of a different one per page, and a new test fails when a stylesheet changes without a bump.",
+    "The narration Hugging Face token no longer travels to the browser; the settings page reports that a token is saved, and a save keeps it.",
+    "The settings document is served `no-store` like every other JSON response, and a failed save no longer answers with the server's config path.",
+    "A save that needs no restart now withdraws an earlier 'Restart now' offer instead of leaving it beside the new message, and a failed module list is reported instead of silently hiding the Hermes, Avatar and Editor pages.",
+    "Opening Settings no longer reports unsaved changes: upgrading a library's stored formats to those of its own kind is normalising data, not editing."
+   ]
+  },
+  {
+   "component": "web",
    "version": "0.1.52",
    "date": "2026-11-20",
    "changes": [

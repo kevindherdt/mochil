@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
 import test from 'node:test'
-import { offerRestart } from '../static/restart-prompt.js'
+import { offerRestart, withdrawRestart } from '../static/restart-prompt.js'
 
 function fixture() {
   const status = { textContent: '', after(node) { status.next = node } }
@@ -53,4 +54,31 @@ test('a server that never comes back says to reload', async () => {
   const button = offerRestart({ document, status, tries: 3, wait: async () => {}, fetchImpl: async (url) => { if (url === '/api/libraries') throw new Error('down'); return { ok: true } }, reload: () => { throw new Error('must not reload') } })
   await button.onclick()
   assert.match(status.textContent, /Reload this page/)
+})
+
+// The offer is created once and only ever switched on, so a later save that needs no restart left the
+// button from the earlier one standing, asking for a restart nothing was waiting for.
+test('a save that needs no restart withdraws the earlier offer', () => {
+  const button = { hidden: false, disabled: false, onclick: () => {} }
+  const document = { querySelector: (selector) => (selector === '#restart-now' ? button : null) }
+  withdrawRestart(document)
+  assert.equal(button.hidden, true, 'the offer is still on screen')
+  assert.equal(button.disabled, true, 'the offer can still be pressed')
+  assert.equal(button.onclick, null, 'the withdrawn button kept its restart handler')
+})
+
+test('withdrawing an offer that was never made is harmless', () => {
+  assert.doesNotThrow(() => withdrawRestart({ querySelector: () => null }))
+})
+
+// The two settings-page fixes need a full DOM to drive; this reads the source instead, so a later edit
+// that reintroduces either shape fails here.
+test('settings withdraws the offer, and a failed module fetch is not an empty module list', () => {
+  const source = readFileSync(new URL('../static/settings.js', import.meta.url), 'utf8')
+  assert.match(source, /withdrawRestart\(document\)/, 'a no-restart save no longer withdraws the offer')
+  assert.match(source, /async function loadModules\(\)/, 'the module fetch is not guarded any more')
+  assert.ok(
+    !source.includes('requestJSON("/api/modules").catch(() => ({ data: [] }))'),
+    'a failed module fetch is being treated as an empty module list again',
+  )
 })
