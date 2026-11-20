@@ -1,0 +1,54 @@
+.settings-panel[data-settings-panel="metadata"] { max-width: 1180px; }
+.settings-panel[data-settings-panel="metadata"] > .metadata-toolbar,
+.settings-panel[data-settings-panel="metadata"] > .metadata-ingest-preview,
+.settings-panel[data-settings-panel="metadata"] > .metadata-history,
+.settings-panel[data-settings-panel="metadata"] > .provider-connections { max-width: 760px; }
+
+/* Keep the action legible when music adds its second filter. */
+.metadata-toolbar label { flex: 1 1 220px; min-width: 0; }
+.metadata-toolbar .primary { flex: 0 0 auto; white-space: nowrap; }
+
+.metadata-duplicate-group > details > summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 16px;
+  min-height: 64px;
+  cursor: pointer;
+  list-style: none;
+}
+.metadata-duplicate-group > details > summary::-webkit-details-marker { display: none; }
+.metadata-duplicate-group > details > summary > span:first-child { display: grid; min-width: 0; }
+.metadata-duplicate-group > details > summary strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.metadata-duplicate-group > details > summary small { color: var(--muted); }
+.metadata-duplicate-group > details > summary > b { grid-column: 2; grid-row: 1; margin-right: 26px; color: var(--muted); font-size: var(--fs-13); font-weight: 600; white-space: nowrap; }
+.metadata-duplicate-group > details > summary::after { content: "+"; grid-column: 3; grid-row: 1; color: var(--accent); font: 25px/1 Newsreader, Georgia, serif; }
+.metadata-duplicate-group > details[open] > summary::after { content: "−"; }
+.metadata-duplicate-group-body { padding-bottom: 18px; }
+.metadata-duplicate-group-body > p:first-child { margin-top: 4px; color: var(--muted); }
+
+@media (min-width: 1000px) {
+  .settings-panel[data-settings-panel="metadata"] .metadata-issues {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 32px;
+  }
+  .settings-panel[data-settings-panel="metadata"] .metadata-issues > article:has(details[open]) {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 560px) {
+  .metadata-duplicate-group > details > summary { grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
+  .metadata-duplicate-group > details > summary > b { grid-column: 1; grid-row: 2; margin: 0; }
+  .metadata-duplicate-group > details > summary::after { grid-column: 2; }
+}
+
+/* The managed-ingest workflow stays out of layout until a shelf can use it. */
+.metadata-ingest-managed[hidden] { display: none; }
+.settings-panel[data-settings-panel="metadata"] > .metadata-ingest-managed { max-width: 760px; }
+.settings-panel[data-settings-panel="metadata"] > .hardcover-shelf { max-width: 760px; }
+
+/* Metadata and the library editor are sections of Libraries and Modules, not tabs: set them apart from what precedes. */
+#settings-view .settings-panel > .settings-panel[data-settings-panel],
+#settings-view .settings-panel > .settings-subsection { margin-top: var(--sp-32, 32px); padding-top: var(--sp-24, 24px); border-top: 1px solid var(--line); }
