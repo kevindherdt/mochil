@@ -1,0 +1,39 @@
+/* Join global navigation and library controls into one uninterrupted surface. */
+:root{--shell-gutter:clamp(16px,2.6vw,48px)}
+.masthead{padding-inline:var(--shell-gutter)}
+main{padding-inline:var(--shell-gutter)}
+
+body:has(#library-view:not([hidden])) .shell-scrolled .masthead {
+  border-bottom-color: transparent;
+  background: var(--bg);
+  backdrop-filter: none;
+}
+
+.library-tools::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: -16px calc(50% - 50vw) 0;
+  background: var(--bg);
+}
+
+.shell-scrolled .library-tools {
+  box-shadow: 0 1px 0 var(--line);
+}
+
+.masthead{display:grid;grid-template-columns:minmax(130px,180px) minmax(44px,1fr) auto;gap:8px}
+.masthead-destination{grid-template-columns:minmax(0,1fr) 18px;width:clamp(130px,15vw,180px);max-width:100%;justify-self:start;margin:0;background:var(--surface)}
+.masthead-destination select{grid-column:1/-1;grid-row:1;width:100%;padding-right:27px}
+.masthead-destination .shelf-chevron{z-index:1;grid-column:2;grid-row:1;pointer-events:none}
+.shell-context{min-width:0;height:44px;overflow:visible}
+.library-tools{position:static;min-width:0;height:44px;margin:0;padding:0;justify-content:flex-end;background:transparent;box-shadow:none!important}
+.library-tools::before{display:none}.library-tools:has(.browse-controls[hidden]){display:none}
+.browse-controls{max-width:100%;overflow:visible}
+.shell-context>.audio-browse-head[data-kind="podcasts"]{display:flex;justify-content:flex-end;min-width:0;height:44px}.shell-context>.audio-browse-head[data-kind="podcasts"] .audio-toolbar{position:static;width:max-content;min-height:44px;display:flex;align-items:center;justify-content:flex-end;gap:2px;flex:0 0 auto;margin:0;background:transparent;backdrop-filter:none}.shell-context>.audio-browse-head[data-kind="podcasts"] .audio-view-menu,.shell-context>.audio-browse-head[data-kind="podcasts"] .audio-toolbar>#podcast-manage-toggle{position:relative;inset:auto}
+.shell-context .view-menu>summary,.shell-context .audio-view-menu>summary{min-width:44px}.shell-context .audio-view-menu>summary{width:auto;display:flex;align-items:center;gap:7px;padding:0 11px}
+@media(max-width:760px){.masthead{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"destination actions";gap:3px}.masthead:has(.shell-context:not([hidden])){height:106px;grid-template-rows:44px 44px;grid-template-areas:"destination actions" "context context";row-gap:2px}.masthead-destination{grid-area:destination;width:clamp(108px,36vw,148px);min-width:0;justify-self:start}.shell-context{grid-area:context;width:100%}.shell-context .library-tools,.shell-context .browse-controls{width:100%;min-width:0}.shell-context .browse-controls{flex:1 1 auto;overflow:hidden}.shell-context .publication-destinations{min-width:0}.masthead-actions{grid-area:actions;justify-self:end;flex:0 0 auto}.masthead-destination select{font-size:var(--fs-14)}.masthead:not(.searching) #theme-toggle{display:none}.view-menu>summary span,.audio-view-menu>summary span{display:none}.shell-context .audio-view-menu>summary{width:44px;padding:0;justify-content:center}.music-destinations button{padding-inline:7px}}
+@media(max-width:350px){.masthead{padding-inline:max(8px,env(safe-area-inset-left)) max(8px,env(safe-area-inset-right));gap:0}.masthead-destination{width:min(112px,calc(100vw - 140px))}.masthead-actions{gap:0}}
+.masthead.searching{grid-template-columns:minmax(0,1fr) auto}.masthead.searching .masthead-destination,.masthead.searching .shell-context{display:none}.masthead.searching .search{width:min(520px,calc(100vw - 90px))}
+@media(max-width:760px){.masthead.searching{height:62px;grid-template-rows:44px;grid-template-areas:none}}
+/* The bar's blur makes a "fixed" menu inside it position against the bar, not the screen, so the phone bottom sheet ran off the top. Open menus switch it off. */
+.masthead:has(.audio-view-menu[open],.view-menu[open],.browse-controls details[open]){-webkit-backdrop-filter:none;backdrop-filter:none}

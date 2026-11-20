@@ -1,0 +1,25 @@
+.destination-rail{position:relative;min-width:0;display:flex;align-items:center;gap:2px;margin:0;padding:0;overflow-x:auto;overscroll-behavior-inline:contain;scrollbar-width:none;scroll-snap-type:x proximity;scroll-padding-inline:8px;touch-action:pan-x}
+.destination-rail::-webkit-scrollbar{display:none}
+.destination-rail.has-destinations-after{-webkit-mask-image:linear-gradient(to right,#000 0,#000 calc(100% - 24px),transparent 100%);mask-image:linear-gradient(to right,#000 0,#000 calc(100% - 24px),transparent 100%)}
+.destination-rail.has-destinations-before:not(.has-destinations-after){-webkit-mask-image:linear-gradient(to right,transparent 0,#000 24px,#000 100%);mask-image:linear-gradient(to right,transparent 0,#000 24px,#000 100%)}
+.destination-rail.has-destinations-before.has-destinations-after{-webkit-mask-image:linear-gradient(to right,transparent 0,#000 24px,#000 calc(100% - 24px),transparent 100%);mask-image:linear-gradient(to right,transparent 0,#000 24px,#000 calc(100% - 24px),transparent 100%)}
+.destination-rail button{position:relative;min-width:44px;min-height:44px;flex:0 0 auto;padding:0 11px;border:0;border-radius:var(--r-8);background:transparent;color:var(--muted);font-weight:620;cursor:pointer;scroll-snap-align:start}
+.destination-rail button:hover{color:var(--text)}
+.destination-rail button.active{color:var(--text)}
+.destination-rail button.active::after{content:"";display:block;height:2px;margin:-3px 4px 0;border-radius:var(--r-4);background:var(--accent)}
+@media(max-width:760px){.destination-rail button{padding-inline:8px}}
+.destination-rail button[hidden]{display:none}
+.destination-rail button{transition:background-color .16s ease,color .16s ease}
+.destination-rail button.active{background:color-mix(in srgb,var(--accent) 16%,transparent);color:var(--accent)}
+.destination-rail button.active::after{display:none}
+:root[data-palette=eink] .destination-rail button.active{background:transparent;color:var(--text);text-decoration:underline;text-underline-offset:6px}
+/* The tabs sit together in one soft rounded group. */
+.destination-rail{padding:3px;border:1px solid color-mix(in srgb,var(--line) 60%,transparent);border-radius:var(--r-12);background:color-mix(in srgb,var(--raised) 45%,transparent)}
+
+/* Icon tabs: a compact label stays visible next to every icon at any width (the
+   rail already scrolls with an edge fade + swipe, same as the A-Z bar), so icon-only
+   buttons never lose their text and become undiscoverable on narrow phones. */
+.destination-rail button.has-icon{display:inline-flex;align-items:center;justify-content:center;gap:6px}
+.destination-rail button.has-icon svg{width:20px;height:20px;flex:0 0 auto;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.destination-rail button.has-icon span{display:inline;font-size:var(--fs-13);white-space:nowrap}
+@media(max-width:480px){.destination-rail button.has-icon span{font-size:var(--fs-12)}}
