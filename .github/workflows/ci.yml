@@ -1,11 +1,10 @@
 name: CI
 
 on:
-  # Branches only, never tags: pushing a v* tag already runs the full gate set inside Release, and a
-  # private repository pays for every runner minute. `push:` with no filter ran this twice per
-  # release — once for the tag, once for Release — and that is what exhausted the monthly minutes.
-  push:
-    branches: [main]
+  # Pull requests only. A push to main is gated by the edge workflow, which *calls* this one; running it
+  # again on push meant every commit started two identical runs, and a reusable workflow inherits its
+  # caller's concurrency group, so the pair cancelled each other and the push showed a red X in
+  # seconds. One run per commit, and the check that gates main is the one that actually finished.
   pull_request:
   # So the edge image can depend on the same checks instead of duplicating them: a red commit must
   # never publish an installable tag.
