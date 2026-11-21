@@ -96,3 +96,30 @@ func TestSpecialPublicationsKeepSeriesWithoutInventedOrder(t *testing.T) {
 		t.Fatalf("ordinary volume inference = %+v", books[2])
 	}
 }
+
+// Sandbox layout: every book sits in its own "Author/Title (id)/" folder. The folder is storage, not a series.
+func TestPerBookFolderIsNotASeries(t *testing.T) {
+	books := []Book{
+		{Path: "George Orwell/1984 (282)/1984 - George Orwell.epub", Title: "1984", Authors: []string{"George Orwell"}},
+		{Path: "S. M. Stirling/01 Dies the Fire (318)/01 Dies the Fire - S. M. Stirling.epub", Title: "01 Dies the Fire", Authors: []string{"S. M. Stirling"}},
+	}
+	inferFilesystemMetadata(books, FilesystemOptions{FolderLayout: "series"})
+	if books[0].Series != "" || books[0].SeriesIndex != nil {
+		t.Fatalf("a per-book folder became a series: %+v", books[0])
+	}
+	if books[1].Series != "" {
+		t.Fatalf("a per-book folder became a series: %+v", books[1])
+	}
+	if books[1].SeriesIndex != nil {
+		t.Fatalf("a per-book folder should not invent a position: %+v", books[1])
+	}
+}
+
+// The folder still names the series when the folder says something the book does not.
+func TestFolderThatIsNotTheTitleStillNamesTheSeries(t *testing.T) {
+	books := []Book{{Path: "Mistborn/The Final Empire.epub", Title: "The Final Empire", Authors: []string{"Unknown"}}}
+	inferFilesystemMetadata(books, FilesystemOptions{FolderLayout: "series"})
+	if books[0].Series != "Mistborn" {
+		t.Fatalf("expected the folder to name the series, got %+v", books[0])
+	}
+}

@@ -40,7 +40,7 @@ func inferFilesystemMetadata(books []Book, options FilesystemOptions) {
 		}
 		inferred := parsed[i]
 		dir := filepath.ToSlash(filepath.Dir(filepath.FromSlash(book.Path)))
-		if options.FolderLayout == "series" && dir != "." && book.Series == "" {
+		if options.FolderLayout == "series" && dir != "." && book.Series == "" && folderNamesSeries(dir, book.Title) {
 			book.Series = displayFilename(filepath.Base(filepath.FromSlash(dir)))
 		}
 		if !inferred.ok {
@@ -50,7 +50,10 @@ func inferFilesystemMetadata(books []Book, options FilesystemOptions) {
 			inferMarkedSeriesIndex(book)
 			continue
 		}
-		seriesFolder := options.FolderLayout == "series" || (options.FolderLayout == "auto" && counts[dir] >= 2)
+		// A folder holding a single book whose name is the book's own name is a per-book folder, not a series:
+		// sandbox layouts store every book in "Author/Title (id)/". Calling that a series gave 1984 a series
+		// named "1984" and a position of Book 1.
+		seriesFolder := dir != "." && (counts[dir] >= 2 || (options.FolderLayout == "series" && folderNamesSeries(dir, book.Title)))
 		if seriesFolder && dir != "." {
 			if book.Series == "" {
 				book.Series = displayFilename(filepath.Base(filepath.FromSlash(dir)))
@@ -72,6 +75,26 @@ func inferFilesystemMetadata(books []Book, options FilesystemOptions) {
 		}
 		inferMarkedSeriesIndex(book)
 	}
+}
+
+// folderNamesSeries reports whether a folder name is something other than the book's own title, which is the
+// only case where the folder carries information the book does not already have.
+func folderNamesSeries(dir, title string) bool {
+	name := strings.ToLower(displayFilename(filepath.Base(filepath.FromSlash(dir))))
+	clean := strings.ToLower(strings.TrimSpace(title))
+	if name == "" || clean == "" {
+		return true
+	}
+	if name == clean {
+		return false
+	}
+	// "1984 (282)" is a per-book folder too: the id suffix is storage, not part of any series name.
+	if open := strings.LastIndex(name, " ("); open > 0 && strings.HasSuffix(name, ")") {
+		if strings.TrimSpace(name[:open]) == clean {
+			return false
+		}
+	}
+	return true
 }
 
 func inferMarkedSeriesIndex(book *Book) {

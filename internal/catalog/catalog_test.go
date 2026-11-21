@@ -241,3 +241,20 @@ func TestScanMarksEPUBsThatCarryTheirOwnRecording(t *testing.T) {
 		t.Fatalf("read-along flags = %v", got)
 	}
 }
+
+// A book whose series is its own title is a per-book folder that older scans mistook for a series.
+func TestNormalizeSeriesDropsASeriesThatRepeatsTheTitle(t *testing.T) {
+	index := 1.0
+	books := []Book{
+		{Title: "1984", Series: "1984", SeriesIndex: &index},
+		{Title: "Dies the Fire", Series: "Emberverse", SeriesIndex: &index},
+		{Title: "The Age of Ra", Series: "", SeriesIndex: &index},
+	}
+	normalizeSeries(books)
+	if books[0].Series != "" || books[0].SeriesIndex != nil {
+		t.Fatalf("a series that repeats the title should be dropped: %+v", books[0])
+	}
+	if books[1].Series != "Emberverse" || books[1].SeriesIndex == nil {
+		t.Fatalf("a real series must survive: %+v", books[1])
+	}
+}

@@ -138,6 +138,21 @@ export function createBookCatalogue({
     if (navigationRequest === currentRequest) onNavigationChange();
   }
 
+
+  // The page names itself and counts itself, the way the design does: a title, then "120 items · Title (A–Z)".
+  function updateShelfHead() {
+    // The catalogue is also driven headless in the tests, where there is no page to write on.
+    if (typeof document === "undefined") return;
+    const title = document.getElementById('shelf-title');
+    const meta = document.getElementById('shelf-meta');
+    if (!title || !meta) return;
+    const select = document.querySelector('.shelf-switcher select');
+    const name = (select?.selectedOptions?.[0]?.textContent || '').trim();
+    title.textContent = name || 'Library';
+    // The sort control sits on this line and already names the order, so the count is all this says.
+    meta.textContent = total ? `${total} ${total === 1 ? 'item' : 'items'}` : '';
+  }
+
   async function load(reset = false, requestedOffset = 0) {
     if (reset) {
       abortSeries();
@@ -163,6 +178,7 @@ export function createBookCatalogue({
       cards.releaseCovers(container);
       container.innerHTML = "";
       status.textContent = "Opening the shelves…";
+      updateShelfHead();
     }
     const offset = reset ? startOffset : startOffset + books.length;
     try {
@@ -178,6 +194,7 @@ export function createBookCatalogue({
       total = Number(response.headers.get("X-Total-Count")) || data.length;
       books.push(...data);
       render(data, reset ? "replace" : "append");
+      updateShelfHead();
       return true;
     } catch (error) {
       if (error.name !== "AbortError" && request === currentRequest) {

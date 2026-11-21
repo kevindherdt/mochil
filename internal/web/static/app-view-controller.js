@@ -23,7 +23,10 @@ export function createAppViewController({
     }
     searchToggle.hidden = !showingLibrary;
     $("#search-panel").hidden = !showingLibrary;
-    $("#shell-context").hidden = !showingLibrary;
+    // Only reveal the masthead context row when something is actually in it: an empty row costs 44px of
+    // a phone's screen and, on the library view, used to be where the chips overflowed.
+    const context = $("#shell-context");
+    context.hidden = !showingLibrary || (context.children?.length ?? 0) === 0;
     for (const [name, button] of Object.entries(buttons)) {
       const active = view === name;
       button.classList.toggle("active", active);

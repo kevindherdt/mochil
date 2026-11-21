@@ -401,7 +401,22 @@ func (s *Store) replace(books []Book) {
 	s.replaceWithIndex(books, byID)
 }
 
+// normalizeSeries drops a series that only repeats the book's own title. Older scans read a per-book folder
+// ("Author/Title (id)/") as a series name, so standalone books arrived here as "1984, series 1984, Book 1".
+// Correcting it on the way in means the API stops serving the wrong value immediately, without a rescan that
+// would have to re-read every file.
+func normalizeSeries(books []Book) {
+	for i := range books {
+		series := strings.TrimSpace(books[i].Series)
+		if series != "" && strings.EqualFold(series, strings.TrimSpace(books[i].Title)) {
+			books[i].Series = ""
+			books[i].SeriesIndex = nil
+		}
+	}
+}
+
 func (s *Store) replaceWithIndex(books []Book, byID map[string]Book) {
+	normalizeSeries(books)
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if booksEqual(s.books, books) {

@@ -1,9 +1,10 @@
-import { createBookCards } from "./book-cards.js?v=16";
+import { createBookCards } from "./book-cards.js?v=37";
 import { openSettingsWhenEmpty } from "./first-run.js?v=1";
 import { createCollections } from "./collections.js?v=22";
 import { createJumpBackIn } from "./jump-back-in.js?v=24";
 import { createDeferredVideoController } from "./deferred-video-controller.js?v=20";
 import { createDeferredAudioController } from "./deferred-audio-controller.js?v=70";
+import { mountDashboard } from "./dashboard-template.js?v=12";
 import { createDeferredRouteControllers } from "./deferred-route-controllers.js?v=122";
 import { createContinuousPager } from "./continuous-pager.js?v=4";
 import { createLibraryViewRouter } from "./library-view-router.js?v=6";
@@ -24,7 +25,8 @@ import { createThemeController } from "./theme-controller.js?v=17";
 import { createSearchController } from "./search-controller.js?v=3";
 import { bindPopupDismissal } from "./popup-controller.js?v=1";
 import { createShellLayout } from "./shell-layout.js?v=2";
-import { createAppViewController } from "./app-view-controller.js?v=2";
+import { createAppViewController } from "./app-view-controller.js?v=10";
+import { mountDock } from "./dock.js?v=3";
 import { createViewRoute } from "./view-route.js?v=6";
 import { registerServiceWorker } from "./register-sw.js?v=2";
 import { errorSpec, renderStatePanel } from "./state-panel.js?v=2";
@@ -36,7 +38,7 @@ import { createSpatialNavigation } from "./spatial-navigation.js?v=1";
 import { createStatusToast } from "./status-toast.js?v=1";
 import { createLibraryMenu } from "./library-menu.js?v=7";
 import { createAlphabetPeek } from "./alphabet-peek.js?v=1";
-import { createPublicationDestinations } from "./publication-destinations.js?v=9";
+import { createPublicationDestinations } from "./publication-destinations.js?v=10";
 import { escapeHTML } from "./html.js?v=1";
 import { installViewportActionMenus } from "./viewport-action-menus.js?v=2";
 import { createEditorMenu } from "./editor-link.js?v=7";
@@ -44,7 +46,8 @@ import { followKeyboard } from "./keyboard-viewport.js?v=1";
 
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => [...document.querySelectorAll(selector)];
-$("#shell-context").append($(".library-tools"));
+// The browse chips used to be lifted into the masthead, whose context row is a fixed 44px: a second chip row
+// there spilled over the page title. They stay in the page now, where they can wrap freely.
 
 const libraryState = createLibraryState();
 let browseMode = localStorage.getItem("mochil-browse-by") || "series";
@@ -58,13 +61,7 @@ let seriesCatalogue, authorCatalogue, continueCatalogue;
 createActivityMonitor({ document, $, escapeHTML, requestJSON });
 installViewportActionMenus({ document, window }); followKeyboard(window);
 
-const {
-  author,
-  bookmarkIcon,
-  bookMarkup,
-  installCoverFallbacks,
-  releaseCovers,
-} = createBookCards({ escapeHTML });
+const { author, bookmarkIcon, bookMarkup, installCoverFallbacks, releaseCovers } = createBookCards({ escapeHTML });
 const collectionsController = createCollections({
   document, $, $$, escapeHTML, requestJSON, bookMarkup, installCoverFallbacks, releaseCovers,
   createBoundedWindow, createContinuousPager,
@@ -97,25 +94,19 @@ const homeRequests = createRequestCache(requestJSON), homeRails = createHomeRail
 createCardTint({ root: document.body });
 const jumpBackIn = homeRails.jumpBackIn;
 const mediaNavigator = createMediaSectionNavigator($("#media-alphabet"));
-const videoLibrary = createDeferredVideoController({
-  document,
-  $,
-  escapeHTML,
-  requestJSON: homeRequests.json,
+const videoLibrary = createDeferredVideoController({ document, $, escapeHTML, requestJSON: homeRequests.json,
   isLibraryVisible: libraryVisibility.isVisible,
-  setNavigation: (...args) => {
-    if (!$("#video-index").hidden) mediaNavigator.show(...args);
-  },
+  setNavigation: (...args) => { if (!$("#video-index").hidden) mediaNavigator.show(...args); },
 });
-const audioLibrary = createDeferredAudioController({
-  document,
-  $,
-  escapeHTML,
-  requestJSON: homeRequests.json,
+// Home's rails live in a template, and the controllers below bind to elements inside it at construction.
+// Mounting it used to be a side effect of the reading dashboard; with that gone, a page reached those
+// controllers on a document with no rails, threw on the first null, and never loaded anything -- a blank
+// library under a "Opening the shelves…" line. Mount it before anything binds to it.
+mountDashboard(document);
+
+const audioLibrary = createDeferredAudioController({ document, $, escapeHTML, requestJSON: homeRequests.json,
   isLibraryVisible: libraryVisibility.isVisible,
-  setNavigation: (...args) => {
-    if (!$("#audio-index").hidden) mediaNavigator.show(...args);
-  },
+  setNavigation: (...args) => { if (!$("#audio-index").hidden) mediaNavigator.show(...args); },
 });
 const deferredRoutes = createDeferredRouteControllers({
   document, $, $$, escapeHTML, requestJSON, libraryVisibility,
@@ -239,10 +230,19 @@ const viewController = createAppViewController({
     videoLibrary.loadContinue?.();
     audioLibrary.loadContinue?.();
   },
-  onViewChanged: () => { catalogueToolbar?.render(); viewRoute?.write(); },
+  onViewChanged: () => { catalogueToolbar?.render(); viewRoute?.write(); dock?.sync(); },
   updateLayout: () => shellLayout.updateStickyMetrics(),
 });
 viewController.bind();
+
+// The dock is the phone's version of the masthead: Home, Library, Activity, Settings, at thumb height.
+const dock = mountDock({
+  getView: () => viewController.current(),
+  getLibrary: () => libraryState.selected(),
+  go: (view) => viewController.show(view),
+  openSettings: () => deferredRoutes.openSettings(),
+  activity: () => $("#activity-toggle"),
+});
 viewRoute = createViewRoute({
   window,
   getView: () => viewController.current(),

@@ -2,6 +2,30 @@
  "entries": [
   {
    "component": "web",
+   "version": "0.1.65",
+   "date": "2026-11-21",
+   "new": [
+    "A shelf now says what it is: its name, how many things are on it, and the order, on one line. The separate sort row is gone, so the order is stated once instead of twice.",
+    "The phone has a dock: Home, Library, Activity and Settings at the bottom, with the current place marked. The page is padded for it, so the last row of covers is never underneath it. On a wide screen it does not appear.",
+    "When something is playing, the player rests on the dock's top edge as one surface instead of two bars stacked at the bottom of a small screen."
+   ],
+   "changes": [
+    "The browse chips wrap into two rows at phone width, with every label whole. They used to end at the screen edge, which read as a cut-off word rather than as a list to scroll.",
+    "A book with a series index in its title shows the clean name ('Dies the Fire') and the position on its own line ('Book 1'). A number that is the title, like 1984, is never treated as a position.",
+    "A book whose folder was named after itself no longer claims to be a series of one; the catalogue corrects that as it loads, without a rescan."
+   ]
+  },
+  {
+   "component": "android",
+   "version": "0.1.65",
+   "date": "2026-11-21",
+   "changes": [
+    "The phone's cards say where a book sits in its series ('Book 3'), under the title and above the author.",
+    "A book you opened once says 'Started' and shows no progress bar, instead of '0% read' with a one-pixel line under it. The web and the phone now use the same rule, so they cannot disagree."
+   ]
+  },
+  {
+   "component": "web",
    "version": "0.1.64",
    "date": "2026-11-20",
    "changes": [

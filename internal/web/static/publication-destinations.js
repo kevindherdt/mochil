@@ -19,6 +19,14 @@ export function createPublicationDestinations({ element, gestureSurface, getBrow
     gestureSurface,
     onChange: async () => onSelect(selected),
   })
+  // A soft fade at the right edge only when the row really is cut off: fading a row that fits made
+  // "Collections" read as "Collect".
+  if (element && typeof ResizeObserver !== 'undefined') {
+    const mark = () => element.classList.toggle('is-scrollable', element.scrollWidth - element.clientWidth > 2)
+    new ResizeObserver(mark).observe(element)
+    element.addEventListener('scroll', mark, { passive: true })
+    requestAnimationFrame(mark)
+  }
   return {
     sync() {
       selected = getCollectionMode() ? 'collections' : getBrowseMode()

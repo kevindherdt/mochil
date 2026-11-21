@@ -1,0 +1,264 @@
+/* The card's own surfaces: the foot printed over the artwork, and the one-word pill under the title.
+   Colours come from the palette tokens, so every theme (Ember, Tide, Magenta Cream, e-ink) keeps its own
+   character; only the geometry is shared with the 10-foot and phone mockups. */
+
+.book .cover-frame {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--r-16, 16px);
+}
+
+/* A scrim only as tall as the two lines it carries, so cover art stays the subject of the card. */
+.book .cover-foot {
+  position: absolute;
+  inset: auto 0 0;
+  display: grid;
+  gap: 5px;
+  padding: 18px 10px 9px;
+  background: linear-gradient(to top, #000000c8 0%, #0000008a 55%, #00000000 100%);
+  color: #fff;
+  pointer-events: none;
+}
+
+.book .cover-foot-label {
+  font: 600 var(--fs-12, 12px)/1.2 "Source Sans", "Segoe UI", sans-serif;
+  letter-spacing: .01em;
+}
+
+.book .cover-foot-bar {
+  display: block;
+  height: 5px;
+  border-radius: 3px;
+  background: #ffffff52;
+  overflow: hidden;
+  /* The artwork behind a foot can be as bright as the bar, so the track carries a hairline of its own. */
+  box-shadow: 0 0 0 1px #00000059;
+}
+
+.book .cover-foot-bar::after {
+  content: "";
+  display: block;
+  width: var(--progress, 0%);
+  height: 100%;
+  background: var(--accent);
+}
+
+.book .cover-foot-bar.is-finished::after {
+  background: #ffffffd0;
+}
+
+/* The pill names the book's state. Outlined rather than filled: on a wall of covers, a filled pill is a
+   second accent colour competing with the artwork. */
+.book .book-tag {
+  display: inline-block;
+  margin-top: 6px;
+  padding: 3px 8px;
+  border: 1px solid color-mix(in srgb, var(--text) 40%, transparent);
+  background: color-mix(in srgb, var(--text) 7%, transparent);
+  border-radius: var(--r-pill, 999px);
+  color: color-mix(in srgb, var(--text) 82%, transparent);
+  font: 600 var(--fs-11, 11px)/1.25 "Source Sans", "Segoe UI", sans-serif;
+  letter-spacing: .01em;
+  white-space: nowrap;
+}
+
+/* The list layout keeps its own denser rhythm; the pill would only add a line there. */
+.book-list-item .book-tag {
+  display: none;
+}
+
+@media (max-width: 680px) {
+  .book .cover-foot {
+    padding: 14px 8px 7px;
+  }
+
+  .book .book-tag {
+    font-size: var(--fs-11, 11px);
+  }
+}
+
+/* Series cards are what a bookshelf actually shows when its titles belong to series, so they carry the same
+   language as the single-book card: the same corner radius, and the count as a quiet pill instead of a loose
+   line of small text. No progress foot here -- a series has no reading position of its own. */
+.series-card .cover-frame {
+  border-radius: var(--r-16, 16px);
+}
+
+.series-card p {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 3px 8px;
+  border: 1px solid color-mix(in srgb, var(--text) 40%, transparent);
+  border-radius: var(--r-pill, 999px);
+  background: color-mix(in srgb, var(--text) 7%, transparent);
+  color: color-mix(in srgb, var(--text) 82%, transparent);
+  font: 600 var(--fs-11, 11px)/1.25 "Source Sans", "Segoe UI", sans-serif;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The menu on a cover is an action, not the subject: at full size it is the loudest thing on the card and it
+   sits on the artwork. Smaller, quieter until touched, still a 44dp target. */
+.book .cover-frame ~ .book-more,
+.book > .book-more {
+  opacity: .72;
+  transition: opacity .16s ease;
+}
+
+.book:hover > .book-more,
+.book:focus-within > .book-more {
+  opacity: 1;
+}
+
+.book > .book-more > summary {
+  background: color-mix(in srgb, #000 34%, transparent);
+  color: #fff;
+  backdrop-filter: blur(6px);
+}
+
+@media (hover: none) {
+  .book > .book-more { opacity: .92; }
+}
+
+/* The browse chips ran out of room on a phone: the selected label clipped to "Al" and the menu icon crowded it.
+   They scroll on their own line instead of squeezing, and the menu keeps its own space. */
+.library-tools,
+.browse-controls {
+  min-width: 0;
+}
+
+.library-tools .browse-controls {
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  gap: 4px;
+  padding-block: 2px;
+  scroll-padding-inline: 4px;
+}
+
+.library-tools .browse-controls::-webkit-scrollbar {
+  display: none;
+}
+
+.library-tools .browse-controls > button {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+/* The top row had the chips pressed against the view menu. The chips keep their own space and the menu keeps
+   its distance, so the active pill never reads as clipped. */
+.library-tools .browse-controls {
+  padding-right: 6px;
+}
+
+.library-tools > .icon-button,
+.library-tools > .view-menu {
+  margin-left: 6px;
+  flex: 0 0 auto;
+}
+
+@media (max-width: 760px) {
+  .library-tools { gap: 10px; }
+  .library-tools .browse-controls > button { padding-inline: 10px; }
+}
+
+/* The browse chips truncated a long label ("Collections" showed as "Collect"). They scroll instead: the row
+   never shrinks its children, and a label is never cut with an ellipsis. */
+.library-tools .browse-controls > button,
+.library-tools .browse-controls > a {
+  flex: 0 0 auto;
+  max-width: none;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: nowrap;
+}
+
+/* The letter rail is horizontally scrollable but looked simply cut off at the right edge. A soft fade says
+   "there is more this way" without adding a control. */
+.alphabet {
+  position: relative;
+}
+
+.alphabet::after {
+  content: "";
+  position: sticky;
+  right: 0;
+  align-self: stretch;
+  flex: 0 0 24px;
+  margin-left: -24px;
+  pointer-events: none;
+  background: linear-gradient(to right, transparent, var(--bg));
+}
+
+@media (min-width: 900px) {
+  /* On a wide screen the rail is fixed and fully visible; no fade is needed there. */
+  .alphabet::after { display: none; }
+}
+
+/* On a phone the browse row never fits: the last chip is cut by the viewport edge, which reads as a clipped
+   label rather than as something to scroll. The mock-up answers this with two chip rows, so the row wraps
+   instead of scrolling -- every word stays whole and visible at once. */
+@media (max-width: 760px) {
+  .library-tools {
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+
+  .library-tools .browse-controls {
+    flex: 1 1 100%;
+    flex-wrap: wrap;
+    overflow: visible;
+  }
+
+  .library-tools .browse-controls > button,
+  .library-tools .browse-controls > a {
+    margin-block: 2px;
+  }
+}
+
+
+/* The page names itself: a quiet title over the shelf name, then what is on it and how it is ordered. */
+.shelf-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 10px; margin: 6px 2px 14px; min-width: 0; }
+.shelf-head .book-sort { margin-left: auto; }
+.shelf-head .book-sort select {
+  max-width: 46vw;
+  padding: 2px 0;
+  border: 0;
+  background: 0 0;
+  color: var(--muted);
+  font-size: var(--fs-13);
+  cursor: pointer;
+}
+.shelf-title { flex: 1 0 100%; order: -1;
+  margin: 0;
+  font: 580 clamp(26px, 4.4vw, 34px) / 1.05 Newsreader, Georgia, serif;
+  letter-spacing: -.022em;
+  color: var(--text);
+}
+.shelf-title:empty { display: none; }
+.shelf-meta {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--fs-13);
+  font-variant-numeric: tabular-nums;
+}
+.shelf-meta:empty { display: none; }
+
+/* The browse chips live in the masthead, which has a fixed height at phone width: wrapping there pushed them
+   under the page title. They scroll instead, with a soft edge so a half-seen chip reads as "there is more". */
+@media (max-width: 760px) {
+  /* The masthead had a fixed height, so wrapped chips spilled over the page title. Let it grow instead and
+     keep every chip whole: a read-able "Collections" is worth two rows. */
+  /* The chips row is one line inside the masthead's fixed 44px context row; wrapping there pushed a second row
+     over the page title. It scrolls instead, and the fade only appears when it really is cut off. A row that can
+     wrap needs to move out of the masthead, which is a layout change of its own. */
+  .publication-destinations.is-scrollable {
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+}
+
+/* The chips belong to the page, not the masthead: two rows of whole words beat one row cut at the edge. */
+#library-view .library-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; height: auto; margin: 0 0 10px; }
+#library-view .library-tools .browse-controls { flex: 1 1 100%; min-width: 0; }
+#library-view .publication-destinations { flex-wrap: wrap; overflow: visible; min-width: 0; }
+#library-view .publication-destinations > button { flex: 0 0 auto; }

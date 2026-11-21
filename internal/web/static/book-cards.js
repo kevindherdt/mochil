@@ -104,8 +104,78 @@ function listColumns(book, inSeries) {
 const SERIES_NAME_KINDS = new Set(['manga', 'comics', 'lightnovels', 'light-novels'])
 
 function seriesLine(book) {
-  if (!book.series || !SERIES_NAME_KINDS.has(book.library_kind)) return ''
-  return `<small class="book-series">${escapeHTML(book.series)}</small>`
+  // The card shows where the book sits in its series, not just which series it is: "The Change · Book 1".
+  // An index on its own is still worth a line, because that is the position a reader is looking for.
+  // Older rows carry a series named after the book itself (a per-book folder read as a series); that is not a
+  // series, so it prints nothing even before the catalogue is rescanned.
+  const sameAsTitle = String(book.series || '').trim().toLowerCase() === String(book.title || '').trim().toLowerCase()
+  const name = book.series && !sameAsTitle && SERIES_NAME_KINDS.has(book.library_kind) ? book.series : ''
+  const index = seriesIndexLabel(book)
+  // On the books grid the series *name* is not repeated under the title (the shelf already groups by series);
+  // only the position is new information there. Manga and the like keep the name, because a chapter called
+  // "Chapter 122" is unreadable without it.
+  const nameIsNews = SERIES_NAME_KINDS.has(book.library_kind)
+  const parts = [nameIsNews ? name : '', index].filter(Boolean)
+  if (!parts.length) return ''
+  return `<small class="book-series">${escapeHTML(parts.join(' · '))}</small>`
+}
+
+// What the card says under its cover in one word, mirroring the app's card: state or format, never a
+// claim about the software. The mock-ups this follows print "AI Whispersync ready" on every cover.
+function bookCardTag(book) {
+  // Every card carries one pill, as the mock-up does, and it reads the same state as the foot of the cover:
+  // two places deciding "started or not" is how a card ends up saying "Started" above "To read".
+  if (book?.read_along) return 'Narrated'
+  const status = book?.reading_progress?.status
+  if (status === 'on_hold') return 'On hold'
+  if (status === 'dropped') return 'Dropped'
+  const state = bookReadingState(book)
+  if (state.finished) return 'Read'
+  if (state.percentage > 0 || state.label === 'Started') return 'In progress'
+  return 'To read'
+}
+
+// The foot of a cover: the reading state in a word and a bar, printed over the artwork so the grid stays a
+// wall of covers. A book with no progress gets no foot at all.
+function coverFoot(book) {
+  const state = bookReadingState(book)
+  if (!state.label) return ''
+  // A book opened once sits at a fraction of a percent; a bar drawn at that width is a 1px sliver that reads as
+  // a rendering fault. Under one percent the foot says "Started" and shows no bar, which is the truth.
+  const bar = state.percentage >= 1
+    ? `<i class="cover-foot-bar${state.finished ? ' is-finished' : ''}" style="--progress:${state.percentage}%"></i>`
+    : ''
+  return `<span class="cover-foot"><span class="cover-foot-label">${escapeHTML(state.label)}</span>${bar}</span>`
+}
+
+// A series index is sometimes baked into the title as a zero-padded prefix ("01 Dies the Fire"), which then
+// reads as part of the name and sorts the shelf by a number. Only a zero-padded integer is treated as an index:
+// "1984" and "127 Hours" are titles, "01 Dies the Fire" is not.
+function displayTitle(book) {
+  const raw = String(book?.title || '').trim() || 'Untitled'
+  const prefixed = raw.match(/^0\d{1,2}\s*[-–—:.]?\s+(?=\S)/)
+  if (!prefixed) return raw
+  const rest = raw.slice(prefixed[0].length).trim()
+  return rest.length >= 2 ? rest : raw
+}
+
+// The index that a title may carry as a zero-padded prefix ("01 Dies the Fire") is kept, not thrown away: it
+// moves to its own label on the card, so the series position is still readable but no longer part of the name.
+function seriesIndex(book) {
+  // Every book row carries a series_index of 1 by default, so the stored number only means something when the
+  // book actually belongs to a series. Without a series name it is noise, and 1984 is not "Book 1".
+  const stored = Number(book?.series_index ?? book?.seriesIndex ?? 0)
+  const seriesName = String(book?.series || '').trim()
+  const sameAsTitle = seriesName.toLowerCase() === String(book?.title || '').trim().toLowerCase()
+  const inSeries = seriesName !== '' && !sameAsTitle
+  if (inSeries && Number.isFinite(stored) && stored > 0) return stored
+  const prefixed = String(book?.title || '').match(/^0(\d{1,2})\s*[-–—:.]?\s+(?=\S)/)
+  return prefixed ? Number(prefixed[1]) : 0
+}
+
+function seriesIndexLabel(book) {
+  const index = seriesIndex(book)
+  return index > 0 ? `Book ${index}` : ''
 }
 
 function bookMarkup(book, layout = 'covers', showListAuthor = true) {
@@ -114,7 +184,7 @@ function bookMarkup(book, layout = 'covers', showListAuthor = true) {
       <span class="book-check" aria-hidden="true">${selectIcon}</span>
       <a class="book-open" href="${book.read_url}">
         <span class="book-list-cover"><img class="cover" decoding="async" fetchpriority="low" data-src="${escapeHTML(book.cover_url)}" data-title="${escapeHTML(book.title)}" alt=""></span>
-        <span class="book-list-copy${showListAuthor ? '' : ' book-list-copy--title-only'}"><strong>${escapeHTML(book.title)}</strong>${showListAuthor ? `<small>${escapeHTML(author(book))}</small>` : ''}${readAlongMarkup(book, 'label')}${progressMarkup(book, 'label')}</span>
+        <span class="book-list-copy${showListAuthor ? '' : ' book-list-copy--title-only'}"><strong>${escapeHTML(displayTitle(book))}</strong>${showListAuthor ? `<small>${escapeHTML(author(book))}</small>` : ''}${readAlongMarkup(book, 'label')}${progressMarkup(book, 'label')}</span>
         ${listColumns(book, !showListAuthor)}
       </a>
       ${bookMenu(book)}
@@ -123,15 +193,16 @@ function bookMarkup(book, layout = 'covers', showListAuthor = true) {
     <article class="book" data-bucket="${escapeHTML(book.bucket || '#')}" data-library="${escapeHTML(book.library_id)}" data-book="${escapeHTML(book.id)}">
       <span class="book-check" aria-hidden="true">${selectIcon}</span>
       ${bookMenu(book, true)}
-      <a class="book-open" href="${book.read_url}" aria-label="Read ${escapeHTML(book.title)}">
-        <span class="cover-frame"><img class="cover" decoding="async" fetchpriority="low" data-src="${escapeHTML(book.cover_url)}" data-title="${escapeHTML(book.title)}" alt="Cover of ${escapeHTML(book.title)}">${book.format ? `<span class="cover-tag">${escapeHTML(book.format.toUpperCase())}</span>` : ''}${readAlongMarkup(book, 'cover')}${progressMarkup(book, 'cover')}</span>
-        <strong>${escapeHTML(book.title)}</strong>
+      <a class="book-open" href="${book.read_url}" aria-label="Read ${escapeHTML(displayTitle(book))}">
+        <span class="cover-frame"><img class="cover" decoding="async" fetchpriority="low" data-src="${escapeHTML(book.cover_url)}" data-title="${escapeHTML(book.title)}" alt="Cover of ${escapeHTML(book.title)}">${readAlongMarkup(book, 'cover')}${coverFoot(book)}</span>
+        <strong>${escapeHTML(displayTitle(book))}</strong>
       </a>
       ${seriesLine(book)}
-      <div class="book-meta"><small>${escapeHTML(author(book))}</small>${progressMarkup(book, 'label')}</div>
+      <div class="book-meta"><small>${escapeHTML(author(book))}</small></div>
+      ${coverFoot(book) ? '' : `<span class="book-tag">${escapeHTML(bookCardTag(book))}</span>`}
     </article>`
 }
 
 
-return { author, bookmarkIcon, bookMarkup, installCoverFallbacks, releaseCovers }
+return { author, bookmarkIcon, bookCardTag, bookMarkup, displayTitle, seriesIndex, seriesIndexLabel, installCoverFallbacks, releaseCovers }
 }

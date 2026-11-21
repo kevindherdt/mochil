@@ -36,6 +36,8 @@
     <link rel="stylesheet" href="/assets/series-hub.css?v=6" />
     <link rel="stylesheet" href="/assets/theme-tokens.css?v=17" />
     <link rel="stylesheet" href="/assets/activity-panel.css?v=4" />
+    <link rel="stylesheet" href="/assets/dock.css?v=3" />
+    <link rel="stylesheet" href="/assets/card-shell.css?v=17" />
     <link rel="stylesheet" href="/assets/dashboard.css?v=47" />
     <link rel="stylesheet" href="/assets/kind-colors.css?v=29" />
     <link rel="stylesheet" href="/assets/sticky-shell.css?v=17" />
@@ -102,6 +104,10 @@
     </nav>
     <main>
       <section id="library-view" hidden>
+        <header class="shelf-head" id="shelf-head">
+          <h1 class="shelf-title" id="shelf-title"></h1>
+          <p class="shelf-meta" id="shelf-meta"></p>
+        </header>
         <div class="library-tools">
           <div class="browse-controls">
             <nav class="publication-destinations" id="publication-destinations" aria-label="Browse publication library"></nav>
@@ -230,6 +236,7 @@
         </section>
       </section>
     </main>
+    <nav class="dock" id="dock" hidden aria-label="Main"></nav>
     <script type="module" src="/assets/app.js?v=557"></script>
   </body>
 </html>
