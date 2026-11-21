@@ -8,7 +8,13 @@
 #   - a CPU quota of four cores out of twelve, so the majority stay free
 #
 # Usage: scripts/android.sh :app:testDirectDebugUnitTest
+#
+# With no arguments it runs the unit tests of BOTH flavours. CI compiles direct and store, so testing
+# only the direct flavour locally let a store-only compile error reach main: UpdateRejectionTest used
+# direct-only code from the shared test set, the android job failed, and every container job was
+# skipped as a result.
 set -eu
+args="$*"
 root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 cd "$root/android"
 
@@ -33,6 +39,12 @@ if [ -d /mnt/data/tmp ] && [ -w /mnt/data/tmp ]; then
   TMPDIR=/mnt/data/tmp
   export TMPDIR
   find /mnt/data/tmp -maxdepth 1 -name 'robolectric-*' -mtime +1 -exec rm -rf {} + 2>/dev/null || true
+fi
+
+# With no task given, test both flavours: CI compiles direct and store, so running only the direct one
+# locally let a store-only compile error reach main.
+if [ -z "$args" ]; then
+  set -- :app:testDirectDebugUnitTest :app:testStoreDebugUnitTest
 fi
 
 # `systemctl is-system-running` exits nonzero on a merely degraded host (any
