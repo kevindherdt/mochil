@@ -1,5 +1,9 @@
 # Mochil
 
+
+! Very important do not pull app as of this moment, I am rebuilding the entire UI to look a lot different better than before, Right now the mobile web and mobile desktop version are broken/incomplete.  New build will come as soon as I am happy with the results and everything is tested properly. No ETA at this moment, I don't like to rush updates and features etc, when it is ready it will be ready.
+Thanks for your understanding.
+
 One place for the books, comics, manga, audiobooks, podcasts and video I already own.
 
 Mochil is a small server you run yourself. It reads the folders you already have, shows them in a
