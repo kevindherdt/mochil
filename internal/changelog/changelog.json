@@ -1,6 +1,15 @@
 {
  "entries": [
   {
+   "component": "android",
+   "version": "0.1.66",
+   "date": "2026-11-21",
+   "changes": [
+    "On a television, the library's poster wall is four covers across instead of six, so a cover is about a fifth of the screen instead of an eighth. Wide stills keep their own size.",
+    "Content on every TV screen keeps clear of the edge a television actually crops: five percent of the shorter side, which is 54 points at 1080p rather than the fixed 24 it used before."
+   ]
+  },
+  {
    "component": "web",
    "version": "0.1.65",
    "date": "2026-11-21",

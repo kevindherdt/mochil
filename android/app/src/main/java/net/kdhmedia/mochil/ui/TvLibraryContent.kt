@@ -24,6 +24,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import net.kdhmedia.mochil.audio.AudioGroup
 import net.kdhmedia.mochil.audio.AudioTrack
@@ -189,13 +190,29 @@ internal fun TvVideoGrid(state: VideoState, auth: String?, artwork: (String) -> 
     TvVideoPosters(state, auth, artwork, onShow, onVideo, onSetWatched, onMore, onFocus, positionKey, positions, spotlight, { spotlight = it }) { openMovie = it }
 }
 
+
+/**
+ * How wide a card has to be on a television. A portrait poster wall at 118dp put six books or shows across a
+ * 1080p set, where each cover was about an eighth of the screen height -- small enough that the wall read as a
+ * contact sheet rather than as something to choose from. Leaning back, four across is the shape the covers
+ * deserve; a shelf of wide stills stays narrower than a poster, because it has less to show.
+ */
+internal fun tvCardMinWidth(posterShelf: Boolean): Dp = if (posterShelf) 176.dp else 210.dp
+
+/** The columns [tvCardMinWidth] actually produces, so the intent can be asserted instead of eyeballed. */
+internal fun tvGridColumns(widthDp: Float, minColumnWidth: Dp, spacingDp: Float = 16f, contentPaddingDp: Float = 80f): Int {
+    val usable = widthDp - contentPaddingDp
+    val step = minColumnWidth.value + spacingDp
+    return maxOf(1, ((usable + spacingDp) / step).toInt())
+}
+
 @Composable
 private fun TvVideoPosters(state: VideoState, auth: String?, artwork: (String) -> String, onShow: (VideoShow) -> Unit, onVideo: (VideoItem) -> Unit, onSetWatched: (VideoItem, Boolean) -> Unit, onMore: () -> Unit, onFocus: (TvFocusDetail) -> Unit, positionKey: String, positions: TvGridPositionStore, spotlight: TvSpotlight?, onSpotlight: (TvSpotlight) -> Unit, onOpenMovie: (VideoItem) -> Unit) {
     val paging = TvPagingState(state.nextOffset != null && state.pagingError == null, state.loadingMore, onMore, state.pagingError, onMore)
     // The library level is always a poster wall like Plex and Emby, matched or not; the episodes inside a show stay wide stills.
     val posterShelf = state.selectedShow == null
     val ratio = if (posterShelf) TvArtworkRatio.Portrait else TvArtworkRatio.Landscape
-    TvMediaGrid(paging, minColumnWidth = if (posterShelf) 118.dp else 210.dp, positionKey = positionKey, positions = positions, focusIndex = { key ->
+    TvMediaGrid(paging, minColumnWidth = tvCardMinWidth(posterShelf), positionKey = positionKey, positions = positions, focusIndex = { key ->
         val index = if (state.selectedShow == null && state.shows.isNotEmpty()) state.shows.indexOfFirst { videoShowFocusKey(it) == key } else state.items.indexOfFirst { videoFocusKey(it) == key }
         if (index < 0) -1 else index + 1 // spotlight occupies the first grid slot
     }) {

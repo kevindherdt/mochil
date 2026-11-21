@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -19,6 +20,7 @@ import androidx.compose.ui.platform.LocalContext
 import net.kdhmedia.mochil.catalogue.LibraryShellProjection
 import net.kdhmedia.mochil.catalogue.LibraryKind
 import net.kdhmedia.mochil.catalogue.LibraryCategory
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.Lifecycle
@@ -36,13 +38,30 @@ import net.kdhmedia.mochil.video.VideoItem
 import net.kdhmedia.mochil.video.VideoViewModel
 import net.kdhmedia.mochil.ui.theme.AppThemeSelection
 
-/** Margin kept clear of the panel edge, so the rail and dock survive a TV that overscans. */
+/** The smallest margin kept clear of the panel edge, so the rail and dock survive a TV that overscans. */
 internal val TvScreenInset = 24.dp
+
+/**
+ * How much a panel may hide around its edges, in dp. Televisions overscan by a few percent of the picture and
+ * the design specification puts it at 5% of the short side -- on a 1080p panel that is 54dp, more than twice
+ * the old fixed 24dp, which is why content sat close enough to the edge to lose its first letters on a real
+ * set. The fixed inset stays as a floor for small windows.
+ */
+internal fun tvOverscan(width: Float, height: Float): Dp =
+    maxOf(TvScreenInset, (minOf(width, height) * 0.05f).dp)
 
 /** Shared frame for every TV route, including the live playback dock's reduced viewport. */
 @Composable
 internal fun TvContentFrame(showRail: Boolean, playbackDockVisible: Boolean, content: @Composable () -> Unit) {
-    Box(Modifier.fillMaxSize().padding(start = if (showRail) TvNavRailWidth + TvScreenInset else TvScreenInset, bottom = if (showRail && playbackDockVisible) 88.dp else TvScreenInset)) { content() }
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+        val inset = tvOverscan(maxWidth.value, maxHeight.value)
+        Box(
+            Modifier.fillMaxSize().padding(
+                start = if (showRail) TvNavRailWidth + inset else inset,
+                bottom = if (showRail && playbackDockVisible) inset + 64.dp else inset,
+            ),
+        ) { content() }
+    }
 }
 
 private enum class TvRoute { Home, Library, NowPlaying, Settings }
