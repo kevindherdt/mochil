@@ -23,11 +23,13 @@ Four themes, each with its own accent and background rather than four shades of 
 one has a dark and a light scheme that follows the device, and the Android app has the same set, so
 the library looks the same wherever you open it.
 
-| Deep Teal | Magenta Cream |
-|---|---|
-| ![Deep Teal, dark](screenshots/web-library.png) | ![Magenta Cream, dark](screenshots/theme-magenta-cream.png) |
+The same shelf in two of them, one dark and one light — the palette and the light/dark scheme are separate choices:
 
-![Magenta Cream on a phone](screenshots/theme-magenta-cream-phone.png)
+| Deep Teal, dark | Magenta Cream, light |
+|---|---|
+| ![Deep Teal, dark](screenshots/web-library.png) | ![Magenta Cream, light](screenshots/theme-magenta-cream.png) |
+
+![Magenta Cream on a phone, light](screenshots/theme-magenta-cream-phone.png)
 
 The other two are Ember (warm, the default) and E-ink (no gradients, no transitions, pure black and
 white, for a Kobo or a matte screen).
