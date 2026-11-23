@@ -1159,10 +1159,15 @@ func TestWebLibraryAndEmptyBooksAPI(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	root := httptest.NewRecorder()
-	handler.ServeHTTP(root, httptest.NewRequest("GET", "/", nil))
-	if root.Code != 200 || !strings.Contains(root.Body.String(), "Mochil") {
-		t.Fatalf("unexpected web root: %d", root.Code)
+	// The web root is the React app now, and its build is not in the repository — a checkout that has never run
+	// `npm run build` in web/ has no page to serve there. That is a build step, not this test's subject; the API below
+	// is. What the root does when the app is built is covered by TestAppServesIndexAndFallsBackForClientRoutes.
+	if _, err := os.Stat(filepath.Join("static", "next", "index.html")); err == nil {
+		root := httptest.NewRecorder()
+		handler.ServeHTTP(root, httptest.NewRequest("GET", "/", nil))
+		if root.Code != 200 || !strings.Contains(root.Body.String(), "Mochil") {
+			t.Fatalf("unexpected web root: %d", root.Code)
+		}
 	}
 
 	response := httptest.NewRecorder()
