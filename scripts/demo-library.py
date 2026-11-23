@@ -46,7 +46,15 @@ def is_epub(path: pathlib.Path) -> bool:
 
 
 def main() -> int:
-    target = pathlib.Path(sys.argv[1] if len(sys.argv) > 1 else "/tmp/demo-library/books")
+    # `--list` prints the canonical file names, one per line, so a caller can copy exactly the intended set. Without it
+    # a caller that copies the whole directory also picks up older downloads of the same work under a different name,
+    # and the shelf shows Dracula twice.
+    args = [arg for arg in sys.argv[1:] if arg != "--list"]
+    if "--list" in sys.argv[1:]:
+        for author, book in BOOKS:
+            print(f"{author}_{book}.epub")
+        return 0
+    target = pathlib.Path(args[1] if len(args) > 1 else "/tmp/demo-library/books")
     target.mkdir(parents=True, exist_ok=True)
     failed = []
     for author, book in BOOKS:

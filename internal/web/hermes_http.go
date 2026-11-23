@@ -286,7 +286,15 @@ func (m *multiServer) hermesChatList(w http.ResponseWriter, r *http.Request) {
 	for offset := 0; offset < 1000; offset += 100 {
 		response, err := hermesCall(ctx, settings, http.MethodGet, "/api/sessions?limit=100&offset="+strconv.Itoa(offset), nil, "")
 		if err != nil {
-			writeJSON(w, http.StatusBadGateway, map[string]string{"error": "Hermes is not reachable"})
+			writeJSON(w, http.StatusBadGateway, map[string]string{"error": "The assistant endpoint is not reachable"})
+			return
+		}
+		// Any OpenAI-compatible endpoint can answer the chat itself, but only a Hermes gateway keeps session history.
+		// A 404 here means exactly that, so it is an empty list rather than an error the chat screen would show as a
+		// failure of its own.
+		if response.StatusCode == http.StatusNotFound {
+			response.Body.Close()
+			writeJSON(w, http.StatusOK, map[string]any{"chats": []hermesChatSummary{}})
 			return
 		}
 		var page struct {

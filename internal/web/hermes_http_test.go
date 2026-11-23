@@ -367,3 +367,24 @@ func TestHermesMemoryIsOffUntilABankIsSetAndNeverLeaksTheAddress(t *testing.T) {
 		t.Fatalf("unreachable: %d %s", down.Code, down.Body.String())
 	}
 }
+
+// An OpenAI-compatible endpoint answers the chat but has no session list. That must read as "no history on this
+// server", not as a failure — the assistant screen would otherwise show an error for a server that works.
+func TestChatListTreatsAMissingSessionAPIAsNoHistory(t *testing.T) {
+	var seen string
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		seen = r.URL.Path
+		http.NotFound(w, r)
+	}))
+	defer upstream.Close()
+
+	m := &multiServer{cfg: MultiConfig{Hermes: appconfig.Hermes{URL: upstream.URL + "/v1", Key: "k", Model: "m"}}}
+	recorder := httptest.NewRecorder()
+	m.apiHermes(recorder, httptest.NewRequest(http.MethodGet, "/api/hermes/chats", nil))
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200 with an empty list (asked %q)", recorder.Code, seen)
+	}
+	if body := recorder.Body.String(); !strings.Contains(body, `"chats":[]`) {
+		t.Fatalf("body = %q, want an empty chat list", body)
+	}
+}

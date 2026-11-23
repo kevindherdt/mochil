@@ -39,10 +39,24 @@ fi
 rm -rf "$work/books" "$work/cache"
 mkdir -p "$work/books" "$work/cache"
 
-# Six invented books, written as real EPUBs so the reader, covers and metadata all have something to
-# show. Deliberately a mix of one-word and long titles: a grid that only looks right with short titles
-# is not tested by short titles.
-python3 - "$work/books" <<'PY'
+# The books. Real editions are better than invented ones in a screenshot: a grid of drawn placeholders says nothing
+# about what a library looks like. These are Standard Ebooks — public-domain text AND public-domain cover art, so a
+# picture of this shelf contains nothing that belongs to anyone. Fetch them once with
+# `python3 scripts/demo-library.py /tmp/demo-library/books` (they are megabytes each, so they are never committed).
+books_dir=$work/books
+if ! compgen -G "$books_dir/*.epub" > /dev/null 2>&1; then
+  mkdir -p "$books_dir"
+  public_domain=${UI_DEMO_PUBLIC_DOMAIN:-/tmp/demo-library/books}
+  if compgen -G "$public_domain/*.epub" > /dev/null 2>&1; then
+    # Only the canonical set: a directory that has been used before also holds earlier downloads of the same work under
+    # another name, and two Draculas on the shelf is not a demo of anything.
+    while IFS= read -r wanted; do
+      [[ -f $public_domain/$wanted ]] && cp "$public_domain/$wanted" "$books_dir"/
+    done < <(python3 "$(dirname "$0")/demo-library.py" --list)
+    echo "using the public-domain editions from $public_domain"
+  else
+    echo "no public-domain editions found; inventing books instead (run scripts/demo-library.py for the real ones)" >&2
+    python3 - "$books_dir" <<'PY_FALLBACK'
 import os, sys, zipfile
 
 out = sys.argv[1]
@@ -151,7 +165,9 @@ for index, (title, author, blurb, rgb) in enumerate(books, start=1):
         archive.writestr("mimetype", files.pop("mimetype"), compress_type=zipfile.ZIP_STORED)
         for name, body in files.items():
             archive.writestr(name, body, compress_type=zipfile.ZIP_DEFLATED)
-PY
+PY_FALLBACK
+  fi
+fi
 
 cat > "$work/config.json" <<JSON
 {

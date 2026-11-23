@@ -127,6 +127,29 @@ running when you close the tab.
 Any OPDS reader can browse the same catalogue, so a Kobo or another app works without the Mochil app
 at all.
 
+### The assistant (optional)
+
+Mochil has a chat screen for talking to a model about your library — "what should I read next", "play
+something from Discworld" — with replies that can be spoken aloud and, where the endpoint supports it,
+cards for the books it recommends.
+
+It is off unless you configure an endpoint, and the rest of Mochil never needs it. Two shapes work:
+
+- **A [Hermes](https://hermes-agent.nousresearch.com) gateway** gives the most: the chat, the list of
+  earlier conversations, memory of what you have said, and the library cards it suggests.
+- **Any OpenAI-compatible endpoint** (`/v1/chat/completions`) gives the chat itself. Conversation
+  history is a Hermes feature, so on a plain OpenAI endpoint the chat works and the history list stays
+  empty.
+
+The endpoint, key and model are set in `config.json` rather than in the app:
+
+```json
+{ "hermes": { "url": "http://your-llm-host:8642/v1", "key": "…", "model": "…" } }
+```
+
+Narration runs on the server too (the narration image), which is what makes read-aloud use the same
+voice as the reader. Without it, read-aloud falls back to the device's own voice.
+
 ## The Android app
 
 The app pairs with your server once and then keeps its libraries offline for flights and dead zones.
@@ -159,6 +182,9 @@ Not everything here is finished, but these parts are the ones I rely on daily an
   scrolling when that is the format, with the fit mode remembered.
 - **It works offline where it matters.** The Android app keeps libraries downloaded for flights and
   dead zones, and still syncs when it sees the network again.
+- **Metadata repair that scales.** The editor treats the library as one table: change a series name
+  across a thousand books, or look up ISBNs and Hardcover matches for the whole shelf in the background
+  and apply what comes back after reviewing it.
 - **A small thing to run.** A single Go binary in a container, no database, no Java, no sidecars, no
   plugin ecosystem to keep alive.
 - **Anything that speaks OPDS can use it**, so no device is locked out for lacking the Mochil app.
@@ -169,6 +195,9 @@ Not everything here is finished, but these parts are the ones I rely on daily an
 
 Being honest about the other column, because you will find these before I fix them:
 
+- **The assistant is only as good as the endpoint behind it.** Chat needs an OpenAI-compatible URL and
+  a key; the conversation history and the "here is the book I mean" cards need a Hermes gateway, and
+  what a plain endpoint returns is the plain text reply.
 - **Settings still have some sprawl.** I keep pruning it, but a few niche options are still louder
   than they deserve to be.
 - **Metadata is good, not magical.** Matching is stronger than most self-hosted libraries, but an
