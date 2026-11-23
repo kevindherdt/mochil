@@ -14,8 +14,8 @@ import (
 )
 
 var (
-	errHermesUnreachable = errors.New("Hermes did not answer")
-	errHermesFailed      = errors.New("Hermes could not answer")
+	errHermesUnreachable = errors.New("the assistant endpoint did not answer")
+	errHermesFailed      = errors.New("the assistant endpoint could not answer")
 	errHelperNotSet      = errors.New("no helper model is set")
 )
 

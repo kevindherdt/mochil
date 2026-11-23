@@ -11,7 +11,7 @@
 // exists, this module is the one place that changes.
 import { useQuery } from "@tanstack/react-query";
 import { useSyncExternalStore } from "react";
-import { fetchAvatarState, fetchNarrationStatus, type AvatarState, type NarrationStatus } from "./api/companion";
+import { fetchAssistantConfigured, fetchAvatarState, fetchNarrationStatus, type AvatarState, type NarrationStatus } from "./api/companion";
 
 const NAME_KEY = "mochil:ai-name";
 const HANDS_FREE_KEY = "mochil:ai-hands-free";
@@ -81,4 +81,10 @@ export function useNarration(): { data: NarrationStatus | undefined; isLoading: 
 export function useAvatar(): { data: AvatarState | undefined; refetch: () => void } {
   const query = useQuery({ queryKey: ["lyana", "avatar"], queryFn: fetchAvatarState, staleTime: 60_000 });
   return { data: query.data, refetch: () => void query.refetch() };
+}
+
+/** Whether an endpoint is set up. `undefined` while it is being asked, so the screen does not flash "not configured". */
+export function useAssistantConfigured(): boolean | undefined {
+  const query = useQuery({ queryKey: ["lyana", "configured"], queryFn: fetchAssistantConfigured, staleTime: 30_000 });
+  return query.data;
 }

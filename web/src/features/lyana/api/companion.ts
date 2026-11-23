@@ -101,3 +101,9 @@ export async function transcribe(recording: Blob): Promise<string> {
   const payload = (await response.json()) as { text?: string };
   return payload.text ?? "";
 }
+
+/** Whether the server has an assistant endpoint at all — the chat has nothing to say without one. */
+export async function fetchAssistantConfigured(): Promise<boolean> {
+  const raw = await request<{ configured?: boolean }>("/api/hermes/status");
+  return raw.configured === true;
+}

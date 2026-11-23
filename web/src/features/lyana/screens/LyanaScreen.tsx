@@ -13,12 +13,13 @@
 import { useEffect, useRef, useState } from "react";
 import { Bot, User, Volume2, Square, History, Phone, PhoneOff } from "lucide-react";
 import { Page, Stack, Inline, Text, Heading, Composer, CoverImage, EmptyState } from "../../../ui";
+import { LinkButton } from "../../../ui/LinkButton";
 import { useLyanaChat, type ChatAttachment, type LyanaMessage } from "../useLyanaChat";
 import { CompanionSheet } from "../CompanionSheet";
 import { ChatsSheet } from "../ChatsSheet";
 import { createSpeaker, type Speaker } from "../api/speech";
 import { browserCanListen, createListener } from "../api/listen";
-import { useCompanionName, useHandsFree, useNarration } from "../useCompanion";
+import { useAssistantConfigured, useCompanionName, useHandsFree, useNarration } from "../useCompanion";
 import { transcribe } from "../api/companion";
 import { Settings } from "lucide-react";
 import { IconButton, type PendingAttachment } from "../../../ui";
@@ -128,6 +129,7 @@ export function LyanaScreen() {
   const chat = useLyanaChat();
   const [draft, setDraft] = useState("");
   const name = useCompanionName();
+  const configured = useAssistantConfigured();
   const handsFree = useHandsFree();
   const narration = useNarration();
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -244,6 +246,18 @@ export function LyanaScreen() {
     return (
       <Page>
         <EmptyState message={`${name} isn't switched on for this server. Open Settings → Modules to turn it on.`} />
+      </Page>
+    );
+  }
+
+  // Nothing is configured: say where the setting is rather than offering a box that cannot answer.
+  if (configured === false) {
+    return (
+      <Page>
+        <Stack gap={12} align="center">
+          <EmptyState message="No assistant is set up on this server yet. Add an endpoint — a Hermes gateway, or anything that answers an OpenAI-compatible chat request — in Settings, Assistant." />
+          <LinkButton to="/settings/assistant">Open assistant settings</LinkButton>
+        </Stack>
       </Page>
     );
   }

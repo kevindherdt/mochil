@@ -141,11 +141,8 @@ It is off unless you configure an endpoint, and the rest of Mochil never needs i
   history is a Hermes feature, so on a plain OpenAI endpoint the chat works and the history list stays
   empty.
 
-The endpoint, key and model are set in `config.json` rather than in the app:
-
-```json
-{ "hermes": { "url": "http://your-llm-host:8642/v1", "key": "…", "model": "…" } }
-```
+The address, model and key are set in **Settings → Assistant**, where a button tests the connection before you
+save. (They live in `config.json` under `hermes`, if you would rather edit it there: `url`, `key`, `model`, `name`.)
 
 Narration runs on the server too (the narration image), which is what makes read-aloud use the same
 voice as the reader. Without it, read-aloud falls back to the device's own voice.

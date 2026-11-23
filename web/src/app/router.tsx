@@ -23,6 +23,7 @@ import { DiagnosticsScreen } from "../features/settings/screens/DiagnosticsScree
 import { SyncScreen } from "../features/settings/screens/SyncScreen";
 import { MetadataProvidersScreen } from "../features/settings/screens/MetadataProvidersScreen";
 import { NarrationScreen } from "../features/settings/screens/NarrationScreen";
+import { AssistantScreen } from "../features/settings/screens/AssistantScreen";
 
 import { NotFoundScreen } from "./NotFoundScreen";
 import { LoginScreen } from "../features/auth/screens/LoginScreen";
@@ -228,6 +229,12 @@ const settingsNarrationRoute = createRoute({
   component: NarrationScreen,
 });
 
+const settingsAssistantRoute = createRoute({
+  getParentRoute: () => settingsRoute,
+  path: "/assistant",
+  component: AssistantScreen,
+});
+
 /** Lazy like the video player: the review screen carries its own zod schemas and is opened rarely, so it has no
  *  business in the entry chunk — the budget is 170 kB gz and the entry was 0.2 kB from it. */
 const MetadataReviewScreen = lazyRouteComponent(
@@ -299,6 +306,7 @@ const routeTree = rootRoute.addChildren([
       settingsMetadataRoute,
       settingsSyncRoute,
       settingsNarrationRoute,
+      settingsAssistantRoute,
       settingsActivityRoute,
       settingsMetadataReviewRoute,
       settingsDiagnosticsRoute,

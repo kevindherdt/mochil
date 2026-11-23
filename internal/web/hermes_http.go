@@ -243,21 +243,21 @@ func (m *multiServer) hermesTest(w http.ResponseWriter, r *http.Request) {
 		settings.Key = input.Key
 	}
 	if _, ok := hermesURL(settings, ""); !ok || strings.TrimSpace(settings.URL) == "" {
-		writeJSON(w, http.StatusOK, map[string]any{"ok": false, "message": "Enter the Hermes address, for example http://192.0.2.10:8642"})
+		writeJSON(w, http.StatusOK, map[string]any{"ok": false, "message": "Enter the assistant address, for example http://192.0.2.10:8642"})
 		return
 	}
 	if strings.TrimSpace(settings.Key) == "" {
-		writeJSON(w, http.StatusOK, map[string]any{"ok": false, "message": "Enter the Hermes API key"})
+		writeJSON(w, http.StatusOK, map[string]any{"ok": false, "message": "Enter the API key for that endpoint"})
 		return
 	}
 	reachable, authorized := hermesProbe(r.Context(), settings)
 	switch {
 	case !reachable:
-		writeJSON(w, http.StatusOK, map[string]any{"ok": false, "message": "Hermes did not answer at that address"})
+		writeJSON(w, http.StatusOK, map[string]any{"ok": false, "message": "Nothing answered at that address"})
 	case !authorized:
-		writeJSON(w, http.StatusOK, map[string]any{"ok": false, "message": "Hermes answered but refused the key"})
+		writeJSON(w, http.StatusOK, map[string]any{"ok": false, "message": "The endpoint answered but refused the key"})
 	default:
-		writeJSON(w, http.StatusOK, map[string]any{"ok": true, "message": "Connected to Hermes"})
+		writeJSON(w, http.StatusOK, map[string]any{"ok": true, "message": "Connected"})
 	}
 }
 
@@ -311,7 +311,7 @@ func (m *multiServer) hermesChatList(w http.ResponseWriter, r *http.Request) {
 		decodeErr := json.NewDecoder(io.LimitReader(response.Body, 4<<20)).Decode(&page)
 		response.Body.Close()
 		if response.StatusCode != http.StatusOK || decodeErr != nil {
-			writeJSON(w, http.StatusBadGateway, map[string]string{"error": "Hermes refused the request"})
+			writeJSON(w, http.StatusBadGateway, map[string]string{"error": "The assistant endpoint refused the request"})
 			return
 		}
 		for _, session := range page.Data {
@@ -363,7 +363,7 @@ func (m *multiServer) hermesChatOne(w http.ResponseWriter, r *http.Request, id s
 	case http.MethodGet:
 		response, err := hermesCall(ctx, settings, http.MethodGet, path+"/messages", nil, "")
 		if err != nil {
-			writeJSON(w, http.StatusBadGateway, map[string]string{"error": "Hermes is not reachable"})
+			writeJSON(w, http.StatusBadGateway, map[string]string{"error": "The assistant endpoint is not reachable"})
 			return
 		}
 		defer response.Body.Close()
@@ -378,7 +378,7 @@ func (m *multiServer) hermesChatOne(w http.ResponseWriter, r *http.Request, id s
 			} `json:"data"`
 		}
 		if response.StatusCode != http.StatusOK || json.NewDecoder(io.LimitReader(response.Body, 16<<20)).Decode(&body) != nil {
-			writeJSON(w, http.StatusBadGateway, map[string]string{"error": "Hermes refused the request"})
+			writeJSON(w, http.StatusBadGateway, map[string]string{"error": "The assistant endpoint refused the request"})
 			return
 		}
 		messages := []hermesMessage{}
@@ -417,12 +417,12 @@ func (m *multiServer) hermesChatOne(w http.ResponseWriter, r *http.Request, id s
 func hermesRelay(w http.ResponseWriter, ctx context.Context, settings appconfig.Hermes, method, path string, body []byte) {
 	response, err := hermesCall(ctx, settings, method, path, body, "")
 	if err != nil {
-		writeJSON(w, http.StatusBadGateway, map[string]string{"error": "Hermes is not reachable"})
+		writeJSON(w, http.StatusBadGateway, map[string]string{"error": "The assistant endpoint is not reachable"})
 		return
 	}
 	defer response.Body.Close()
 	if response.StatusCode >= 300 && response.StatusCode != http.StatusNotFound {
-		writeJSON(w, http.StatusBadGateway, map[string]string{"error": "Hermes refused the request"})
+		writeJSON(w, http.StatusBadGateway, map[string]string{"error": "The assistant endpoint refused the request"})
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]bool{"ok": true})
@@ -528,9 +528,9 @@ func (m *multiServer) hermesChat(w http.ResponseWriter, r *http.Request) {
 	upstream := waitForHermes(stream, done)
 	if upstream.err != nil {
 		if stream.open {
-			stream.fail("Hermes is not reachable")
+			stream.fail("The assistant endpoint is not reachable")
 		} else {
-			writeJSON(w, http.StatusBadGateway, map[string]string{"error": "Hermes is not reachable"})
+			writeJSON(w, http.StatusBadGateway, map[string]string{"error": "The assistant endpoint is not reachable"})
 		}
 		return
 	}
@@ -541,7 +541,7 @@ func (m *multiServer) hermesChat(w http.ResponseWriter, r *http.Request) {
 		if stream.open {
 			stream.fail(fmt.Sprintf("Hermes refused the request (%d)", response.StatusCode))
 		} else {
-			writeJSON(w, http.StatusBadGateway, map[string]any{"error": "Hermes refused the request", "status": response.StatusCode, "detail": strings.TrimSpace(string(message))})
+			writeJSON(w, http.StatusBadGateway, map[string]any{"error": "The assistant endpoint refused the request", "status": response.StatusCode, "detail": strings.TrimSpace(string(message))})
 		}
 		return
 	}

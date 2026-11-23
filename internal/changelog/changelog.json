@@ -2,6 +2,16 @@
  "entries": [
   {
    "component": "web",
+   "version": "0.1.90",
+   "date": "2026-11-23",
+   "changes": [
+    "The assistant's endpoint can be set in Settings → Assistant: the address, the model, the key and what the assistant is called, with a button that tries the connection and says what happened. Until now the only way was to edit the server's configuration file by hand.",
+    "The chat says so plainly when no endpoint is configured, with a link to that setting, instead of offering a message box that cannot answer.",
+    "Messages from the server about the assistant no longer name a particular product: it is \"the assistant endpoint\" whether that is a Hermes gateway or anything else that answers an OpenAI-compatible chat request."
+   ]
+  },
+  {
+   "component": "web",
    "version": "0.1.89",
    "date": "2026-11-23",
    "changes": [

@@ -3,7 +3,7 @@
 // remaining Phase 2 panels land. Each row is a plain Link so it works with the browser's back button, middle-click
 // and keyboard focus without re-inventing navigation.
 import { Link } from "@tanstack/react-router";
-import { ChevronRight, Palette, Puzzle, Info, Users, LibraryBig, MonitorPlay, Activity, Sparkles, RefreshCw, Volume2, ListChecks } from "lucide-react";
+import { ChevronRight, Palette, Puzzle, Info, Users, LibraryBig, MonitorPlay, Activity, Sparkles, RefreshCw, Volume2, ListChecks, Bot } from "lucide-react";
 import { Page, Stack, Heading, Text, Card, GridList } from "../../../ui";
 
 const PANELS = [
@@ -13,6 +13,7 @@ const PANELS = [
   { to: "/settings/metadata", label: "Metadata", description: "Hardcover and TMDB tokens for covers and details.", icon: Sparkles },
   { to: "/settings/sync", label: "Reading sync", description: "Progress between KOReader and this server.", icon: RefreshCw },
   { to: "/settings/narration", label: "Narration", description: "The voice that reads books aloud.", icon: Volume2 },
+  { to: "/settings/assistant", label: "Assistant", description: "The model endpoint the chat talks to. Optional.", icon: Bot },
   { to: "/settings/modules", label: "Modules", description: "Turn optional features on or off.", icon: Puzzle },
   { to: "/settings/accounts", label: "Accounts", description: "Everyone who can sign in, and their role.", icon: Users },
   { to: "/settings/activity", label: "Activity", description: "Scans, downloads and transcoding, live.", icon: ListChecks },

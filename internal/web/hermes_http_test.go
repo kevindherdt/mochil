@@ -176,7 +176,7 @@ func TestHermesConnectionTestUsesTheSavedKeyWhenBlank(t *testing.T) {
 	if got := test(`{"url":"` + hermes.URL + `","key":"wrong"}`); !strings.Contains(got, "refused the key") {
 		t.Fatalf("wrong key: %s", got)
 	}
-	if got := test(`{"url":"http://127.0.0.1:1","key":"x"}`); !strings.Contains(got, "did not answer") {
+	if got := test(`{"url":"http://127.0.0.1:1","key":"x"}`); !strings.Contains(got, "Nothing answered") {
 		t.Fatalf("unreachable: %s", got)
 	}
 }
