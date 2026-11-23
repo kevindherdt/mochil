@@ -27,6 +27,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.material.icons.filled.Headphones
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
 import androidx.compose.material3.OutlinedButton
@@ -149,19 +150,23 @@ internal fun bookCardTag(book: BookSummary): String = when {
     else -> ""
 }
 
-/** The line printed over the artwork's foot: what fraction is read, or that the book is finished. */
+/**
+ * The line printed over the artwork's foot: what fraction is read. A finished book carries no foot at all --
+ * [BookFinishedBadge] is the one word the web ("Read", 0.1.83) replaced with a small corner tick, because a
+ * full-width "Read" strip on every finished book read as a wall of green bars, not information.
+ */
 internal fun bookProgressLabel(book: BookSummary): String? {
+    if (book.finished) return null
     val fraction = book.readingFraction ?: 0.0
-    if (book.finished) return "Read"
     if (fraction <= 0.0) return null
     // A book opened once sits at a fraction of a percent; "0% read" is a number that says nothing, and a bar
     // drawn at that width is a 1px sliver that reads as a fault. Under one percent the foot says "Started".
     return if ((fraction * 100).toInt() < 1) "Started" else "${(fraction * 100).toInt()}% read"
 }
 
-/** The bar under the foot, only once there is a width worth drawing. */
+/** The bar under the foot, only once there is a width worth drawing. A finished book has no foot (see above). */
 internal fun bookProgressBarShown(book: BookSummary): Boolean {
-    if (book.finished) return true
+    if (book.finished) return false
     val fraction = book.readingFraction ?: 0.0
     return fraction > 0.0 && (fraction * 100).toInt() >= 1
 }
@@ -187,6 +192,8 @@ private fun BookCard(book: BookSummary, coverUrl: String?, header: String?, onRe
     ) {
         Box(Modifier.fillMaxWidth().aspectRatio(0.67f).clip(RoundedCornerShape(16.dp))) {
             PublicationArtwork(coverUrl, header, "Cover of ${book.title}", Modifier.fillMaxSize())
+            // Top-left, opposite the read-along/collect cluster: the one fact that is binary and needs no words.
+            if (book.finished) BookFinishedBadge(Modifier.align(Alignment.TopStart).padding(6.dp))
             Row(Modifier.align(Alignment.TopEnd).padding(6.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 if (book.readAlong) ReadAlongBadge()
                 CollectButton("Add ${book.title} to a collection", { onCollect(book) })
@@ -247,6 +254,20 @@ internal fun ReadAlongLabel(modifier: Modifier = Modifier) {
 internal fun ReadAlongBadge(modifier: Modifier = Modifier) {
     Box(modifier.size(24.dp).background(Color.Black.copy(alpha = 0.62f), CircleShape), contentAlignment = Alignment.Center) {
         Icon(Icons.Default.Headphones, contentDescription = "Has its own recording", modifier = Modifier.size(15.dp), tint = Color.White)
+    }
+}
+
+/**
+ * A finished book's one mark: an 18dp solid green tick in the cover's free corner, matching the web's
+ * `.cover-done` (book-cards.js, card-surface.css, 0.1.83). It replaces both a "Read" pill and a 100%-filled
+ * progress strip, which on a shelf of mostly-finished books read as a wall of green bars for a fact that needs
+ * one glance. Opaque (not the read-along badge's translucent black), because green-on-black would wash out and
+ * the state is important enough to want full contrast.
+ */
+@Composable
+internal fun BookFinishedBadge(modifier: Modifier = Modifier) {
+    Box(modifier.size(18.dp).background(Color(0xFF2FAE5F), CircleShape), contentAlignment = Alignment.Center) {
+        Icon(Icons.Default.Check, contentDescription = "Finished", modifier = Modifier.size(12.dp), tint = Color(0xFF04211F))
     }
 }
 

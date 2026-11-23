@@ -144,3 +144,90 @@ test("metadata provider controller tests tokens and preserves future provider fi
     false,
   );
 });
+
+// A whole-library rewrite of titles is maintenance, so it lives with the metadata provider in Settings
+// instead of on the shelf. These pin both halves: the section exists in the libraries panel, and the video
+// shelf no longer mounts the bar among its browse controls.
+test("bulk TMDB matching renders one row per video library, and none for books", () => {
+  const element = (tag = "div") => {
+    let text = "";
+    const node = {
+      tagName: tag,
+      dataset: {},
+      hidden: false,
+      disabled: false,
+      value: "",
+      placeholder: "",
+      children: [],
+      append(child) {
+        node.children.push(child);
+      },
+      insertAdjacentHTML() {},
+      addEventListener() {},
+    };
+    // Setting textContent to "" removes the children, as it does in the DOM — the renderer relies on it
+    // to clear yesterday's rows before drawing today's.
+    Object.defineProperty(node, "textContent", {
+      get: () => text,
+      set: (value) => {
+        text = value;
+        if (value === "") node.children.length = 0;
+      },
+    });
+    node.querySelector = (selector) => {
+      node.found ??= {};
+      node.found[selector] ??= element();
+      return node.found[selector];
+    };
+    return node;
+  };
+  const section = element("section");
+  section.hidden = true;
+  const host = element();
+  const document = {
+    createElement: (tag) => element(tag),
+    querySelector(selector) {
+      if (selector === "[data-metadata-provider-settings]") return null;
+      if (selector === '[data-settings-panel="libraries"]') return element("section");
+      if (selector === "[data-video-bulk-settings]") return section;
+      if (selector === "[data-video-bulk-libraries]") return host;
+      return null;
+    },
+  };
+  const controller = createMetadataProviderSettings({
+    document,
+    $: () => element("input"),
+    requestJSON: async () => ({ data: {} }),
+  });
+
+  controller.load({}, [
+    { id: "books", name: "Library", kind: "books" },
+    { id: "films", name: "Films", kind: "movies" },
+    { id: "shows", name: "Shows", kind: "tv" },
+  ]);
+  assert.equal(section.hidden, false);
+  assert.deepEqual(
+    host.children.map((row) => row.dataset.library),
+    ["films", "shows"],
+  );
+
+  controller.load({}, [{ id: "books", name: "Library", kind: "books" }]);
+  assert.equal(section.hidden, true);
+  assert.equal(host.children.length, 0);
+});
+
+test("the video shelf no longer mounts the bulk match bar", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const source = await readFile(
+    new URL("../static/video-library.js", import.meta.url),
+    "utf8",
+  );
+  assert.doesNotMatch(source, /mountVideoMetadataMatch/);
+  assert.doesNotMatch(source, /metadataTools/);
+});
+
+test("the bulk match section is part of the libraries panel template", () => {
+  assert.match(metadataProviderSettingsHTML, /data-video-bulk-settings hidden/);
+  assert.match(metadataProviderSettingsHTML, /data-video-bulk-libraries/);
+  assert.match(metadataProviderSettingsHTML, /Match a video library with TMDB/);
+});

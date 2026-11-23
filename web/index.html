@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mochil</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script>
+      // The legacy shell routed with a fragment ("/#/library"), and the fragment never reaches the server. Anyone
+      // following an old bookmark or a link from a phone's home screen lands on /#/library, which the new router
+      // reads as the home page. Turn the fragment into the path it always meant before the app mounts.
+      (function () {
+        var hash = window.location.hash.replace(/^#/, "");
+        if (hash.charAt(0) !== "/") return;
+        var target = hash === "/" ? "/" : hash;
+        if (target === window.location.pathname) {
+          history.replaceState(null, "", target + window.location.search);
+          return;
+        }
+        window.location.replace(target + window.location.search);
+      })();
+    </script>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

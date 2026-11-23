@@ -272,5 +272,11 @@ func (m *multiServer) serveDocument(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", item.MediaType)
 	w.Header().Set("Content-Disposition", mime.FormatMediaType(disposition, map[string]string{"filename": filepath.Base(item.Path)}))
 	w.Header().Set("X-Content-Type-Options", "nosniff")
+	if strings.HasPrefix(item.MediaType, "image/svg+xml") {
+		// An SVG is a document that can carry script. Inside an <img> (how notes display it) that script never runs,
+		// but opening the file directly would execute it on this origin, with this session. This CSP removes the
+		// capability instead of trusting the file.
+		w.Header().Set("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; img-src data:")
+	}
 	http.ServeContent(w, r, filepath.Base(item.Path), item.Modified, file)
 }

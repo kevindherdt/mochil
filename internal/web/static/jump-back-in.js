@@ -1,3 +1,6 @@
+import { cleanVideoTitle } from './video-title.js?v=1'
+import { setRailCount } from './rail-count.js?v=1'
+
 import { headphones, readAlongMarkup } from './read-along-badge.js?v=2'
 import { dashboardReadingTitle } from './reading-dashboard.js?v=18'
 
@@ -54,7 +57,7 @@ export function jumpDetail({ type, item }) {
 
 export function jumpCardHTML(entry, escapeHTML) {
   const { type, item } = entry
-  const title = type === 'book' ? dashboardReadingTitle(item) : item.title || 'Untitled'
+  const title = type === 'book' ? dashboardReadingTitle(item) : cleanVideoTitle(item.title) || 'Untitled'
   const who = type === 'book' ? (item.authors || []).join(', ') : item.artist || item.series || ''
   const art = type === 'book'
     ? `<img class="cover" decoding="async" data-src="${escapeHTML(item.cover_url || '')}" data-title="${escapeHTML(title)}" alt="">`
@@ -88,6 +91,16 @@ export function jumpItemHTML(entry, escapeHTML) {
 }
 
 /** The row on Home that mixes everything in progress. Opening a video or audio card presses the matching card in the lanes below, which already know how to start it. */
+/**
+ * The rows a progress endpoint handed back. Most of them answer `{ data: [...] }`, but /api/reading answers a
+ * bare array — reading only `.data` silently turned "three books in progress" into "nothing to continue",
+ * which is why Home looked empty on a shelf full of started books.
+ */
+export function progressRows(result) {
+  if (Array.isArray(result)) return result
+  return Array.isArray(result?.data) ? result.data : []
+}
+
 export function createJumpBackIn({ document, $, escapeHTML, requestJSON, isLibraryVisible, releaseCovers, installCoverFallbacks }) {
   let request = 0, undoTimer
   let shown = new Map()
@@ -108,13 +121,14 @@ export function createJumpBackIn({ document, $, escapeHTML, requestJSON, isLibra
     const mine = ++request
     const section = $('#jump-rail'), track = $('#jump-track')
     if (!section || !track) return
-    const get = url => requestJSON(url).then(result => (Array.isArray(result?.data) ? result.data : []), () => [])
-    const [books, videos, audios] = await Promise.all([
-      get('/api/reading?limit=6'), get('/api/video-progress'), get('/api/audio-progress'),
-    ])
+    const get = url => requestJSON(url).then(progressRows, () => [])
+    // Books only: Continue watching and Continue listening are their own rails now, so a video in both places
+    // would be the same row twice.
+    const books = await get('/api/reading?limit=6')
     if (mine !== request) return
-    const entries = mergeJumpItems({ books, videos, audios }, isLibraryVisible)
+    const entries = mergeJumpItems({ books }, isLibraryVisible)
     section.hidden = entries.length < 1
+    setRailCount(globalThis.document, 'jump-count', entries.length)
     const empty = $('#dashboard-empty')
     if (empty) {
       empty.hidden = !section.hidden

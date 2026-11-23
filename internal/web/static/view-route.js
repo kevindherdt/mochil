@@ -46,6 +46,12 @@ export function createViewRoute({ window, getView, getLibrary, hasLibrary, showH
         const id = decodeURIComponent(rawId);
         if (hasLibrary(id)) { showLibrary(id, parsePlace(rest.join("/"))); return true; }
         else { if (initialPending) pendingLibraryHash = hash; showHome(); }
+      } else if (!hash || hash === "#/" || hash === "#") {
+        // Library is the landing page now: the dock has no Home, so the root address opens the shelf you were last
+        // in rather than a dashboard nothing points at.
+        const last = getLibrary();
+        if (last && hasLibrary(last)) showLibrary(last, parsePlace(""));
+        else if (getView() !== "dashboard") showHome();
       } else if (getView() !== "dashboard") showHome();
     } finally {
       applying = false;

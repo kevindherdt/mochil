@@ -1,0 +1,104 @@
+/* AppShell/PhoneShell/Dock layout — plan docs/rewrite-plan.md §3, §4.2. This file and Sidebar.module.css are the
+   ONLY place in web/ allowed to use position:fixed/sticky, 100vh/dvh/svh/lvh, or @media (law L1, L7): everything
+   below `ui/` and `features/` reads --vvh/--dock-bottom (published by useVisibleViewport) and container queries
+   instead. Colours/space/radius are tokens only (law L3) — nothing here is a raw px or hex. */
+
+.shell {
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: var(--vvh, 100dvh);
+
+  /* Android Chrome auto-scrolls the page to clear the keyboard from a focused input; `position: fixed` tracks
+     the layout viewport, not the visual one, so without this the whole shell drifts away from the real screen
+     the moment the keyboard opens (reported live: dock and mini player ended up stacked mid-screen). Translating
+     by the same offset the browser just scrolled by keeps the shell pinned to the visual viewport instead. */
+  transform: translateY(var(--vv-offset-top, 0));
+  background: var(--color-bg);
+  color: var(--color-text);
+  overflow: hidden;
+}
+
+.main {
+  flex: 1;
+
+  /* Without min-height:0 a flex child refuses to shrink below its content, so the grid pushed the dock 8px past
+     the bottom of the shell (measured: shell 844, dock bottom 852). The scroll area has to be the thing that
+     shrinks, never the dock. */
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* The header band: outside the scroll area, so a screen's toolbar stays put while the grid scrolls under it.
+   Empties to zero height on screens that don't declare one; padding comes from the same gutter as Page.
+   No max-width: its only consumer today (LibraryScreen) also renders its body through Page's `wide` variant, and a
+   960px-capped header sitting above a full-width grid is its own bug — the tab-pill row stayed centered while the
+   grid below it stretched to the window edge, so the two visibly disagreed on where the content column ends
+   (Kevin, 22 Nov 2026, 1440px: "its already a lot better except for the right side"). If a narrower screen ever
+   populates this slot, give it its own width then rather than re-adding a blanket cap every screen inherits. */
+.header {
+  flex: 0 0 auto;
+  width: 100%;
+  padding: var(--space-16) var(--space-16) 0;
+  box-sizing: border-box;
+  background: var(--color-bg);
+}
+
+.header:empty {
+  padding: 0;
+}
+
+.dock {
+  position: sticky;
+  bottom: var(--dock-bottom, 0);
+  flex: 0 0 auto;
+  height: var(--chrome-dock-height-phone);
+  background: var(--color-surface);
+}
+
+.sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: var(--chrome-sidebar-width);
+  background: var(--color-surface);
+  border-right: 1px solid var(--color-line);
+}
+
+/* .desktopMain used to carry its own `overflow-y: auto` with no `display:flex`, so the mini player (a sibling of
+   `.main`, last in source order) was just the final block after whatever height the library grid's content came
+   to — on a large library (confirmed: 129 podcast episodes) that put the player ~6700px down the page, requiring
+   you to scroll the ENTIRE grid to ever see it, which from the viewport looks exactly like no player renders at
+   all (Kevin, 22 Nov: "the podcasts play music and show absolutely no controls or music player bar"). It worked
+   by accident for Library's own header+grid because the header portal stays visually pinned via `.header`'s own
+   flex-shrink: 0, but the player slot had nothing pinning it. Making this a flex column — the same shape the
+   phone shell already uses (`.shell`: header, `.main` flex:1 scroll, player, dock, all normal-flow siblings) —
+   lets `.main`'s own `flex: 1; overflow-y: auto` (below) do the scrolling instead, with header and player staying
+   outside that scroll area on both shells. */
+.desktopMain {
+  flex: 1;
+  margin-left: var(--chrome-sidebar-width);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* Chrome-free shell: the screen owns the whole visible viewport. No header band, no padding, no dock, no player
+   slot — used by the full-screen video player, which is the one surface that must not share the screen with
+   navigation. `--vvh` is still what sizes it, so a phone's collapsing browser bar and the on-screen keyboard behave
+   exactly as they do for the docked shell. */
+.shellBare {
+  position: fixed;
+  top: var(--vv-offset-top, 0);
+  left: 0;
+  width: 100%;
+  height: var(--vvh, 100dvh);
+  background: #000;
+  color: var(--color-text);
+  overflow: hidden;
+}

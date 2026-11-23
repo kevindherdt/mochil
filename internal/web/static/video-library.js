@@ -1,7 +1,6 @@
 import { createContinuousPager } from "./continuous-pager.js?v=4";
 import { createBoundedWindow } from "./bounded-window.js?v=1";
 import { createVideoMetadataReview } from "./video-metadata-review.js?v=3";
-import { mountVideoMetadataMatch } from "./video-metadata-match.js?v=2";
 import { createVideoPlayer } from "./video-player.js?v=16";
 import { mountVideoLibrary } from "./video-library-template.js?v=2";
 import { bindVideoShowPreferences } from "./video-show-preferences.js?v=2";
@@ -253,8 +252,8 @@ export function createVideoLibrary({
         signal: current.signal,
       });
       if (request !== current) return;
-      $("#status").textContent =
-        `${result.data.length.toLocaleString()} ${result.data.length === 1 ? "show" : "shows"}`;
+      // No count pill: the heading already says how many there are, and this floated over the list.
+      $("#status").textContent = "";
       $("#videos").innerHTML =
         result.data
           .map(
@@ -347,14 +346,8 @@ export function createVideoLibrary({
     activeSearch = search || "";
     activeKind = libraryKind;
     activeMetadataProvider = metadataProvider;
-    if (reset && metadataProvider === "tmdb")
-      mountVideoMetadataMatch({
-        host: $("#videos"),
-        libraryID,
-        requestJSON,
-        escapeHTML,
-        refresh: () => load(libraryID, activeSearch, true, activeKind, activeMetadataProvider),
-      });
+    // "Match everything with TMDB" is a library-wide maintenance action, not a control for the shelf: it lives in
+    // Settings -> Libraries beside the metadata provider it uses. It must not sit among the browse chips.
     if (reset && (libraryKind === "tv" || libraryKind === "anime"))
       return loadShows(libraryID, search);
     if (reset) {

@@ -119,6 +119,7 @@ type MultiConfig struct {
 	TMDBToken                  string
 	HardcoverToken             string
 	SubtitleExtractor          video.SubtitleExtractor
+	SubtitleImages             *video.SubtitleImageStore
 	HLS                        *video.HLSStore
 	VideoArtwork               *video.ArtworkStore
 	VideoPreviews              *video.PreviewStore
@@ -175,6 +176,7 @@ type multiServer struct {
 	videoMetadata     *video.MetadataStore
 	metadataArtwork   *enrichment.ArtworkCache
 	subtitles         video.SubtitleExtractor
+	subtitleImages    *video.SubtitleImageStore
 	hls               *video.HLSStore
 	videoViewers      videoViewers
 	videoArtwork      *video.ArtworkStore
@@ -306,6 +308,7 @@ func NewMulti(cfg MultiConfig, libraries []Library, logger *slog.Logger) (http.H
 		coverSlots:      make(chan struct{}, 3),
 		subtitleSlots:   make(chan struct{}, 2),
 		subtitles:       cfg.SubtitleExtractor,
+		subtitleImages:  cfg.SubtitleImages,
 		hls:             cfg.HLS,
 		videoArtwork:    cfg.VideoArtwork,
 		videoPreviews:   cfg.VideoPreviews,
@@ -385,7 +388,7 @@ func NewMulti(cfg MultiConfig, libraries []Library, logger *slog.Logger) (http.H
 		m.forgetBasicAuth = sessions.forgetCredentials
 		sessions.setSetup(m.needsFirstAccount, m.createFirstRunAccount)
 		handler = sessions.wrap(cfg.Username, cfg.Password, m.authenticateAccount, m.resolveAccountIdentity, handler, func(r *http.Request) bool {
-			return r.URL.Path == "/healthz" || r.URL.Path == "/sw.js" || r.URL.Path == "/manifest.webmanifest" || strings.HasPrefix(r.URL.Path, "/assets/") || (m.kosync != nil && isKoSyncPath(r.URL.Path)) || strings.HasPrefix(r.URL.Path, "/api/koreader/v1/") || (strings.HasPrefix(r.URL.Path, "/api/android/v1/") && r.URL.Path != "/api/android/v1/login") || isJellyfinPath(r.URL.Path)
+			return r.URL.Path == "/healthz" || r.URL.Path == "/about" || r.URL.Path == "/api/version" || r.URL.Path == "/sw.js" || r.URL.Path == "/manifest.webmanifest" || strings.HasPrefix(r.URL.Path, "/assets/") || strings.HasPrefix(r.URL.Path, "/next/") || (m.kosync != nil && isKoSyncPath(r.URL.Path)) || strings.HasPrefix(r.URL.Path, "/api/koreader/v1/") || (strings.HasPrefix(r.URL.Path, "/api/android/v1/") && r.URL.Path != "/api/android/v1/login") || isJellyfinPath(r.URL.Path)
 		})
 	}
 	built = true

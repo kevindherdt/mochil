@@ -33,7 +33,7 @@ test('warm filter tints the chapter, remains interactive and persists across rel
       document.querySelector('#reader-settings').showModal()
       // The main reader script (which drives the settings tabs) is stripped from this
       // page on purpose, to test the warm-filter module in isolation; show its tab by hand.
-      document.querySelector('#rs-panel-appearance').hidden = false
+      document.querySelector('#rs-panel-display').hidden = false
     })
 
   }
@@ -63,7 +63,7 @@ test('warm filter tints the chapter, remains interactive and persists across rel
   })
   await blocked.goto(`http://127.0.0.1:${server.address().port}/`)
   await blocked.locator('#reader-settings').evaluate(el => el.showModal())
-  await blocked.locator('#rs-panel-appearance').evaluate(el => { el.hidden = false })
+  await blocked.locator('#rs-panel-display').evaluate(el => { el.hidden = false })
   await blocked.getByRole('slider', { name: /warm/i }).fill('60')
   assert.match(await blocked.locator('#reading-warmth-status').textContent(), /not saved/i)
   assert.match(await blocked.locator('#readium-host').evaluate(el => getComputedStyle(el).filter), /sepia\(0\.6\)/)

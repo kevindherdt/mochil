@@ -32,7 +32,7 @@ var Modules = []Module{
 	{ID: "hardcover_ratings", Name: "Hardcover ratings", Description: "Send the star rating you give a book in the Library editor to your Hardcover shelf. Needs Hardcover shelf sync, and only changes books already on your shelf that Mochil has matched.", Kinds: nil, Group: "hardcover", Option: true},
 	{ID: "hermes", Name: "Hermes chat", Description: "Chat with your Hermes Agent from Mochil. Needs the Hermes API server address and key in the config (hermes.url, hermes.key).", Kinds: nil},
 	{ID: "avatar", Name: "Avatar", Description: "A Live2D character beside the Hermes chat that blinks, moves and speaks along with her voice. Put model folders in the avatar folder and choose one in Settings, Avatar. Needs the Hermes module.", Kinds: nil},
-	{ID: "editor", Name: "Library editor", Description: "A spreadsheet-style page to review and edit book titles, authors, series and numbers, one book or many at once. Edits are kept by Mochil and never change your files.", Kinds: nil},
+	{ID: "editor", Name: "Library editor", Description: "A spreadsheet-style page to review and edit book titles, authors, series and numbers, one book or many at once. Edits are kept by Mochil and never change your files.", Kinds: nil, DefaultOn: true},
 	{ID: "android", Name: "Android app", Description: "Pairing, APK download and the API the Android app talks to.", DefaultOn: true},
 }
 

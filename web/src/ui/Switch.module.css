@@ -1,0 +1,52 @@
+/* Switch — a 44×26 track with a travelling thumb. Tokens only (L3): the two dimensions that aren't tokenised
+   (track size, thumb travel) are expressed as local custom properties so the rule body still reads in tokens
+   and the one magic number each exists in a single place. */
+.track {
+  --switch-width: 44px;
+  --switch-height: 26px;
+  --switch-pad: 3px;
+
+  position: relative;
+  flex-shrink: 0;
+  width: var(--switch-width);
+  height: var(--switch-height);
+  padding: 0;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-pill);
+  background: var(--color-raised);
+  cursor: pointer;
+  transition: background-color 150ms ease-out, border-color 150ms ease-out;
+}
+
+.on {
+  border-color: transparent;
+  background: var(--color-accent);
+}
+
+/* The thumb is anchored left and moved with translateX; animating `left` would relayout on every frame and
+   law L7 forbids animating anything but transform/opacity. */
+.thumb {
+  position: absolute;
+  top: var(--switch-pad);
+  left: var(--switch-pad);
+  width: calc(var(--switch-height) - var(--switch-pad) * 2);
+  height: calc(var(--switch-height) - var(--switch-pad) * 2);
+  border-radius: var(--radius-pill);
+  background: var(--color-text);
+  transition: transform 150ms ease-out, background-color 150ms ease-out;
+}
+
+.on > .thumb {
+  background: var(--color-accent-ink);
+  transform: translateX(calc(var(--switch-width) - var(--switch-height)));
+}
+
+.track:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.track:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}

@@ -4,6 +4,10 @@
   "license": "AGPL-3.0-only",
   "type": "module",
   "scripts": {
+    "tokens:gen": "node scripts/gen-tokens.mjs",
+    "tokens:check": "node scripts/gen-tokens.mjs --check",
+    "tokens:contrast": "node scripts/contrast-check.mjs",
+    "test:layout-gate": "node scripts/layout-gate.mjs",
     "test:frontend": "node --test internal/web/static_test/*.test.mjs",
     "test:browser": "node scripts/browser-smoke.mjs",
     "test:browser:playlists": "node scripts/browser-playlist-smoke.mjs",

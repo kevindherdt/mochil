@@ -1,8 +1,12 @@
-import { mountMetadataProviderSettings } from "./metadata-provider-settings-template.js?v=1";
+import { mountMetadataProviderSettings } from "./metadata-provider-settings-template.js?v=2";
 import { effectiveMetadataProvider } from "./library-metadata.js?v=1";
+import { mountVideoMetadataMatch } from "./video-metadata-match.js?v=3";
+import { escapeHTML } from "./html.js?v=1";
 
 const providers = { hardcover: "Hardcover", tmdb: "TMDB" };
 const providerNames = { hardcover: "Hardcover", tmdb: "TMDB" };
+// The libraries whose titles are looked up in TMDB. A bookshelf has no TMDB matching to offer.
+const videoLibraryKinds = new Set(["movies", "tv", "anime"]);
 
 // Which libraries the server will actually look up through this provider. The
 // answer comes from the same derivation the card shows and the server applies;
@@ -34,6 +38,30 @@ export function createMetadataProviderSettings({
   const status = (provider) => $(`#${provider}-provider-status`);
   const usage = (provider) =>
     metadataProviderUsage(libraries, provider, metadataProviders);
+
+  // One row per video library, each carrying its own preview-then-save action. A library-wide rewrite of
+  // every title is a maintenance job: it belongs here with the provider, and it is rebuilt from the
+  // library list the settings response already carries rather than asking the server again.
+  function renderBulkMatch() {
+    const section = document.querySelector("[data-video-bulk-settings]");
+    const host = document.querySelector("[data-video-bulk-libraries]");
+    if (!section || !host) return;
+    const videoLibraries = (libraries || []).filter((library) =>
+      videoLibraryKinds.has(library.kind),
+    );
+    section.hidden = videoLibraries.length === 0;
+    host.textContent = "";
+    videoLibraries.forEach((library) =>
+      mountVideoMetadataMatch({
+        document,
+        container: host,
+        libraryID: library.id,
+        libraryName: library.name || library.id,
+        requestJSON,
+        escapeHTML,
+      }),
+    );
+  }
 
   function renderStatus(provider) {
     const output = status(provider);
@@ -95,6 +123,7 @@ export function createMetadataProviderSettings({
           : "Not configured";
         renderStatus(provider);
       });
+      renderBulkMatch();
     },
     write(settings) {
       settings.metadata_providers ??= {};

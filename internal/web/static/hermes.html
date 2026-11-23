@@ -4,11 +4,28 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="color-scheme" content="dark light">
-  <title>Hermes · Mochil</title>
+  <title>Lyana AI · Mochil</title>
+  <script>
+    // The same first-paint theme boot the app shell uses. Without it this page always rendered the default palette,
+    // which is why the chat looked charcoal-slate while the library it talks about was the user's teal.
+    (() => {
+      try {
+        const root = document.documentElement;
+        const palettes = ["mochil", "kiln", "eink", "magenta-cream", "tide"];
+        const mode = localStorage.getItem("mochil-theme-mode") || localStorage.getItem("mochil-theme") || "system";
+        const resolved = mode === "system" ? (matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark") : mode;
+        if (resolved === "light" || resolved === "dark") root.dataset.theme = resolved;
+        const palette = localStorage.getItem("mochil-palette");
+        if (palettes.includes(palette)) root.dataset.palette = palette;
+      } catch (_) {
+        /* private windows can refuse reads; the default palette still applies */
+      }
+    })();
+  </script>
   <link rel="icon" type="image/png" href="/assets/icons/favicon-32.png">
-  <link rel="stylesheet" href="/assets/design-tokens.css?v=3">
-  <link rel="stylesheet" href="/assets/theme-tokens.css?v=17">
-  <link rel="stylesheet" href="/assets/hermes.css?v=24">
+  <link rel="stylesheet" href="/assets/design-tokens.css?v=5">
+  <link rel="stylesheet" href="/assets/theme-tokens.css?v=19">
+  <link rel="stylesheet" href="/assets/hermes.css?v=25">
   <link rel="stylesheet" href="/assets/library-menu.css?v=5">
 </head>
 <body>
@@ -27,9 +44,8 @@
     <main class="hm-main">
       <header class="hm-bar">
         <button type="button" id="hm-menu" class="hm-icon hm-menu" aria-label="Conversations"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
-        <span class="hm-avatar" id="hm-avatar" aria-hidden="true">H</span>
         <div class="hm-head">
-          <strong id="hm-title">New chat</strong>
+          <strong id="hm-title">Lyana AI</strong>
           <span class="hm-state" id="hm-state" role="status"><i class="hm-dot"></i><span id="hm-state-text">Connecting…</span></span>
         </div>
         <button type="button" id="hm-full" class="hm-icon" hidden aria-label="Voice mode (full screen)" title="Voice mode (full screen)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
@@ -81,7 +97,7 @@
       </form>
     </main>
   </div>
-  <script type="module" src="/assets/hermes.js?v=35"></script>
+  <script type="module" src="/assets/hermes.js?v=36"></script>
   <script type="module" src="/assets/hermes-nav.js?v=1"></script>
 </body>
 </html>

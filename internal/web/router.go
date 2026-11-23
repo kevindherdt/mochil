@@ -2,6 +2,7 @@ package web
 
 import (
 	"net/http"
+	"path"
 	"strings"
 )
 
@@ -26,39 +27,40 @@ func (m *multiServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		m.apiModules(w, r)
 	case isJellyfinPath(r.URL.Path):
 		m.jellyfin(w, r)
+	case r.URL.Path == "/next" || strings.HasPrefix(r.URL.Path, "/next/"):
+		// The app used to live here. Old bookmarks, home-screen icons and links inside a stale APK still
+		// ask for /next/…, so send them to the same path without the prefix rather than 404ing them.
+		target := strings.TrimPrefix(r.URL.Path, "/next")
+		if target == "" {
+			target = "/"
+		}
+		if r.URL.RawQuery != "" {
+			target += "?" + r.URL.RawQuery
+		}
+		http.Redirect(w, r, target, http.StatusPermanentRedirect)
+	case r.URL.Path == "/editor/import":
+		// The retired editor's own "Import" tab still points here, and so do bookmarks. Import is a real feature that
+		// has not been ported yet, so the address has to keep working rather than landing on the app's Not-found.
+		http.Redirect(w, r, "/legacy/editor/import", http.StatusPermanentRedirect)
+	case r.URL.Path == "/hermes":
+		// The legacy chat page is superseded by the app's AI screen.
+		http.Redirect(w, r, "/lyana", http.StatusPermanentRedirect)
+	case r.URL.Path == "/legacy" || strings.HasPrefix(r.URL.Path, "/legacy/"):
+		// The retired shell, kept reachable while the last pages that still live in it (the spreadsheet
+		// editor, managed import and the legacy chat) are either ported or dropped deliberately.
+		m.legacyApp(w, r)
 	case r.URL.Path == "/":
-		// An install with nothing configured opens Settings client-side (app.js), where a folder can
-		// be added. It cannot be a redirect: "/" and "/#/settings" are the same request because a
-		// browser never sends the fragment, so 303 / -> /#/settings looped until Chrome gave up
-		// (ERR_TOO_MANY_REDIRECTS) — and only for browsers, since curl sends Accept: */*.
-		m.app(w, r)
+		m.nextApp(w, r)
 	case r.URL.Path == "/sw.js" || r.URL.Path == "/manifest.webmanifest":
 		m.pwaFile(w, r)
 	case strings.HasPrefix(r.URL.Path, "/assets/"):
 		m.assets(w, r)
 	case strings.HasPrefix(r.URL.Path, "/api/readium/"):
 		m.readiumBook(w, r)
-	case r.URL.Path == "/editor/import":
-		// Import is a basic need — bringing files into a library — not the optional spreadsheet
-		// editor that shares this URL prefix. Gating it behind that module meant the only way to
-		// use it was already knowing it existed and knowing to turn on an unrelated feature first.
-		m.serveStatic(w, r, "static/import.html")
 	case r.URL.Path == "/api/avatar" || strings.HasPrefix(r.URL.Path, "/api/avatar/"):
 		m.apiAvatar(w, r)
 	case r.URL.Path == "/api/hermes" || strings.HasPrefix(r.URL.Path, "/api/hermes/"):
 		m.apiHermes(w, r)
-	case r.URL.Path == "/hermes":
-		if !m.moduleOn("hermes") {
-			http.NotFound(w, r)
-			return
-		}
-		m.serveStatic(w, r, "static/hermes.html")
-	case r.URL.Path == "/editor":
-		if !m.moduleOn("editor") {
-			http.NotFound(w, r)
-			return
-		}
-		m.serveStatic(w, r, "static/editor.html")
 	case strings.HasPrefix(r.URL.Path, "/reader/"):
 		m.reader(w, r)
 	case strings.HasPrefix(r.URL.Path, "/videos/"):
@@ -81,6 +83,8 @@ func (m *multiServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		m.videoMetadataArtworkHTTP(w, r)
 	case strings.HasPrefix(r.URL.Path, "/api/video-show-metadata-artwork/"):
 		m.videoShowMetadataArtworkHTTP(w, r)
+	case strings.HasPrefix(r.URL.Path, "/api/video-metadata-search/"):
+		m.apiVideoMetadataSearch(w, r)
 	case strings.HasPrefix(r.URL.Path, "/api/video-metadata-match/"):
 		m.apiVideoMetadataMatch(w, r)
 	case strings.HasPrefix(r.URL.Path, "/api/video-metadata/"):
@@ -225,6 +229,8 @@ func (m *multiServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		m.apiLibraryInspect(w, r)
 	case r.URL.Path == "/api/accounts" || strings.HasPrefix(r.URL.Path, "/api/accounts/"):
 		m.accountAPI(w, r)
+	case r.URL.Path == "/api/me":
+		m.apiMe(w, r)
 	case strings.HasPrefix(r.URL.Path, "/api/narration/"):
 		m.narrationAPI(w, r)
 	case r.URL.Path == "/api/video-preferences":
@@ -247,6 +253,10 @@ func (m *multiServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		m.restart(w)
 	case r.URL.Path == "/healthz":
 		m.root.health(w, r)
+	case r.URL.Path == "/about":
+		m.aboutText(w, r)
+	case r.URL.Path == "/api/version":
+		m.versionAPI(w, r)
 	case m.kosync != nil && isKoSyncPath(r.URL.Path):
 		m.serveKoSyncLogged(w, r)
 	case r.URL.Path == "/opds":
@@ -268,6 +278,19 @@ func (m *multiServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	case len(m.libraries) == 1 && strings.HasPrefix(r.URL.Path, "/opds/"):
 		m.serveLegacy(w, r)
 	default:
-		m.notFoundPage(w, r)
+		// An unknown API path has to answer as an API. Handing it the app's HTML with a 200 makes a typo'd endpoint
+		// look like a success to every client that parses JSON — the APK, KOReader, a script.
+		if strings.HasPrefix(r.URL.Path, "/api/") {
+			writeJSON(w, http.StatusNotFound, map[string]string{"error": "Not found"})
+			return
+		}
+		// A path that names a file (it has an extension) is a typo, not an app route — keep the branded 404
+		// rather than answering a missing .js or .ico with an HTML shell. Everything else belongs to the app
+		// router, which shows its own Not-found screen for a real dead end.
+		if path.Ext(r.URL.Path) != "" {
+			m.notFoundPage(w, r)
+			return
+		}
+		m.nextApp(w, r)
 	}
 }

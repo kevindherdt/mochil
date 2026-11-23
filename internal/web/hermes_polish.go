@@ -55,7 +55,7 @@ func polishState(job *polishJob) map[string]any {
 
 func (m *multiServer) hermesPolish(w http.ResponseWriter, r *http.Request) {
 	settings := m.hermesSettings()
-	if !settings.HelperConfigured() {
+	if !settings.AskConfigured() {
 		writeJSON(w, http.StatusServiceUnavailable, map[string]string{"error": "Polish needs a helper model. Open Settings, Hermes, and enter the model address and name under Helper model."})
 		return
 	}

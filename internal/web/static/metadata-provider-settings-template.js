@@ -13,6 +13,13 @@ export const metadataProviderSettingsHTML = `
       </section>
       <small>Leave a token blank to keep the saved value. Testing a pasted token does not save it.</small>
     </div>
+  </details>
+  <details class="settings-accordion video-bulk-settings" data-video-bulk-settings hidden>
+    <summary><span><strong>Match a video library with TMDB</strong><small>Whole-library maintenance, title by title</small></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 10 4 4 4-4" /></svg></summary>
+    <div class="settings-accordion-body">
+      <p>Checks every film and show against TMDB. Nothing is written until you press Save, and only titles whose name and year agree with the file are saved.</p>
+      <div class="video-bulk-libraries" data-video-bulk-libraries></div>
+    </div>
   </details>`;
 
 export function mountMetadataProviderSettings(document) {

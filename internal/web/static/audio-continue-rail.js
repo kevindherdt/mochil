@@ -1,3 +1,5 @@
+import { setRailCount } from './rail-count.js?v=1'
+
 export function continuedAudioItems(values, isLibraryVisible, limit = 4) {
   return values.filter(item =>
     item.library_kind !== 'music' &&
@@ -26,6 +28,7 @@ export function createAudioContinueRail({ rail, track, requestJSON, isLibraryVis
       if (request !== current) return
       items = continuedAudioItems(result.data, isLibraryVisible)
       rail.hidden = !items.length
+      setRailCount(globalThis.document, 'audio-reading-count', items.length)
       track.innerHTML = items.map(item => row(item, true)).join('')
       rail.querySelectorAll('.audio-glyph').forEach(element => artwork(element, itemFor(element)?.artwork_url))
     } catch (error) {

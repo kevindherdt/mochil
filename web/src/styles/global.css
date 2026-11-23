@@ -1,0 +1,49 @@
+/* global.css — the browser defaults this app does not accept, plus the typeface it was designed for.
+   Source Sans is the font the whole product is set in (design/tokens.json typeFamily.ui) and the legacy app has
+   always shipped it from /assets/fonts/source-sans.woff2. The new app never loaded it, so every screen rendered in
+   the browser's default sans — which is exactly why its type looked "different and not as good looking" next to the
+   mock-up. It is a variable font (200–900), so one 28KB file covers every weight; it is imported through Vite so
+   the URL is hashed and cache-busted like any other asset.
+   The reset itself is deliberately tiny: no typography framework, no resets for elements this app doesn't render.
+   It exists because the default `body { margin: 8px }` was quietly pushing the shell 8px down and off the bottom of
+   a phone viewport (shell 844px tall starting at y=8, dock ending at 852). */
+@font-face {
+  font-family: "Source Sans";
+  src: url("../assets/source-sans.woff2") format("woff2");
+  font-display: swap;
+  font-style: normal;
+  font-weight: 200 900;
+}
+
+@font-face {
+  font-family: Newsreader;
+  src: url("../assets/newsreader.woff2") format("woff2");
+  font-display: swap;
+  font-style: normal;
+  font-weight: 200 800;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+
+  /* The shell is `position: fixed` (AppShell.module.css) and fills the viewport itself; the page underneath it
+     should never scroll on its own account — if it did, a stray document scroll would fight the shell's own
+     keyboard-offset compensation instead of leaving it as the only thing that moves. */
+  overflow: hidden;
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-text);
+  font: 430 var(--font-size-16) / 1.5 var(--font-ui);
+  -webkit-font-smoothing: antialiased;
+}

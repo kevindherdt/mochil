@@ -17,19 +17,27 @@ test("the summary escapes request paths and explains empty lists", () => {
   assert.match(html, /33 MB/);
 });
 
-test("the panel loads only when opened and survives a failed request", async () => {
-  let toggle, body = { textContent: "", innerHTML: "" };
+test("diagnostics load only when opened, and both sections survive a failed request", async () => {
+  let toggle, body = { textContent: "", innerHTML: "" }, about = { textContent: "", innerHTML: "" };
   const details = { open: false, addEventListener: (type, fn) => (toggle = fn) };
   const panel = {
-    querySelector: (selector) => (selector === "#diagnostics" ? (panel.mounted ? details : null) : selector === "#diagnostics-body" ? body : null),
+    querySelector: (selector) =>
+      selector === "#diagnostics" ? (panel.mounted ? details : null)
+        : selector === "#diagnostics-body" ? body
+          : selector === "#about-body" ? about : null,
     insertAdjacentHTML() { panel.mounted = true; },
   };
   let calls = 0;
   mountDiagnostics({ querySelector: () => panel }, async () => { calls++; throw new Error("503"); });
-  assert.equal(calls, 0);
+  // About loads with the tab because the version is the first thing anyone opens this page to read; the expensive
+  // health sample waits until the section is actually opened.
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  assert.equal(calls, 1);
+  assert.match(about.textContent, /unavailable/);
+  assert.equal(body.textContent, "");
   details.open = true;
   await toggle();
-  assert.equal(calls, 1);
+  assert.equal(calls, 2);
   assert.match(body.textContent, /unavailable/);
 });
 

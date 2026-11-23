@@ -34,7 +34,7 @@ var matchAskJob = editorJob{
 	key: matchAskKey,
 	available: func(m *multiServer) bool {
 		settings := m.hermesSettings()
-		return m.matchFound != nil && settings.HelperConfigured() && settings.Feature("match")
+		return m.matchFound != nil && settings.AskConfigured() && settings.Feature("match")
 	},
 	unavailable: "Asking needs a helper model and the Hardcover match ability switched on in Settings, Hermes. Run Find Hardcover matches first.",
 	busy:        "Hermes is already looking at Hardcover matches in this library.",

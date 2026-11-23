@@ -52,6 +52,84 @@ jobs:
         if: failure()
         run: docker ps -a && docker volume ls
 
+  layout-gate:
+    # The cross-engine layout gate (docs/rewrite-plan.md §9, law L8): a Firefox-only dock bug shipped at 0.1.86
+    # because nothing checked the shell in anything but Chromium. Boots a throwaway, library-less install (same
+    # shape as the `install` job) and runs scripts/layout-gate.mjs against it in Chromium, Firefox and WebKit.
+    # Header-height/first-cover checks need a real library and are skipped on this fixture-free box; they run
+    # against a seeded install once Phase 0.3's contract fixtures exist.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium firefox webkit
+      - name: Build the image
+        run: docker build -q -f Containerfile -t mochil:layout-gate .
+      - name: Boot a fresh install and create the first account
+        run: |
+          set -eu
+          docker volume create layout-gate-config >/dev/null
+          docker volume create layout-gate-data >/dev/null
+          docker volume create layout-gate-books >/dev/null
+          docker run -d --name layout-gate -p 127.0.0.1:18199:8080 \
+            -v layout-gate-config:/config -v layout-gate-data:/data -v layout-gate-books:/books \
+            mochil:layout-gate >/dev/null
+          for i in $(seq 1 60); do
+            code=$(curl -s -o /dev/null -m 2 -w '%{http_code}' http://127.0.0.1:18199/healthz || true)
+            [ "$code" = 200 ] && break
+            sleep 1
+          done
+          [ "$code" = 200 ] || { echo "server never became healthy"; docker logs layout-gate; exit 1; }
+          token=$(curl -s http://127.0.0.1:18199/setup | sed -n 's/.*name="csrf" value="\([^"]*\)".*/\1/p' | head -1)
+          [ -n "$token" ] || { echo "setup page had no csrf token"; exit 1; }
+          curl -s -o /dev/null -w '%{http_code}' -X POST http://127.0.0.1:18199/setup \
+            --data-urlencode "csrf=$token" --data-urlencode "username=layout-gate" \
+            --data-urlencode "password=a long enough password" --data-urlencode "confirm=a long enough password"
+      - name: Run the layout gate in Chromium, Firefox and WebKit
+        env:
+          MOCHIL_BASE_URL: http://127.0.0.1:18199
+          OPDSHELF_USERNAME: layout-gate
+          OPDSHELF_PASSWORD: a long enough password
+        run: node scripts/layout-gate.mjs
+      - name: Show container logs on failure
+        if: failure()
+        run: docker logs layout-gate
+
+  web:
+    # Phase 1 (docs/rewrite-plan.md §8): the new React/TypeScript app, served at /next/ until cutover (§11).
+    # Lint laws L1/L2/L3/L5/L7 are enforced (eslint.config.js + .stylelintrc.json) with lint:fixtures proving
+    # each rule actually fires on a deliberate violation, not just existing on paper. L6 is covered by
+    # scripts/contrast-check.mjs already. L8 is now this app's own job (22 Nov 2026): the Library screen is real,
+    # so web/e2e/shell.spec.ts runs the cross-engine layout gate here directly — hermetic on contracts/api
+    # fixtures, no server, no credentials — rather than waiting on the Containerfile-based layout-gate job above,
+    # which still covers the *legacy* shell at `/`.
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm run lint:fixtures
+      - run: npm test
+      - run: npm run build
+      # The bundle budget from docs/rewrite-plan.md §9 — now a real gate instead of a number re-measured by hand
+      # after each deploy, which is how three slices in a row landed within 1 kB of the limit unnoticed.
+      - run: npm run size
+      - run: npx playwright install --with-deps chromium firefox webkit
+      - run: npm run test:e2e
+
   frontend:
     runs-on: ubuntu-latest
     steps:
@@ -61,6 +139,10 @@ jobs:
           node-version: "22"
           cache: npm
       - run: npm ci
+      - name: Generated design tokens must match design/tokens.json
+        run: npm run tokens:check
+      - name: Every theme must clear WCAG 2.1 AA contrast
+        run: npm run tokens:contrast
       - run: npm run test:frontend
       - name: Install browser for isolated interaction checks
         run: npx playwright install --with-deps chromium

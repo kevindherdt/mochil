@@ -47,6 +47,14 @@ type BooksRequest struct {
 	AfterLibraryID string
 	AfterBookID    string
 	Sort           string
+	// Keep, when non-nil, drops books the caller does not want in this view — the reading-status filter
+	// (?status=in_progress|unread|read) is the reason it exists. It runs inside the scan, before totals and paging,
+	// so Total, HasMore and the after-anchor offset all describe the filtered set. Filtering after the page is
+	// returned would leave a client asking for 120 items with 30 and a count that neither matches nor pages.
+	//
+	// The predicate rather than a status string keeps this package free of the reading store: query sees only
+	// catalogue data, and the caller that actually owns reading progress decides what "in progress" means.
+	Keep func(libraryID string, book catalog.Book) bool
 }
 
 type BooksResult struct {

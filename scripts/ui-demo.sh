@@ -26,6 +26,16 @@ if [[ ${1:-} == --stop ]]; then
 fi
 
 [[ -x $work/mochil ]] || { echo "build it first: go build -o $work/mochil ./cmd/mochil" >&2; exit 1; }
+
+# A demo built before the last change to the server or the web build is worse than no demo: it looks like the current
+# app, it answers on the same port, and every measurement taken against it describes code that no longer exists. That
+# is exactly what happened on 23 Nov 2026 — the sweep ran a two-day-old binary and reported the retired shell's pages.
+newest=$(find cmd internal web/src -newer "$work/mochil" -type f \( -name '*.go' -o -name '*.ts' -o -name '*.tsx' -o -name '*.css' \) -print -quit 2>/dev/null)
+if [[ -n $newest ]]; then
+  echo "the demo binary is older than $newest" >&2
+  echo "rebuild it: go build -o $work/mochil ./cmd/mochil" >&2
+  exit 1
+fi
 rm -rf "$work/books" "$work/cache"
 mkdir -p "$work/books" "$work/cache"
 

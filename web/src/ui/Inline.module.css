@@ -1,0 +1,5 @@
+/* Inline — horizontal flex layout with a token-scale gap (plan §4.3). */
+.inline {
+  display: flex;
+  flex-direction: row;
+}

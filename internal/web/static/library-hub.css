@@ -1,0 +1,318 @@
+/* The Library hub. */
+/* The Library hub: pills choose the shelf, cards show each format at a glance. Same language as the rest of the
+   phone -- quiet surfaces, one accent, nothing boxed twice. */
+@media (max-width: 760px) {
+  #library-hub {
+    display: grid;
+    gap: 14px;
+    padding: 6px 0 8px;
+  }
+
+  #library-hub[hidden] {
+    display: none;
+  }
+
+  .hub-title {
+    margin: 0;
+    font: 600 30px / 1.05 Newsreader, Georgia, serif;
+    letter-spacing: -.025em;
+  }
+
+  .hub-heading {
+    margin: 2px 0 -4px;
+    color: var(--muted);
+    font: 700 var(--fs-11, 11px) / 1 "Source Sans", "Segoe UI", sans-serif;
+    letter-spacing: .09em;
+    text-transform: uppercase;
+  }
+
+  .hub-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .hub-card {
+    display: grid;
+    grid-template-columns: 38px minmax(0, 1fr);
+    align-items: center;
+    gap: 11px;
+    min-height: 74px;
+    padding: 12px;
+    border: 1px solid color-mix(in srgb, var(--line) 40%, transparent);
+    border-radius: var(--r-14);
+    background: color-mix(in srgb, var(--surface) 55%, transparent);
+    color: var(--text);
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .hub-card-mark {
+    display: grid;
+    place-items: center;
+    width: 38px;
+    height: 38px;
+    border-radius: var(--r-10);
+    background: color-mix(in srgb, var(--accent) 16%, transparent);
+    color: var(--accent);
+  }
+
+  .hub-card-mark svg {
+    width: 19px;
+    height: 19px;
+  }
+
+  .hub-card-copy {
+    display: grid;
+    min-width: 0;
+    gap: 2px;
+  }
+
+  .hub-card-copy strong {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font: 650 var(--fs-14) / 1.2 "Source Sans", "Segoe UI", sans-serif;
+  }
+
+  .hub-card-copy small {
+    color: var(--muted);
+    font-size: var(--fs-12);
+  }
+}
+
+/* While the hub is open the catalogue underneath stays mounted but invisible, so stepping into a shelf and back
+   costs nothing and no re-render can pull the hub apart. */
+body.library-hub-open #library-view > * {
+  display: none;
+}
+
+/* The bar: back arrow, the shelf's name, then search and sort. The pill row lives in the page beneath it, which is
+   what gives it the full width instead of clipping at the search icon. */
+@media (max-width: 760px) {
+  .masthead-back {
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    flex: 0 0 auto;
+    padding: 0;
+    border: 0;
+    border-radius: var(--r-8);
+    background: none;
+    color: var(--text);
+    cursor: pointer;
+  }
+
+  .masthead-back[hidden] {
+    display: none;
+  }
+
+  .masthead-back svg {
+    width: 22px;
+    height: 22px;
+    stroke-width: 2;
+  }
+
+  .masthead-title {
+    flex: 1 1 auto;
+    min-width: 0;
+    margin: 0 0 0 4px;
+    overflow: hidden;
+    color: var(--text);
+    font: 600 20px / 1.15 Newsreader, Georgia, serif;
+    letter-spacing: -.015em;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* The pill row sits under the bar, full width, and scrolls with the page. */
+  .library-pills {
+    padding: 2px 0 0;
+    margin: 2px 0 10px;
+  }
+}
+
+/* The bar is a grid, not a flex row: three stylesheets had opinions about flex on these elements and the title kept
+   being squeezed to its ellipsis ("B...", "Lib..."), which is what made the phone's bar look nothing like the
+   design. A grid with explicit placement cannot be argued with by order/flex rules, and the chips get their own
+   row beneath the bar, exactly as the pill row appears in the design. */
+@media (max-width: 760px) {
+  .masthead,
+  .masthead:not(.searching),
+  .masthead.searching {
+    display: grid !important;
+    grid-template-columns: 34px minmax(0, 1fr) auto;
+    grid-auto-rows: auto;
+    align-items: center;
+    column-gap: 8px;
+    row-gap: 0;
+    padding: 6px 10px;
+  }
+
+  .masthead > .masthead-back {
+    grid-column: 1;
+    grid-row: 1;
+    margin: 0;
+  }
+
+  .masthead > .masthead-title {
+    grid-column: 2;
+    grid-row: 1;
+    margin: 0;
+    max-width: none;
+    width: auto;
+    min-width: 0;
+    flex: 0 1 auto;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .masthead > .masthead-actions {
+    grid-column: 3;
+    grid-row: 1;
+    margin: 0;
+    justify-self: end;
+    flex: 0 0 auto;
+  }
+
+  /* The bar's destination switcher is replaced by the pill row on a phone. */
+  .masthead > .shelf-switcher {
+    display: none;
+  }
+
+  /* Chips under the bar, full width -- the design's second row, not something squeezed into the bar. */
+  .masthead > .shell-context {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    margin: 2px 0 0;
+    padding: 0;
+  }
+
+  .masthead > .shell-context:not(:has(> :not([hidden]))) {
+    display: none;
+  }
+
+  /* The shelf head now names the shelf, so the bar's copy of the same word is a second heading for the same
+     thing -- the sheet has exactly one. */
+  body:has(#library-view:not([hidden])):not(.library-hub-open) .masthead > .masthead-title,
+  body:has(#library-hub:not([hidden])) .masthead > .masthead-title {
+    display: none;
+  }
+
+  /* The sheet opens with the shelf's own name and how many things are on it. The pill row says which library;
+     this says which shelf and how big it is, so it stays on the page instead of being suppressed -- hiding it
+     left the phone with two rows of chips and no heading, which is the "top looks nothing like the design" gap. */
+  body:has(#library-view:not([hidden])):not(.library-hub-open) #library-view .shelf-head {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-rows: auto auto;
+    column-gap: 10px;
+    align-items: center;
+    margin: 8px 2px 2px;
+  }
+
+  /* One layout switch, not two: tapping it shows the other layout, and it carries the glyph of the one you are in.
+     It sits in the bar with the search icon, in the order the sheet uses -- search, layout, then AI. */
+  #view-menu {
+    display: flex;
+  }
+
+  #view-menu > button {
+    width: 44px;
+    height: 44px;
+    display: grid;
+    place-items: center;
+    border: 0;
+    border-radius: var(--r-10);
+    background: 0 0;
+    color: var(--muted);
+    cursor: pointer;
+  }
+
+  #view-menu > button[aria-pressed="true"] {
+    color: var(--accent);
+  }
+
+  #view-menu .glyph-list {
+    display: none;
+  }
+
+  #view-menu > button[aria-pressed="true"] .glyph-covers {
+    display: none;
+  }
+
+  #view-menu > button[aria-pressed="true"] .glyph-list {
+    display: block;
+  }
+
+  /* The heading carries the name, the count and the icon cluster on ONE line, the way the sheet draws it. The bar
+     above it keeps only the pills, so the empty band that used to sit beside two icons is gone. */
+  /* No page title and no item count: the highlighted pill, or the dock, already says which shelf you are on, so
+     both were clutter. The heading keeps its text for screen readers only and stops occupying a row, which leaves
+     one line — the sort control and the icon cluster — at 44px instead of the 114px the title, count and sort row
+     used to stack to. */
+  #library-view .shelf-head {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    row-gap: 0;
+  }
+
+  #library-view #shelf-title,
+  #library-view #shelf-meta {
+    position: absolute;
+    width: 1px;
+    height: 1px
+    ;margin: -1px;
+    padding: 0;
+    border: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  #library-view .shelf-head .book-sort {
+    grid-column: 2;
+    grid-row: 1;
+    align-self: center;
+  }
+
+  #library-view .shelf-actions {
+    grid-column: 3;
+    grid-row: 1;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+  }
+
+  #library-view .shelf-actions .icon-button {
+    width: 38px;
+    height: 38px;
+  }
+
+  #library-view .shelf-title {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  #library-view .shelf-meta {
+    grid-column: 1;
+    grid-row: 2;
+  }
+
+  #library-view .shelf-title {
+    font: 600 20px / 1.15 "Source Sans", "Segoe UI", sans-serif;
+    letter-spacing: -.01em;
+  }
+
+  #library-view .shelf-meta {
+    margin: 0;
+    color: var(--muted);
+    font: 400 12.5px / 1.3 "Source Sans", "Segoe UI", sans-serif;
+  }
+
+  /* The hub replaced the catalogue; a still-mounted catalogue underneath it was leaving ~250px of empty band. */
+  body.library-hub-open #library-view {
+    display: none !important;
+  }
+}

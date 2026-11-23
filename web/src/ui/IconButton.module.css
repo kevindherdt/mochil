@@ -1,0 +1,27 @@
+/* IconButton — a square, label-less control for the header's action cluster (search / cover-list / AI). The
+   mock-up puts these three at ~38px with 20px glyphs; this keeps them at 32px with 18px glyphs so they read as a
+   cluster rather than three buttons, and stays inside the tighter header the rest of the row now uses.
+   `aria-label` is required by the component's props: an icon with no text needs a name. Tokens only (L3). */
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: var(--radius-8);
+  background: none;
+  color: var(--color-muted);
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.button:hover {
+  background: var(--color-raised);
+  color: var(--color-text);
+}
+
+.active {
+  background: var(--color-raised);
+  color: var(--color-accent);
+}

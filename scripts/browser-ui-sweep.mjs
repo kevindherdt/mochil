@@ -11,7 +11,13 @@ import { chromium } from "playwright";
 //
 // Screenshots and a report land in $UI_SWEEP_OUT (default /tmp/mochil-ui-sweep). The report says what
 // was measured; the screenshots are for looking at, which no measurement replaces.
-const baseURL = process.env.MOCHIL_BASE_URL || "http://127.0.0.1:18399";
+//
+// This drives the RETIRED SHELL, which lives under /legacy since the app moved to /. Its selectors are the legacy
+// ones (#filters, .library-pill, button#search-togg), so pointed at / it measures nothing and reports every page as
+// unopenable. The new app's screens are covered by the Playwright suite instead (`npm run test:visual` and
+// `npm run test:e2e`), which is where a check for it belongs.
+const root = process.env.MOCHIL_BASE_URL || "http://127.0.0.1:18399";
+const baseURL = (root.endsWith("/") ? root.slice(0, -1) : root) + "/legacy";
 const username = process.env.MOCHIL_USERNAME || "ui";
 const password = process.env.MOCHIL_PASSWORD || "ui-sweep-password-1";
 const out = process.env.UI_SWEEP_OUT || "/tmp/mochil-ui-sweep";

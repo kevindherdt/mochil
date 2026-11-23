@@ -1,0 +1,8 @@
+/* Deliberately violates law L3 (plan §4.2: colour, spacing, radius, font-size, shadow, duration come from
+   tokens only — no raw px/hex/ms in ui/ or features/). Not imported anywhere; exists for
+   scripts/check-lint-fixtures.mjs to prove the rule fires. */
+.badTokens {
+  color: #ff0000;
+  padding: 12px;
+  border-radius: 8px;
+}

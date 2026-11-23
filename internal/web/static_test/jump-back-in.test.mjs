@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { readFile } from 'node:fs/promises'
-import { dismissRequest, kindFamily, kindIcon, jumpCardHTML, jumpDetail, jumpItemHTML, kindLabel, mergeJumpItems } from '../static/jump-back-in.js'
+import { dismissRequest, kindFamily, kindIcon, jumpCardHTML, jumpDetail, jumpItemHTML, kindLabel, mergeJumpItems, progressRows } from '../static/jump-back-in.js'
 
 const escapeHTML = value => String(value).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('"', '&quot;')
 const book = (id, at, extra = {}) => ({ id, library_id: 'b', library_kind: 'books', title: id, authors: ['A'], cover_url: '/c', read_url: '/r/' + id, fraction: 0.5, updated_at: at, ...extra })
@@ -194,4 +194,27 @@ test('every kind of library has its own icon and a strong colour whose text read
   const icons = new Set()
   for (const kind of ['books', 'lightnovels', 'manga', 'comics', 'movies', 'tv', 'anime', 'music', 'audiobooks', 'podcasts']) icons.add(kindIcon({ library_kind: kind }))
   assert.equal(icons.size, 10)
+})
+
+// Bug: /api/reading answers a bare array while the video and audio endpoints answer { data: [...] }. Reading
+// only .data threw away every book, so Home said "nothing to jump back into" on a shelf of started books.
+test('progress rows are read whether the endpoint wraps them or not', () => {
+  assert.deepEqual(progressRows([{ id: 'a' }, { id: 'b' }]).map(r => r.id), ['a', 'b'])
+  assert.deepEqual(progressRows({ data: [{ id: 'c' }] }).map(r => r.id), ['c'])
+  assert.deepEqual(progressRows(null), [])
+  assert.deepEqual(progressRows({ error: 'nope' }), [])
+})
+
+test('two different books are still two cards', () => {
+  const merged = mergeJumpItems({ books: [book('a', 1), book('b', 2)] })
+  assert.deepEqual(merged.map(entry => entry.item.id), ['b', 'a'])
+})
+
+// A whispersync book and the plain ebook are two real entries — one carries a recording — so both stay. This
+// was "fixed" once by merging them, which hid a legitimately different way to continue the same book.
+test('a read-along copy and its plain ebook are two entries, not a duplicate', () => {
+  const plain = book('ebook-row', 1, { title: 'Neuromancer', fraction: 0.06 })
+  const richer = book('narration-row', 2, { title: 'Neuromancer', fraction: 0.07, read_along: true, library_id: 'storyteller' })
+  const merged = mergeJumpItems({ books: [plain, richer] })
+  assert.equal(merged.length, 2)
 })

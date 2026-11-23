@@ -535,3 +535,12 @@ func TestImportDestinationsAreListedAndALibraryCanBeCreated(t *testing.T) {
 		}
 	}
 }
+
+// A metadata list must not be cacheable: a heuristically cached GET keeps showing the rows as they were before an edit,
+// so a save looks like it silently did nothing.
+func TestEditorListIsNotCacheable(t *testing.T) {
+	response := editorCall(editorTestServer(t), http.MethodGet, "/api/metadata/editor/books?library=books", "")
+	if got := response.Header().Get("Cache-Control"); got != "no-store" {
+		t.Fatalf("Cache-Control = %q, want no-store", got)
+	}
+}

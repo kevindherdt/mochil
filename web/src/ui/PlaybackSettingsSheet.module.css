@@ -1,0 +1,195 @@
+/* PlaybackSettingsSheet — a card over the film. Its ground is dark whatever the palette: it sits on a black player and
+   a light panel there would be a flash of daylight in a dark room, which is the same reason the player's own chrome is
+   white-on-black.
+
+   It positions itself `absolute` inside the player, not `fixed` to the window (law L1: only shell/ may pin to the
+   viewport — and here the player *is* the viewport, so absolute inside it is both legal and more correct), and it has
+   one shape at every width: a card near the bottom edge, centred, never taller than the picture. No breakpoints (law
+   L7) and no vh units — `max-height: 82%` of the player, whatever that is. */
+.sheet {
+  --sheet-ground: rgb(18 18 20 / 97%);
+  --sheet-line: rgb(255 255 255 / 12%);
+  --sheet-muted: rgb(255 255 255 / 55%);
+  --sheet-label: rgb(255 255 255 / 80%);
+  --sheet-hover: rgb(255 255 255 / 8%);
+  --sheet-card: rgb(0 0 0 / 70%);
+  --sheet-active-ink: #111;
+  --cue-colour: #ffffff;
+  --cue-background: rgb(0 0 0 / 55%);
+  --cue-edge: none;
+  --cue-size: 1em;
+  --cue-scale: 1;
+
+  position: absolute;
+  right: var(--space-8);
+  bottom: var(--space-8);
+  left: var(--space-8);
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-16);
+  max-width: 420px;
+  max-height: 82%;
+  margin-inline: auto;
+  padding: var(--space-16) var(--space-16) var(--space-24);
+  overflow-y: auto;
+  border: 1px solid var(--sheet-line);
+  border-radius: var(--radius-16);
+  background: var(--sheet-ground);
+  color: #fff;
+  box-shadow: var(--shadow-4);
+  animation: rise var(--duration) var(--ease);
+}
+
+@keyframes rise {
+  from {
+    transform: translateY(12px);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* The scrim covers the player, not the window — the film keeps playing behind the panel, which is what makes the live
+   preview below unnecessary: the real captions are already changing underneath. */
+.overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 59;
+  background: var(--sheet-scrim, rgb(0 0 0 / 55%));
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-8);
+}
+
+.title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--font-size-16);
+  font-weight: 600;
+}
+
+.close {
+  display: grid;
+  place-items: center;
+  width: var(--chrome-touch-min);
+  height: var(--chrome-touch-min);
+  margin: calc(-1 * var(--space-8)) calc(-1 * var(--space-8)) calc(-1 * var(--space-8)) 0;
+  border: none;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: #fff;
+  cursor: pointer;
+}
+
+.close:hover {
+  background: var(--sheet-hover);
+}
+
+/* The preview uses the very custom properties the ::cue rule reads, so what it shows is what the film shows. */
+.preview {
+  display: grid;
+  place-items: center;
+  min-height: 72px;
+  padding: var(--space-12);
+  border-radius: var(--radius-12);
+  background: var(--sheet-card);
+}
+
+.previewCue {
+  font-size: calc(var(--font-size-16) * var(--cue-scale, 1));
+  color: var(--cue-colour);
+  background: var(--cue-background);
+  text-shadow: var(--cue-edge);
+  line-height: 1.35;
+  text-align: center;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-12);
+}
+
+.sectionTitle {
+  margin: 0;
+  font-size: var(--font-size-11);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--sheet-muted);
+}
+
+.note {
+  margin: 0;
+  font-size: var(--font-size-12);
+  color: var(--sheet-muted);
+}
+
+.choice {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+}
+
+.choiceLabel {
+  font-size: var(--font-size-13);
+  color: var(--sheet-label);
+}
+
+.segments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+}
+
+.segment {
+  min-height: 34px;
+  padding: 0 var(--space-12);
+  border: 1px solid var(--sheet-line);
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: #fff;
+  font-family: var(--font-ui);
+  font-size: var(--font-size-13);
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--ease), border-color var(--duration-fast) var(--ease);
+}
+
+.segment:hover {
+  background: var(--sheet-hover);
+}
+
+.segmentActive {
+  border-color: transparent;
+  background: #fff;
+  color: var(--sheet-active-ink);
+}
+
+.reset {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-8);
+  align-self: flex-start;
+  min-height: 36px;
+  padding: 0 var(--space-12);
+  border: none;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--sheet-label);
+  font-family: var(--font-ui);
+  font-size: var(--font-size-13);
+  cursor: pointer;
+}
+
+.reset:hover {
+  color: #fff;
+  background: var(--sheet-hover);
+}

@@ -1,0 +1,31 @@
+/* Button — primary/secondary variants, tokens only (plan §4.3, L3). */
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-8);
+  border: 1px solid transparent;
+  border-radius: var(--radius-8);
+  padding: var(--space-8) var(--space-16);
+  font-size: var(--font-size-14);
+  font-family: inherit;
+  cursor: pointer;
+  transition: background-color var(--duration-fast) var(--ease);
+  min-height: var(--chrome-touch-min);
+}
+
+.button:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.primary {
+  background: var(--color-accent);
+  color: var(--color-accent-ink);
+}
+
+.secondary {
+  background: var(--color-surface);
+  color: var(--color-text);
+  border-color: var(--color-line);
+}

@@ -266,7 +266,27 @@ try {
     sync.cancelScheduled()
     const position = sync.latestPosition
     if (position) await Promise.race([sync.save(position, true).catch(() => {}), new Promise(resolve => setTimeout(resolve, 1500))])
-    location.href = '/'
+    // Opened from /next (BookDetailScreen passes ?return=<path>) goes back there instead of the legacy
+    // root — otherwise every book read from the rewrite dropped the reader back into the old UI (22 Nov 2026).
+    // Only ever a same-origin relative path: reject anything that isn't "/..." to close an open-redirect.
+    const back = new URLSearchParams(location.search).get('return')
+    const target = back && back.startsWith('/') && !back.startsWith('//') ? back : '/'
+    // Prefer a real browser-back navigation over `location.href`: the Read link is a normal same-origin link
+    // click, so the reader always sits exactly one history entry above wherever it was opened from. Forcing a
+    // fresh `location.href` navigation here pushed a SECOND copy of that page on top of the stack instead of
+    // consuming the existing one, so the very next back press (reader -> detail -> series/author/library) landed
+    // back on the duplicate entry, i.e. back inside the reader again (reported 22 Nov 2026). `history.back()`
+    // has no such duplicate, so the next press continues on up as expected.
+    // Can't use `document.referrer` to tell "did we really arrive via a link" apart from "opened directly" —
+    // this server sends `Referrer-Policy: no-referrer` on every response (session_auth.go), so the browser
+    // never populates it here even for a same-origin, same-tab click; confirmed live, not a guess. `history
+    // .length > 1` is the only signal left, and it is actually fine on its own: it just means "there is
+    // something to go back to", which is exactly when going back is the right thing to do anyway.
+    if (history.length > 1) {
+      history.back()
+    } else {
+      location.href = target
+    }
   }
   $('#reader-back').addEventListener('click', leave)
   document.addEventListener('visibilitychange', () => {

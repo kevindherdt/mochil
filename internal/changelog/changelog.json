@@ -1,6 +1,208 @@
 {
  "entries": [
   {
+   "component": "web",
+   "version": "0.1.87",
+   "date": "2026-11-23",
+   "changes": [
+    "The new app is the default now. It answers at /, and the retired shell moved to /legacy for the last pages that still live in it. Old /next links and #/bookmarks land where they meant to go, the reader, pairing and login are untouched, and a typo'd API path answers with a JSON error instead of the app's own page.",
+    "The metadata editor is here, modelled on Calibre. The whole library is one scrolling table — search, sort and filter across every book on the server, not just the page you can see — with keyboard navigation, range selection, and cells you can edit in place.",
+    "Editing many books at once is a first-class job, not a loop of single edits: set a field, a series, an author, renumber a series in the shown order, find and replace, or reset a book to what its file says, all from one dialog. Nothing is written until you preview it, and every write can be undone.",
+    "The editor can go and find things for you. ISBNs and Hardcover matches can be looked up across a selection or the entire library as a background job that survives a closed tab, and what it finds is staged for review — you see exactly which field changes on which book before applying it.",
+    "Columns do what a spreadsheet's do: resize, reorder, hide, and the layout you choose is remembered. Collections can be listed, added to and created from the table, and a book can be moved or copied to another library with a check-first step that says how many would go and how many are blocked.",
+    "A Calibre library keeps Calibre's own fields — title, authors, series, series position, ISBN — read-only, and says so instead of offering an edit that would be refused. The generated columns, the editor's other half, are all editable.",
+    "The editor ships switched on, and the Settings link to it respects the switch, so turning the module off means the screen is off rather than broken.",
+    "The AI screen's composer sits at the bottom and rises with the keyboard instead of hiding behind it, pictures and documents can be attached to a message, and the metadata editor's \"ask about ISBNs or matches\" tools now use the Hermes profile's own model instead of a separately configured helper that could be pointed at nothing.",
+    "The editor's list stopped carrying a match blurb for books that already have a description, which is a quarter of that page's weight, and it can no longer be served from a stale cache — a row you just edited comes back edited.",
+    "A measured pass over every screen fixed four things worth clicking: the editor's column headers were 17px tall, \"Go to the library\" was a button inside a link, the way into the editor from Settings was a 19px text link, and the composer's file input had no name for a screen reader."
+   ]
+  },
+  {
+   "component": "web",
+   "version": "0.1.86",
+   "date": "2026-11-21",
+   "changes": [
+    "The dock no longer sits half behind the browser on Firefox. Firefox for Android keeps its own navigation bar at the bottom of the screen and lays the page out behind it, so a screen-sized frame built from 100dvh ran on underneath the browser and pushed the dock down with it. The frame now takes its height from the visual viewport, which is the only height both engines agree on, and the dock steps up by any strip the browser covers."
+   ]
+  },
+  {
+   "component": "web",
+   "version": "0.1.85",
+   "date": "2026-11-21",
+   "changes": [
+    "About now names the real build. The image used to be compiled without the version, so the panel could only say \"local\" - which is exactly the ambiguity it exists to remove. Versions and commit are stamped in at build time now, and the deploy command in AGENTS.md carries them."
+   ]
+  },
+  {
+   "component": "web",
+   "version": "0.1.84",
+   "date": "2026-11-21",
+   "changes": [
+    "Settings now has an About panel that names the build you are looking at: version, commit, when the server started and how long it has been up.",
+    "The same facts answer at /about in plain text, so the build can be checked from a terminal in one request without signing in."
+   ]
+  },
+  {
+   "component": "web",
+   "version": "0.1.83",
+   "date": "2026-11-21",
+   "changes": [
+    "A card now shows reading two ways only: the strip on the cover while you are part-way in, and one small green tick once the book is finished. The To read and In progress pills are gone from under the author, because a shelf where almost every card is unread was carrying a pill that said the same thing on every one.",
+    "An unfinished book that was parked or dropped still says so under the author, since the cover has no way to show that."
+   ]
+  },
+  {
+   "component": "web",
+   "version": "0.1.82",
+   "date": "2026-11-21",
+   "changes": [
+    "The shelf no longer repeats its own name and how many items it holds above the covers. The highlighted pill, or the dock, already says which shelf you are on, so the heading is now for screen readers only and the first cover sits 70px higher.",
+    "The sort control and the search, layout and AI icons now share that one 44px line."
+   ]
+  },
+  {
+   "component": "web",
+   "version": "0.1.81",
+   "date": "2026-11-21",
+   "changes": [
+    "The shelf name, its count, the sort control and the two icons are one line again. The sort dropdown had its own row under the count, which on a phone made the heading 114px tall and pushed the first cover down by 70px."
+   ]
+  },
+  {
+   "component": "web",
+   "version": "0.1.80",
+   "date": "2026-11-21",
+   "changes": [
+    "Every card carries its pill again, always one word and always the same height, so a row lines up. The cover keeps the percentage.",
+    "The text under a cover is a fixed block -- two lines of title, one of author, one pill -- so the pill sits on the same line in every card instead of drifting with the title.",
+    "Cards are flat: the artwork wash that tinted every card was reading as the page gradient coming back.",
+    "The library hub says its name once; the bar above it no longer repeats it."
+   ]
+  },
+  {
+   "component": "web",
+   "version": "0.1.79",
+   "date": "2026-11-21",
+   "changes": [
+    "A card ends where its pill ends: the spare row of height that used to sit under the badge is gone.",
+    "Every card carries the same pill height, so a row of them lines up.",
+    "A title is two lines at most: a long name clamps instead of pushing the author and the pill down the card."
+   ]
+  },
+  {
+   "component": "web",
+   "version": "0.1.78",
+   "date": "2026-11-21",
+   "changes": [
+    "The background is flat again: the gradient is gone, which is what the design has under its cards.",
+    "A card now reads title, author, then the type pill underneath them, instead of the pill floating on the author line.",
+    "The series position is a small plate on the cover corner again; the separate \"Book 1\" line under the title is gone, because it said the same thing twice."
+   ]
+  },
+  {
+   "component": "web",
+   "version": "0.1.77",
+   "date": "2026-11-21",
+   "changes": [
+    "Search and the grid/list switch moved up beside the shelf name, on the heading line, the way the design draws them. The bar is one row of pills again instead of pills plus a half-empty icon band, and the first cover starts about 120px higher.",
+    "The bar no longer carries a row of icons with nothing to its left; the space that band used is now the cards."
+   ]
+  },
+  {
+   "component": "web",
+   "version": "0.1.76",
+   "date": "2026-11-21",
+   "changes": [
+    "The Notes button opens a notes shelf again. It recognised one by its library id alone, so a vault saved under any other name (obsidian, journal, notes-2026) was not a note shelf: the tap did nothing, silently. The library kind decides now, and a tap with no notes shelf says so instead of leaving you looking at the same screen."
+   ]
+  },
+  {
+   "component": "web",
+   "version": "0.1.75",
+   "date": "2026-11-21",
+   "changes": [
+    "The phone header is four compact bands instead of five: the A-Z rail is gone from the shelf (the design does not show it), the pills, the name and the chips are tighter, and the first cover starts about 60px higher.",
+    "The teal gradient is stronger, so the top of the screen is visibly lighter than the bottom instead of reading as one flat colour."
+   ]
+  },
+  {
+   "component": "web",
+   "version": "0.1.74",
+   "date": "2026-11-21",
+   "changes": [
+    "The teal palette is the one on the sheets now: a nearly-black teal ground, cards a shade above it, and a cyan that glows against both, replacing the slate greys.",
+    "Bars and dividers are gone as hard lines. The screen is one continuous gradient from the top of the page to the dock, and the top bar and dock are transparent over it, so nothing cuts a seam across the background. Hairlines on lists stay, but as a hint of teal rather than a drawn line."
+   ]
+  },
+  {
+   "component": "web",
+   "version": "0.1.73",
+   "date": "2026-11-21",
+   "changes": [
+    "The chat bar says what the screen is: 'Lyana AI' with her connection state under it, then the settings and full-view icons, the way the design draws it. The library dropdown that shared that line is gone from the chat, and the conversation's own name lives in the sidebar list and the window title.",
+    "The chat page now follows the palette you chose. It was the one page that never applied the saved theme on first paint, so it stayed on the default colours while the library behind it was yours."
+   ]
+  },
+  {
+   "component": "web",
+   "version": "0.1.72",
+   "date": "2026-11-21",
+   "changes": [
+    "The card lost the ⋯ menu over its artwork: the tile already opens on tap, and the menu sat on the cover's subject. The same actions are in list layout and on the book's own page.",
+    "One badge per fact. The volume plate on the cover corner is gone (the series position is printed under the title), and the pill under the author no longer repeats the word the cover strip already says -- 'Started' over 'In progress' was one fact on two lines. What is left is what the cover cannot say: a recording ('Narrated') or 'To read'."
+   ]
+  },
+  {
+   "component": "web",
+   "version": "0.1.71",
+   "date": "2026-11-21",
+   "changes": [
+    "Grid and list are one button again, in the bar beside search, in the order the design uses: search, layout, then the activity dot. It shows the layout you are in and swapping it is a single tap; the two-button group it replaces read as two settings instead of one switch."
+   ]
+  },
+  {
+   "component": "web",
+   "version": "0.1.70",
+   "date": "2026-11-21",
+   "changes": [
+    "The grid/list switch moved up beside the shelf's name. It sat inside the chip row, so it scrolled away with the chips and read as one more destination instead of a way to change the layout.",
+    "A card is now as tall as what it says. The grid used to stretch every card in a row to the tallest one, which left a band of empty card under a one-line author -- the empty space under the titles."
+   ]
+  },
+  {
+   "component": "web",
+   "version": "0.1.69",
+   "date": "2026-11-21",
+   "changes": [
+    "The phone's shelf opens with its name and its size, the way the design sheet does: 'Library', then '6 items', then the sort control. The heading was switched off at phone width because the pill row also names the library, which left the top of the page as an unlabelled stack of chip rows.",
+    "The bar no longer repeats that name. There is one heading instead of two."
+   ]
+  },
+  {
+   "component": "web",
+   "version": "0.1.68",
+   "date": "2026-11-21",
+   "changes": [
+    "A book's reading state is back on the cover it belongs to: a short scrim at the bottom edge with '72% read' and a thin bar, as the design sheet draws it. The card body keeps the title, the author and the type pill, which say something else ('Narrated', 'To read').",
+    "Every card carries its type pill again, including the ones with progress on the cover. Only one of those two lines used to be allowed at a time, so a book you were in the middle of lost the word that told you it was narrated."
+   ]
+  },
+  {
+   "component": "web",
+   "version": "0.1.67",
+   "date": "2026-11-21",
+   "new": [
+    "Matching a video library against TMDB is now a Settings job: Settings -> Libraries has one row per film or show library with its own preview-then-save action, and nothing is written until you press Save. It used to sit on the shelf as one button that could rewrite a whole wall of titles in a tap."
+   ],
+   "fixed": [
+    "The blank rounded strip under the A-Z row on a phone is gone. The jump nav for audio, video and notes was hidden but still painting: the layout rule that keeps the A-Z index on one line used !important, which also defeats the hidden attribute, so a hidden nav left a 30px empty bar behind."
+   ],
+   "changes": [
+    "The card's author line sits on the text baseline of the state pill beside it instead of being centred in a taller row, so it keeps closer to the title above it.",
+    "The phone bar's browse chips and A-Z index no longer paint an empty row when the app hides them, for the same reason as the strip above."
+   ]
+  },
+  {
    "component": "android",
    "version": "0.1.66",
    "date": "2026-11-21",

@@ -1,0 +1,30 @@
+/* Deep Teal as the sheets draw it: one continuous ground from the top of the screen to the dock, with no divider
+   lines. The gradient is on the body and the bars are transparent, because a bar painted flat over a gradient is
+   exactly where a hard seam appears. */
+:root:is([data-palette="tide"], [data-palette="kiln"], [data-palette="manjaro"], [data-palette="material"])[data-theme="dark"] body {
+  background: var(--bg);
+}
+
+:root:is([data-palette="tide"], [data-palette="kiln"], [data-palette="manjaro"], [data-palette="material"])[data-theme="dark"] .masthead,
+:root:is([data-palette="tide"], [data-palette="kiln"], [data-palette="manjaro"], [data-palette="material"])[data-theme="dark"] .shell-scrolled .masthead,
+:root:is([data-palette="tide"], [data-palette="kiln"], [data-palette="manjaro"], [data-palette="material"])[data-theme="dark"] #dock,
+:root:is([data-palette="tide"], [data-palette="kiln"], [data-palette="manjaro"], [data-palette="material"])[data-theme="dark"] .dock {
+  background: transparent;
+  border-color: transparent;
+  backdrop-filter: none;
+}
+
+:root:is([data-palette="tide"], [data-palette="kiln"], [data-palette="manjaro"], [data-palette="material"])[data-theme="dark"] .library-tools,
+:root:is([data-palette="tide"], [data-palette="kiln"], [data-palette="manjaro"], [data-palette="material"])[data-theme="dark"] .shell-scrolled .library-tools {
+  background: transparent;
+  box-shadow: none;
+}
+
+/* Hairlines stay, but at the weight the sheets use: a hint of teal, never a drawn line. */
+:root:is([data-palette="tide"], [data-palette="kiln"], [data-palette="manjaro"], [data-palette="material"])[data-theme="dark"] .book-list-item,
+:root:is([data-palette="tide"], [data-palette="kiln"], [data-palette="manjaro"], [data-palette="material"])[data-theme="dark"] .series-row,
+:root:is([data-palette="tide"], [data-palette="kiln"], [data-palette="manjaro"], [data-palette="material"])[data-theme="dark"] .video-item,
+:root:is([data-palette="tide"], [data-palette="kiln"], [data-palette="manjaro"], [data-palette="material"])[data-theme="dark"] .video-show,
+:root:is([data-palette="tide"], [data-palette="kiln"], [data-palette="manjaro"], [data-palette="material"])[data-theme="dark"] .settings-accordion {
+  border-color: color-mix(in srgb, var(--line) 55%, transparent);
+}

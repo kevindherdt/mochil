@@ -1,8 +1,9 @@
-import { createBookCards } from "./book-cards.js?v=37";
+import { dockShelves } from "./shelf-targets.js?v=2";
+import { createBookCards } from "./book-cards.js?v=44";
 import { openSettingsWhenEmpty } from "./first-run.js?v=1";
 import { createCollections } from "./collections.js?v=22";
-import { createJumpBackIn } from "./jump-back-in.js?v=24";
-import { createDeferredVideoController } from "./deferred-video-controller.js?v=20";
+import { createJumpBackIn } from "./jump-back-in.js?v=30";
+import { createDeferredVideoController } from "./deferred-video-controller.js?v=12";
 import { createDeferredAudioController } from "./deferred-audio-controller.js?v=70";
 import { mountDashboard } from "./dashboard-template.js?v=12";
 import { createDeferredRouteControllers } from "./deferred-route-controllers.js?v=122";
@@ -26,7 +27,8 @@ import { createSearchController } from "./search-controller.js?v=3";
 import { bindPopupDismissal } from "./popup-controller.js?v=1";
 import { createShellLayout } from "./shell-layout.js?v=2";
 import { createAppViewController } from "./app-view-controller.js?v=10";
-import { mountDock } from "./dock.js?v=3";
+import { dockPlaces, mountDock } from "./dock.js?v=15";
+import { hermesAvailable } from "./hermes-link.js?v=2";
 import { createViewRoute } from "./view-route.js?v=6";
 import { registerServiceWorker } from "./register-sw.js?v=2";
 import { errorSpec, renderStatePanel } from "./state-panel.js?v=2";
@@ -161,8 +163,6 @@ const catalogAlphabet = createCatalogAlphabet({
   },
 });
 
-
-
 const publicationCatalogues = createPublicationCatalogues({
   $, document, escapeHTML, requestJSON, createBoundedWindow, createContinuousPager,
   cards: { markup: bookMarkup, bookmarkIcon, installCoverFallbacks, releaseCovers },
@@ -235,13 +235,17 @@ const viewController = createAppViewController({
 });
 viewController.bind();
 
-// The dock is the phone's version of the masthead: Home, Library, Activity, Settings, at thumb height.
-const dock = mountDock({
-  getView: () => viewController.current(),
-  getLibrary: () => libraryState.selected(),
-  go: (view) => viewController.show(view),
-  openSettings: () => deferredRoutes.openSettings(),
-  activity: () => $("#activity-toggle"),
+// The view controller loads Home's rails when the view *changes*. A reader who opened the app on Home saw an
+// empty page until they navigated away and back, because nothing loaded them for the first render.
+if (viewController.current() === "dashboard") homeRails.load();
+
+// The dock is the phone's masthead: Home, Library, [Lyana], Notes, Settings -- Lyana only with the module on.
+const dock = mountDock({ window, getView: () => viewController.current(),
+  ...dockShelves(() => libraryState.visible(), () => libraryState.selected()) });
+// hermesAvailable wants a real fetch: it reads the /api/modules body itself, and handing it the JSON wrapper
+// (which returns parsed data) made the check throw and quietly report "no module".
+void hermesAvailable(globalThis.fetch).then((available) => {
+  if (available) dock.setPlaces(dockPlaces({ hermes: true }));
 });
 viewRoute = createViewRoute({
   window,

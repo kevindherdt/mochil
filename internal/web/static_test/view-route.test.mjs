@@ -79,22 +79,41 @@ test("refresh restores settings and libraries from the hash", () => {
   assert.deepEqual(f.state.pushed, [], "restoring never adds history entries");
 });
 
-test("unknown libraries fall back to Home and an empty hash changes nothing", () => {
-  let f = fixture({ hash: "#/library/gone" });
+test("unknown libraries fall back to Home", () => {
+  const f = fixture({ hash: "#/library/gone" });
   f.route.restore();
   assert.deepEqual(f.state.calls, ["home"]);
-  f = fixture();
+});
+
+test("an empty hash opens the library, like the root", () => {
+  const f = fixture();
   f.route.restore();
-  assert.deepEqual(f.state.calls, []);
+  assert.deepEqual(f.state.calls, ["library:books"]);
 });
 
 test("Back and Forward re-apply the hash", () => {
   const f = fixture({ hash: "#/library/books" });
   f.listeners.popstate();
   assert.deepEqual(f.state.calls, ["library:books"]);
+  // The root address is the library you were last in: the dock has no Home, so #/ must not dump you on a dashboard.
   f.window.location.hash = "#/";
   f.listeners.hashchange();
-  assert.deepEqual(f.state.calls, ["library:books", "home"]);
+  assert.deepEqual(f.state.calls, ["library:books", "library:books"]);
+});
+
+test("the root address opens a library, not the dashboard", () => {
+  const f = fixture({ hash: "#/" });
+  f.route.restore();
+  assert.deepEqual(f.state.calls, ["library:books"]);
+  assert.equal(f.state.view, "library");
+});
+
+test("with no usable shelf the root falls back to the dashboard rather than a blank page", () => {
+  const f = fixture({ hash: "#/", libraries: [] });
+  f.state.library = "gone";
+  f.state.view = "library";
+  f.route.restore();
+  assert.deepEqual(f.state.calls, ["home"]);
 });
 
 test("the tab and an opened collection are kept in the hash and restored after a refresh", () => {

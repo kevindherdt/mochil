@@ -253,6 +253,18 @@ func (m *multiServer) editorBooks(w http.ResponseWriter, r *http.Request) {
 	if end > len(rows) {
 		end = len(rows)
 	}
+	// A metadata list is not cacheable: a browser that heuristically caches this GET keeps showing the row as it was
+	// before an edit, and the person sees a change they just made disappear. (It also made a deployed fix look like it
+	// had not shipped, which is how this was noticed.)
+	w.Header().Set("Cache-Control", "no-store")
+	// Last, once every field is final including an edited description: the match blurb only rides along for a book
+	// that has nothing to describe itself with. Deciding this while the row was still being built missed the books
+	// whose description comes from an override, and left their blurbs in the payload.
+	for i := range rows {
+		if rows[i].Match != nil {
+			rows[i].Match = rows[i].Match.forList(&rows[i])
+		}
+	}
 	writeJSON(w, http.StatusOK, map[string]any{"total": len(rows), "library_total": len(books), "library_folder": lib.SourcePath, "collections": inCollections.list, "hardcover_sync": facts.on, "counts": counts, "items": rows[offset:end], "columns": m.editorColumns(), "transfer_to": m.transferTargets(lib)})
 }
 

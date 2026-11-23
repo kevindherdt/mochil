@@ -1,0 +1,17 @@
+/* Skeleton — the loading placeholder shaped like the real layout, never a generic spinner (plan §4.3, L5:
+   <Async> renders this while loading). Tokens only (L3). */
+.skeleton {
+  background: var(--color-raised);
+  border-radius: var(--radius-8);
+  animation: pulse var(--duration) var(--ease) infinite alternate;
+}
+
+@keyframes pulse {
+  from {
+    opacity: 0.6;
+  }
+
+  to {
+    opacity: 1;
+  }
+}

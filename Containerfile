@@ -1,15 +1,24 @@
+FROM node:22-alpine AS webbuild
+WORKDIR /web
+COPY web/package.json web/package-lock.json ./
+RUN npm ci
+COPY web/ ./
+RUN npm run build
+
 FROM golang:1.26-alpine AS build
 WORKDIR /src
 RUN apk add --no-cache ca-certificates
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
+COPY --from=webbuild /internal/web/static/next ./internal/web/static/next
 # Bundle the web shell (hashed script + stylesheet); the server falls back to
 # the plain sources when this output is absent.
 RUN CGO_ENABLED=0 go run ./cmd/assetbuild
 ARG VERSION=0.0.0-dev
+ARG COMMIT=
 RUN GOMAXPROCS=1 CGO_ENABLED=0 go build -trimpath \
-      -ldflags="-s -w -X mochil/internal/version.Version=${VERSION}" -o /out/mochil ./cmd/mochil \
+      -ldflags="-s -w -X mochil/internal/version.Version=${VERSION} -X mochil/internal/version.Commit=${COMMIT}" -o /out/mochil ./cmd/mochil \
     && mkdir -p /out/data \
     && chown 65532:65532 /out/data
 

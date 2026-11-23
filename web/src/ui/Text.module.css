@@ -1,0 +1,22 @@
+/* Text/Heading — the type scale, applied (plan §4.3). Tokens only (L3). */
+.text {
+  margin: 0;
+  color: var(--color-text);
+  font-family: inherit;
+}
+
+.muted {
+  color: var(--color-muted);
+}
+
+.error {
+  color: var(--color-error);
+}
+
+.heading {
+  margin: 0;
+  color: var(--color-text);
+  font-family: inherit;
+  font-weight: 600;
+  line-height: 1.2;
+}

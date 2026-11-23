@@ -1,0 +1,13 @@
+{
+  "current_account_id": "owner",
+  "environment_recovery_enabled": true,
+  "items": [
+    {
+      "disabled": false,
+      "id": "owner",
+      "role": "administrator",
+      "username": "owner"
+    }
+  ],
+  "registration_enabled": false
+}

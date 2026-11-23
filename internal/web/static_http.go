@@ -26,12 +26,23 @@ type staticAsset struct {
 
 var staticAssetCache sync.Map
 
-func (m *multiServer) app(w http.ResponseWriter, r *http.Request) {
-	if r.URL.Path != "/" {
-		http.NotFound(w, r)
-		return
+// legacyApp serves the retired shell under /legacy. Only the pages that have not been ported still live in it —
+// the spreadsheet editor (/legacy/editor), managed import (/legacy/editor/import) and the legacy chat
+// (/legacy/hermes) — and their own JS routes with a fragment, so the same index.html serves every path below.
+func (m *multiServer) legacyApp(w http.ResponseWriter, r *http.Request) {
+	trimmed := strings.TrimPrefix(path.Clean(r.URL.Path), "/legacy")
+	switch {
+	case trimmed == "" || trimmed == "/":
+		m.serveStatic(w, r, "static/index.html")
+	case trimmed == "/editor":
+		m.serveStatic(w, r, "static/editor.html")
+	case trimmed == "/editor/import":
+		m.serveStatic(w, r, "static/import.html")
+	case trimmed == "/hermes":
+		m.serveStatic(w, r, "static/hermes.html")
+	default:
+		m.serveStatic(w, r, "static/index.html")
 	}
-	m.serveStatic(w, r, "static/index.html")
 }
 
 // notFoundPage answers a request for a path no route recognizes with the app's
@@ -86,10 +97,18 @@ func (m *multiServer) serveBundleFallback(w http.ResponseWriter, r *http.Request
 	_, _ = w.Write(b)
 }
 
+// assets serves /assets/… for two builds now that the new app lives at the root: its own content-hashed files are
+// emitted under static/next/assets/, and everything the legacy pages still need (reader, login, pairing, icons, design
+// tokens) lives under static/assets/. The new build wins where it has the file, because a hash in the name means the
+// request could only have come from the build that produced it.
 func (m *multiServer) assets(w http.ResponseWriter, r *http.Request) {
 	name := strings.TrimPrefix(path.Clean(r.URL.Path), "/assets/")
 	if name == "" || strings.Contains(name, "..") {
 		http.NotFound(w, r)
+		return
+	}
+	if fileExistsInFS(staticFiles, "static/next/assets/"+name) {
+		m.serveNextFile(w, r, "static/next/assets/"+name)
 		return
 	}
 	m.serveStatic(w, r, "static/"+name)

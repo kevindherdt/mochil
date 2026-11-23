@@ -5,14 +5,19 @@
   z-index: 70;
   left: 0;
   right: 0;
-  bottom: 0;
+  /* Not `bottom: 0`: on a browser whose own toolbar sits at the bottom of the screen (Firefox Android draws its
+     navigation bar there), the layout viewport is taller than the visible page, so a fixed bar at 0 lands under the
+     browser's furniture. dock.js publishes how much of the viewport is hidden and the bar steps up by exactly that;
+     in a browser that overlays nothing the value is 0 and nothing moves. */
+  bottom: var(--dock-bottom, 0px);
   display: flex;
   align-items: stretch;
   gap: 2px;
   padding: 6px 8px calc(6px + env(safe-area-inset-bottom, 0px));
-  background: color-mix(in srgb, var(--bg) 88%, transparent);
-  border-top: 1px solid color-mix(in srgb, var(--line) 60%, transparent);
-  backdrop-filter: blur(18px) saturate(1.1);
+  /* Opaque: a translucent bar let the page show through it, which on a phone reads as the dock coming loose
+     from the bottom of the screen rather than as glass. */
+  background: var(--surface);
+  border-top: 1px solid var(--line);
 }
 
 .dock-place {
@@ -60,7 +65,7 @@ body:has(.dock:not([hidden])) main {
    its rounded corners, instead of stacking two separate floating bars at the bottom of a phone. */
 @media (max-width: 760px) {
   body:has(.dock:not([hidden])) .audio-player:not([hidden]):not(.expanded) {
-    bottom: var(--dock-h, 72px);
+    bottom: calc(var(--dock-bottom, 0px) + var(--dock-h, 72px));
     border-radius: var(--r-16) var(--r-16) 0 0;
     box-shadow: 0 -12px 26px #0003;
   }
@@ -74,4 +79,38 @@ body:has(.dock:not([hidden])) main {
   .dock {
     display: none;
   }
+}
+
+/* A short list of note vaults, sitting on the dock's top edge: only shown when there is more than one. */
+.dock-picker {
+  position: fixed;
+  z-index: 71;
+  right: 8px;
+  bottom: calc(var(--dock-bottom, 0px) + var(--dock-h, 72px) + 8px);
+  display: grid;
+  gap: 2px;
+  min-width: 180px;
+  max-width: min(78vw, 320px);
+  padding: 6px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-14);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.dock-picker button {
+  min-height: 44px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: var(--r-10);
+  background: 0 0;
+  color: var(--text);
+  font: 620 var(--fs-14) / 1.2 "Source Sans", "Segoe UI", sans-serif;
+  text-align: left;
+  cursor: pointer;
+}
+
+.dock-picker button:hover,
+.dock-picker button:focus-visible {
+  background: var(--raised);
 }

@@ -15,7 +15,7 @@ declare -A grandfathered_bytes=(
 
 failed=0
 while IFS= read -r -d '' path; do
-  [[ "$path" == */vendor/* || "$path" == */static_test/* || "$path" == *_test.go ]] && continue
+  [[ "$path" == */vendor/* || "$path" == */static_test/* || "$path" == *_test.go || "$path" == */static/next/* || "$path" == */static/dist/* ]] && continue
   lines=$(wc -l < "$path")
   bytes=$(wc -c < "$path")
   line_limit=${grandfathered_lines[$path]:-550}

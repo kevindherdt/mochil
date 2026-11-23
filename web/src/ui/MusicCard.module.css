@@ -1,0 +1,44 @@
+/* MusicCard — deliberately different from Book/VideoCard (artwork scarcity: many tracks have no real album art,
+   so the artwork is square and plainer, no bookmark/progress chrome). Same bordered surface card as the other
+   families so a mixed shelf reads as one library. Tokens only (L3). */
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+  width: 100%;
+  text-align: left;
+  background: var(--color-surface);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-12);
+  padding: var(--space-8);
+  font-family: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.textBlock {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  min-height: 3.9em;
+}
+
+.title {
+  margin: 0;
+  color: var(--color-text);
+  font-size: var(--font-size-13);
+  font-weight: 600;
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.artist {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: var(--font-size-11);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

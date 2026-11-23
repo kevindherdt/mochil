@@ -262,3 +262,118 @@
 #library-view .library-tools .browse-controls { flex: 1 1 100%; min-width: 0; }
 #library-view .publication-destinations { flex-wrap: wrap; overflow: visible; min-width: 0; }
 #library-view .publication-destinations > button { flex: 0 0 auto; }
+
+/* The top of a phone should be a bar, not a stack. At 390px the masthead was 116px tall and the chips another
+   102px, because the context row reserved a second line even when it had nothing in it. */
+@media (max-width: 760px) {
+  .masthead:not(.searching) {
+    height: 48px;
+    padding: 0 10px;
+    gap: 2px;
+  }
+
+  .masthead:has(.shell-context > :not([hidden])):not(.searching) {
+    height: 92px;
+    grid-template-rows: 44px 40px;
+    row-gap: 0;
+  }
+
+  .shelf-switcher,
+  .masthead-destination {
+    height: 36px;
+    border-radius: var(--r-8);
+  }
+
+  .shelf-switcher select {
+    font-size: var(--fs-14);
+  }
+
+  .masthead-actions .icon-button {
+    width: 40px;
+    height: 40px;
+  }
+
+  #library-view .library-tools {
+    gap: 4px 6px;
+    margin: 2px 0 6px;
+    padding: 0;
+    background: 0 0;
+    box-shadow: none;
+  }
+
+  /* Two short rows rather than a swipe: all five modes stay visible, just 22px cheaper than before. */
+  #library-view .publication-destinations {
+    gap: 5px;
+    flex-wrap: wrap;
+  }
+
+  #library-view .publication-destinations > button {
+    min-height: 34px;
+    padding-inline: 11px;
+    border-radius: var(--r-8);
+    font-size: var(--fs-13);
+  }
+
+  .shelf-head {
+    margin-top: 2px;
+  }
+
+  .shelf-title {
+    font-size: 26px;
+  }
+
+  .alphabet {
+    margin: 8px 0 14px;
+    padding: 2px;
+  }
+
+  .letter,
+  .letter:first-child {
+    flex: 0 0 34px;
+    height: 34px;
+    min-height: 34px;
+  }
+}
+
+/* One line, not two: the count sits beside the name so the shelf starts 20px higher. */
+@media (max-width: 760px) {
+  .shelf-head {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin: 4px 0 2px;
+    min-height: 0;
+  }
+
+  .shelf-title {
+    flex: 0 1 auto;
+    order: 0;
+    font-size: 24px;
+    line-height: 1.1;
+  }
+
+  .shelf-meta {
+    margin: 0;
+    font-size: var(--fs-13);
+    white-space: nowrap;
+  }
+}
+
+/* On a phone the toolbar scrolls with the page. Pinned under a 48px bar it spent half its life clipped by the
+   masthead -- only the second row of chips stayed visible, which read as broken rather than compact. */
+@media (max-width: 760px) {
+  #library-view .library-tools,
+  .library-tools {
+    position: static;
+    top: auto;
+    margin: 6px 0 4px;
+    padding: 0;
+    background: 0 0;
+    box-shadow: none;
+  }
+
+  .alphabet {
+    position: relative;
+    top: auto;
+  }
+}

@@ -61,7 +61,7 @@
 /* Phones: the video libraries' only tool is the layout menu, so it joins the selector row instead of getting a bar of its own. */
 @media (max-width:600px){
   :root:has(#video-index:not([hidden])){--catalog-sticky-top:64px}
-  body:has(#video-index:not([hidden])) nav.masthead.masthead:has(.shell-context:not([hidden])):not(.searching){height:56px;grid-template-columns:minmax(0,1fr) auto auto;grid-template-rows:44px;grid-template-areas:"destination context actions"}
+  body:has(#video-index:not([hidden])) nav.masthead.masthead:has(.shell-context:has(> :not([hidden]))):not(.searching){height:56px;grid-template-columns:minmax(0,1fr) auto auto;grid-template-rows:44px;grid-template-areas:"destination context actions"}
   body:has(#video-index:not([hidden])) .shell-context{width:auto;height:44px}
   body:has(#video-index:not([hidden])) .shell-context .library-tools{width:auto}
 }
@@ -70,12 +70,18 @@
 body:has(#video-index:not([hidden])) .browse-controls{display:flex;justify-content:flex-end}
 body:has(#video-index:not([hidden])) .browse-controls::before{display:none}
 
-/* Library-wide TMDB matching bar above the shelf. */
+/* Library-wide TMDB matching, now in Settings -> Libraries beside the TMDB token. */
 .video-bulk-match{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;margin:0 0 16px}
+.video-bulk-match .video-bulk-head{display:grid;gap:2px;margin-right:auto}
+.video-bulk-match .video-bulk-head small{opacity:.75}
 .video-bulk-match button{min-height:36px;padding:0 16px;border:1px solid var(--card-border);border-radius:999px;background:var(--card-bg);color:inherit;cursor:pointer}
 .video-bulk-match small{opacity:.75}
 .video-bulk-match [data-bulk-results]{flex-basis:100%;display:grid;gap:8px}
 .video-bulk-match ul{margin:6px 0 0;padding-left:20px;max-height:240px;overflow:auto}
+/* In Settings the rows stack: one library per line, separated by the same hairline the accordion uses. */
+.video-bulk-libraries{display:grid}
+.video-bulk-libraries .video-bulk-match{margin:0;padding:14px 0;border-top:1px solid var(--line)}
+.video-bulk-libraries .video-bulk-match:first-child{border-top:0;padding-top:4px}
 
 #video-index .video-show-overview{display:none;margin:4px 0 0;max-width:68ch;color:var(--muted);font-size:var(--fs-14);line-height:1.5;display:none}
 #video-index .video-cover-grid>.video-show[open] .video-show-overview{display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}

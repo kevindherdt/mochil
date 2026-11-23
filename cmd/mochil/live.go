@@ -117,16 +117,19 @@ func (a *liveApplication) build(runtime runtimeConfig) (http.Handler, error) {
 	// Optional modules are only constructed when they are on, so a books-only
 	// install runs no ffmpeg pools, artwork caches or analysis workers.
 	var (
-		subtitles     video.SubtitleExtractor
-		hls           *video.HLSStore
-		videoArtwork  *video.ArtworkStore
-		videoPreviews *video.PreviewStore
-		audioArtwork  *audio.ArtworkStore
-		audioHLS      *audio.HLSStore
-		audioAnalysis *audio.AnalysisQueue
+		subtitles      video.SubtitleExtractor
+		subtitleImages *video.SubtitleImageStore
+		hls            *video.HLSStore
+		videoArtwork   *video.ArtworkStore
+		videoPreviews  *video.PreviewStore
+		audioArtwork   *audio.ArtworkStore
+		audioHLS       *audio.HLSStore
+		audioAnalysis  *audio.AnalysisQueue
 	)
 	if runtime.modules["video"] {
 		subtitles, _ = video.NewFFmpegSubtitleExtractor(env("MOCHIL_FFMPEG", "ffmpeg"), 45*time.Second)
+		// Image-based (PGS) subtitle tracks, extracted once into cached cue images; see internal/video/subtitle_images.go.
+		subtitleImages, _ = video.NewSubtitleImageStore(filepath.Join(runtime.cacheDirectory, "video-subtitles"), env("MOCHIL_FFMPEG", "ffmpeg"), env("MOCHIL_FFPROBE", "ffprobe"))
 		hls, _ = video.NewHLSStore(filepath.Join(runtime.cacheDirectory, "video-hls"), env("MOCHIL_FFMPEG", "ffmpeg"), int64(envInt("MOCHIL_HLS_CACHE_MB", 4096))<<20, 2, envInt("MOCHIL_HLS_MAX_HEIGHT", 1080), env("MOCHIL_VAAPI_DEVICE", "/dev/dri/renderD128"))
 		videoArtwork, _ = video.NewArtworkStore(filepath.Join(runtime.cacheDirectory, "video-artwork"), env("MOCHIL_FFMPEG", "ffmpeg"), int64(envInt("MOCHIL_VIDEO_ARTWORK_CACHE_MB", 1024))<<20, 2)
 		videoPreviews, _ = video.NewPreviewStore(filepath.Join(runtime.cacheDirectory, "video-previews"), env("MOCHIL_FFMPEG", "ffmpeg"), int64(envInt("MOCHIL_VIDEO_PREVIEW_CACHE_MB", 512))<<20, 2)
@@ -221,6 +224,7 @@ func (a *liveApplication) build(runtime runtimeConfig) (http.Handler, error) {
 		ManagedIngest:                managedIngest,
 		TransferJournalState:         filepath.Join(runtime.cacheDirectory, "library-transfers.json"),
 		SubtitleExtractor:            subtitles,
+		SubtitleImages:               subtitleImages,
 		HLS:                          hls,
 		VideoArtwork:                 videoArtwork,
 		VideoPreviews:                videoPreviews,

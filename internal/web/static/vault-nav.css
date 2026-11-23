@@ -25,7 +25,7 @@
 @media (max-width:760px){
   .vault-workspace[data-sidebar=closed]>aside{box-shadow:none;visibility:hidden;transition:transform 180ms cubic-bezier(.16,1,.3,1),visibility 0s linear 180ms}
   .vault-workspace[data-sidebar=open]::after{content:"";position:absolute;inset:0;z-index:11;background:rgb(20 16 12/.32)}
-  body.vault-reading .masthead:has(.shell-context:not([hidden])):not(.searching){height:56px;grid-template-rows:44px;grid-template-areas:"destination actions"}
+  body.vault-reading .masthead:has(.shell-context:has(> :not([hidden]))):not(.searching){height:56px;grid-template-rows:44px;grid-template-areas:"destination actions"}
 }
 
 /* The wiki has no library tools; leave no empty row for them under the header. */
@@ -152,3 +152,29 @@ a.vault-tag:hover{text-decoration:underline}
 .vault-notebar .vault-page-actions>.vault-graph-note{min-width:0;min-height:0;padding:0 8px;background:transparent}
 .vault-notebar .vault-graph-modes>button{display:block;width:auto;height:32px;min-width:0;min-height:0;padding:0 12px;white-space:nowrap}
 @media (hover:none){.vault-folder-rename{min-width:40px;min-height:40px}}
+
+/* On a phone the vault is one column, so the page scrolls and nothing is a fixed-height box. The workspace used
+   to stay 559px tall with overflow hidden while the pane inside it was 969px, and the body was locked too --
+   the notes home simply could not move. */
+@media (max-width: 760px) {
+  body.vault-reading {
+    overflow: auto;
+  }
+
+  html:has(body.vault-reading) {
+    overflow: auto;
+    overscroll-behavior: auto;
+  }
+
+  body.vault-reading .vault-workspace {
+    height: auto;
+    min-height: 0;
+    overflow: visible;
+  }
+
+  body.vault-reading .vault-pane {
+    height: auto;
+    max-height: none;
+    overflow: visible;
+  }
+}

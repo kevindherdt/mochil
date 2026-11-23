@@ -1,0 +1,19 @@
+[
+  {
+    "artwork_url": "/api/audio-artwork/music/0000000000000000000000001329dc0f?size=card\u0026v=000000000000000000000000",
+    "container": "mp3",
+    "download_url": "/audio/music/0000000000000000000000001329dc0f/A%20Steady%20Light.mp3?download=1",
+    "id": "0000000000000000000000001329dc0f",
+    "library_id": "music",
+    "library_kind": "music",
+    "library_name": "Music",
+    "media_type": "audio/mpeg",
+    "modified": "\u003credacted\u003e",
+    "path": "A Steady Light.mp3",
+    "player_artwork_url": "/api/audio-artwork/music/0000000000000000000000001329dc0f?size=player\u0026v=000000000000000000000000",
+    "revision": "000000000000000000000000",
+    "size": 11,
+    "stream_url": "/audio/music/0000000000000000000000001329dc0f/A%20Steady%20Light.mp3",
+    "title": "A Steady Light"
+  }
+]

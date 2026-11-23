@@ -1,0 +1,12 @@
+/* Deliberately violates law L1 (position: fixed outside shell/) and law L7 (@media outside shell/ and ui/).
+   Not imported anywhere; exists for scripts/check-lint-fixtures.mjs to prove the stylelint rules fire. */
+.badFixed {
+  position: fixed;
+  bottom: 0;
+}
+
+@media (min-width: 600px) {
+  .badFixed {
+    bottom: 8px;
+  }
+}

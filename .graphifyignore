@@ -1,0 +1,4 @@
+internal/web/static/vendor/
+node_modules/
+android/.gradle/
+android/app/build/

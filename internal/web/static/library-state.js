@@ -15,9 +15,13 @@ export function createLibraryState({ storage = localStorage } = {}) {
   function initializeSelection() {
     if (selectionReady) return selectedLibrary;
     const saved = storage.getItem("mochil-library");
-    selectedLibrary = visibleLibraries.some((library) => library.id === saved)
+    // Library is the landing page, so the first thing opened must be a library of books -- not the notes vault you
+    // happened to visit last. Notes stay reachable from the dock.
+    const readable = visibleLibraries.filter((library) => !/wiki|documents|vault|notes/i.test(library.id || ""));
+    const pool = readable.length ? readable : visibleLibraries;
+    selectedLibrary = pool.some((library) => library.id === saved)
       ? saved
-      : visibleLibraries[0]?.id || "";
+      : pool[0]?.id || "";
     selectionReady = true;
     persistSelection();
     return selectedLibrary;

@@ -1,0 +1,519 @@
+/* Everything the phone needed that the desktop never did: the bar, the browse pills, the cover-first shelf and the
+   dock's clearance. Kept apart from card-shell.css so neither file has to grow past its budget. */
+/* Four things a phone showed that the desktop never did. */
+@media (max-width: 760px) {
+  /* The bar was transparent and only frosted once scrolled, so content smeared through it and at the top it
+     looked like an empty floating rectangle. A phone bar is opaque, with a hairline only when content is under it. */
+  .masthead,
+  .masthead:not(.searching) {
+    background: var(--bg);
+    backdrop-filter: none;
+    border-bottom-color: transparent;
+  }
+
+  .shell-scrolled .masthead {
+    background: var(--bg);
+    backdrop-filter: none;
+    border-bottom-color: var(--line);
+  }
+
+  /* Settings has nothing to switch between, so the shelf selector has no business sitting there. */
+  body:has(#settings-view:not([hidden])) .masthead-destination {
+    display: none;
+  }
+
+  /* The chat page has its own composer at the bottom; the dock sat on top of the message box. */
+  body:has(.hm-shell) #dock,
+  body:has(.hm-shell) .dock-picker {
+    display: none;
+  }
+
+  /* Title, then the author — the author pill was pinned 44px lower, leaving a hole in every card. */
+  .book-meta {
+    min-height: 0;
+    margin-top: 4px;
+  }
+}
+
+/* A one-line title reserved a second line of empty space, which is the hole above the author name. */
+@media (max-width: 760px) {
+  .series-card h2,
+  .book-grid .book strong,
+  .series-books .book strong {
+    min-height: 0;
+  }
+}
+
+/* A card is as tall as what it says. The grid used to stretch every card in a row to the tallest one, so a
+   one-line author left a band of card background under the text -- the empty space under the titles. */
+@media (max-width: 760px) {
+  #library-view .book-grid,
+  #library-view .series-cover-grid,
+  #library-view .series-books .grid,
+  #library-view .series-focus-books .grid,
+  #library-view .collection-index > .grid {
+    align-items: start;
+  }
+}
+
+/* The specification's grid is cover-first: no card box, no outline, a rounded poster, the title underneath and one
+   muted metadata line. Only the focused tile gets a ring, so browsing reads as a shelf rather than a set of panels. */
+@media (max-width: 760px) {
+  #library-view .book-grid .book:not(.book-list-item),
+  #library-view .series-cover-grid .series-card,
+  #library-view .series-books .grid .book,
+  #library-view .series-focus-books .grid .book,
+  #library-view .collection-index > .grid .book {
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: none;
+    box-shadow: none;
+  }
+
+  #library-view .book-grid .book:not(.book-list-item):hover,
+  #library-view .series-cover-grid .series-card:hover:not(:focus-visible) {
+    border: 0;
+    background: none;
+  }
+
+  #library-view .book-grid .book:not(.book-list-item) .cover-frame,
+  #library-view .series-cover-grid .series-card .cover-frame,
+  #library-view .series-books .grid .book .cover-frame,
+  #library-view .series-focus-books .grid .book .cover-frame {
+    border-radius: var(--r-12);
+    box-shadow: 0 8px 20px #0006;
+  }
+
+  /* One ring on the whole tile, the way the design marks focus, instead of a border on every card. */
+  #library-view .book-grid .book:not(.book-list-item):focus-within .cover-frame,
+  #library-view .series-cover-grid .series-card:focus-within .cover-frame {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+  }
+
+  #library-view .book-grid .book strong,
+  #library-view .series-books .book strong,
+  #library-view .series-focus-books .grid .book strong,
+  #library-view .series-cover-grid .series-card h2 {
+    margin-top: 8px;
+    font: 600 var(--fs-14) / 1.25 "Source Sans", "Segoe UI", sans-serif;
+    color: var(--text);
+  }
+
+  #library-view .book-grid .book-meta small,
+  #library-view .series-cover-grid .series-card p,
+  #library-view .series-books .book-meta small {
+    margin-top: 2px;
+    color: var(--muted);
+    font-size: var(--fs-12);
+    line-height: 1.2;
+  }
+
+  /* The author was drawn as an outlined pill inside every card; the design keeps it as quiet text. */
+  #library-view .series-cover-grid .series-card p,
+  #library-view .series-books .book-meta small {
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: none;
+  }
+}
+
+/* The design's browse row is a line of pills on the page, not a tray: each chip its own pill, the active one filled,
+   and no panel behind them. */
+@media (max-width: 760px) {
+  #library-view .publication-destinations {
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: none;
+    box-shadow: none;
+  }
+
+  #library-view .publication-destinations > button {
+    min-height: 32px;
+    padding-inline: 13px;
+    border: 1px solid color-mix(in srgb, var(--line) 55%, transparent);
+    border-radius: var(--r-pill);
+    background: color-mix(in srgb, var(--surface) 50%, transparent);
+    color: var(--muted);
+    font-size: var(--fs-13);
+  }
+
+  #library-view .publication-destinations > button.active {
+    border-color: var(--accent);
+    background: var(--accent);
+    color: var(--accent-ink);
+    font-weight: 650;
+  }
+
+  #library-view .publication-destinations > button svg {
+    width: 15px;
+    height: 15px;
+  }
+}
+
+/* app.css's phone rule set `main { padding: ... max(40px, safe-area) }` with the shorthand, which overwrote the
+   dock's own bottom padding: the last section of every page sat under the bar (the persona box, Continue
+   listening). This is spelled out again with a specificity the shorthand cannot beat. */
+@media (max-width: 760px) {
+  body:has(#dock:not([hidden])) > main,
+  body:has(#dock:not([hidden])) #library-view,
+  body:has(#dock:not([hidden])) #settings-view,
+  body:has(#dock:not([hidden])) #dashboard-view {
+    padding-bottom: calc(var(--dock-h, 60px) + 28px + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+/* The design's top-left control shows the shelf's name. Ours hid the select (opacity: 0, 52px wide) so only an
+   icon and a chevron were left: an empty square. This is the pill, with the name readable and no native arrow. */
+@media (max-width: 760px) {
+  .masthead .shelf-switcher {
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 6px;
+    width: auto;
+    max-width: min(52vw, 220px);
+    height: 36px;
+    padding: 0 8px 0 12px;
+    border: 1px solid color-mix(in srgb, var(--line) 45%, transparent);
+    border-radius: var(--r-pill);
+    background: color-mix(in srgb, var(--surface) 60%, transparent);
+  }
+
+  .masthead .shelf-switcher select {
+    width: auto;
+    max-width: min(34vw, 150px);
+    height: 100%;
+    opacity: 1;
+    appearance: none;
+    background: none;
+    color: var(--text);
+    font: 650 var(--fs-13) / 1 "Source Sans", "Segoe UI", sans-serif;
+    text-overflow: ellipsis;
+  }
+
+  .masthead .shelf-switcher > svg {
+    width: 15px;
+    height: 15px;
+    flex: 0 0 auto;
+    color: var(--muted);
+  }
+
+  .masthead .shelf-switcher:focus-within {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+}
+
+/* The vault library was a 100%-tall clipped grid -- correct for a split reading pane on a desktop, fatal on a
+   phone: the 969px of notes sat inside a 694px box with overflow hidden, so the page could not move at all. */
+@media (max-width: 760px) {
+  #library-view.vault-library-view,
+  body.vault-reading #library-view.vault-library-view {
+    height: auto;
+    min-height: 0;
+    overflow: visible;
+    display: block;
+  }
+
+  #library-view.vault-library-view > .document-index {
+    height: auto;
+    min-height: 0;
+  }
+}
+
+/* The design's top-left control says which shelf you are in. The enhanced menu was a 72px square with only the
+   mark and a chevron, so the name never appeared: show it as a pill with the label. */
+@media (max-width: 760px) {
+  .masthead .shelf-switcher.library-menu-enhanced {
+    /* Sized to the name, with a floor: `auto` collapsed the pill to the icon inside the flex masthead. */
+    width: max-content;
+    min-width: 104px;
+    max-width: min(56vw, 230px);
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    height: 36px;
+    padding: 0 10px;
+    border: 1px solid color-mix(in srgb, var(--line) 45%, transparent);
+    border-radius: var(--r-pill);
+    background: color-mix(in srgb, var(--surface) 60%, transparent);
+  }
+
+  .masthead .library-menu-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    width: 100%;
+    min-width: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--text);
+    font: 650 var(--fs-13) / 1 "Source Sans", "Segoe UI", sans-serif;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .masthead .library-menu-mark {
+    flex: 0 0 auto;
+    width: 18px;
+    height: 18px;
+  }
+
+  .masthead .library-menu-button > span {
+    display: inline-block;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+/* vault.css pins main to `100dvh - masthead` for the desktop split pane. On a phone that box clipped 1,101px of
+   notes into 796px and the document never grew, so the page could not scroll at all. */
+@media (max-width: 760px) {
+  body.vault-reading > main,
+  body.vault-reading.vault-reading > main {
+    height: auto;
+    min-height: 0;
+    overflow: visible;
+  }
+}
+
+/* The design's rail header carries the count on the right, and its progress line is a 3px rule on the cover's
+   bottom edge rather than a labelled bar with a heavy scrim. */
+@media (max-width: 760px) {
+  .reading-rail header,
+  .jump-rail header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .rail-count {
+    color: var(--muted);
+    font: 600 var(--fs-12) / 1 "Source Sans", "Segoe UI", sans-serif;
+    font-variant-numeric: tabular-nums;
+  }
+
+  #library-view .book .cover-foot {
+    padding: 12px 8px 7px;
+    gap: 4px;
+    background: linear-gradient(to top, #00000099 0%, #00000000 100%);
+  }
+
+  #library-view .book .cover-foot-label {
+    font-size: var(--fs-11, 11px);
+  }
+
+  #library-view .book .cover-foot-bar {
+    height: 3px;
+    border-radius: 2px;
+  }
+}
+
+
+/* The library switcher as the design draws it: a scrolling row of pills, the active one filled, each with the
+   shelf's own icon and name. The dropdown stays for wide screens where the row would be a toolbar of its own. */
+@media (max-width: 760px) {
+  .library-pills {
+    display: flex;
+    flex: 1 1 auto;
+    min-width: 0;
+    gap: 6px;
+    margin: 0 6px 0 0;
+    padding: 2px 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-inline: contain;
+  }
+
+  .masthead .library-pills[hidden] {
+    display: none;
+  }
+
+  .masthead .library-pills::-webkit-scrollbar {
+    display: none;
+  }
+
+  .library-pill {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 34px;
+    padding: 0 13px 0 10px;
+    border: 1px solid color-mix(in srgb, var(--line) 45%, transparent);
+    border-radius: var(--r-pill);
+    background: color-mix(in srgb, var(--surface) 42%, transparent);
+    color: var(--muted);
+    font: 650 var(--fs-13) / 1 "Source Sans", "Segoe UI", sans-serif;
+    white-space: nowrap;
+    cursor: pointer;
+  }
+
+  .library-pill svg {
+    width: 15px;
+    height: 15px;
+    flex: 0 0 auto;
+  }
+
+  .library-pill.is-active {
+    border-color: var(--accent);
+    background: var(--accent);
+    color: var(--accent-ink);
+  }
+
+  /* With pills in the bar the old selector has no job; only the library view needs the row at all. */
+  .masthead .shelf-switcher {
+    display: none;
+  }
+
+  body:not(:has(#library-view:not([hidden]))) .masthead .library-pills {
+    display: none;
+  }
+}
+
+@media (min-width: 761px) {
+  .library-pills {
+    display: none;
+  }
+}
+
+@media (max-width: 760px) {
+  .masthead .shelf-switcher,
+  .masthead .shelf-switcher.library-menu-enhanced {
+    display: none;
+  }
+}
+
+/* The type tag belongs in the card's meta row, not over the artwork: on the sheet it reads as a pill beside the
+   author ("Narrated / Whispersync"), while ours sat on the cover title. The row aligns on the text baseline rather
+   than centring, so the taller pill does not push the author 6px further from the title above it. */
+@media (max-width: 760px) {
+  /* Title, then author, then the pill: the sheet stacks them. Inline, the pill floated to the right edge of a
+     narrow card and read as part of the author line. */
+  #library-view .book-meta {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  #library-view .book-meta small {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  #library-view .book-tag {
+    position: static;
+    flex: 0 0 auto;
+    margin: 0;
+    padding: 2px 8px;
+    border-radius: var(--r-pill);
+    background: color-mix(in srgb, var(--surface) 70%, transparent);
+    color: var(--muted);
+    font: 650 var(--fs-11, 11px) / 1.6 "Source Sans", "Segoe UI", sans-serif;
+  }
+
+  #library-view .series-card p .book-tag {
+    display: none;
+  }
+}
+
+
+/* The search field kept its 200px while closed, squeezing the library pills into a 101px window. Closed means
+   gone; open means it takes the row and the pills step aside. */
+@media (max-width: 760px) {
+  .masthead:not(.searching) .search {
+    display: none;
+  }
+
+  .masthead.searching .search {
+    display: flex;
+    flex: 1 1 auto;
+    width: auto;
+    min-width: 0;
+  }
+
+  .masthead.searching .library-pills {
+    display: none;
+  }
+}
+
+/* The music/audiobook toolbar was pinned to a sticky offset meant for the old 116px bar, so it floated over the
+   shelf's own title on a phone. It scrolls with the page now, like the browse chips. */
+@media (max-width: 760px) {
+  .audio-toolbar,
+  #library-view .audio-toolbar {
+    position: static;
+    top: auto;
+    margin: 4px 0 10px;
+    background: none;
+    backdrop-filter: none;
+  }
+}
+
+/* When a shelf puts its own controls in the bar's second row (music, audiobooks), that row must be as tall as the
+   controls: 40px held a 44px toolbar, which spilled 36px down onto the shelf title. */
+@media (max-width: 760px) {
+  .masthead:has(.shell-context > :not([hidden])):not(.searching) {
+    height: auto;
+    grid-template-rows: 44px 44px;
+    row-gap: 2px;
+    padding-bottom: 2px;
+  }
+
+  .masthead .shell-context {
+    min-height: 44px;
+    overflow: visible;
+  }
+}
+
+/* The mock-ups draw the card as a surface with a hairline border and the cover inset inside it -- not a bare
+   poster floating on the page. The cover is a rounded plate with padding around it, the badge sits top-right,
+   the text starts under it, and a quiet pill closes the card. */
+@media (max-width: 760px) {
+  #library-view .book-grid .book:not(.book-list-item),
+  #library-view .series-cover-grid .series-card {
+    display: grid;
+    gap: 8px;
+    padding: 10px 10px 12px;
+    border: 1px solid color-mix(in srgb, var(--line) 38%, transparent);
+    /* A literal radius: --r-14 is not defined, so the card was coming out square. */
+    border-radius: 14px;
+    background: color-mix(in srgb, var(--surface) 52%, transparent);
+  }
+
+  #library-view .book-grid .book:not(.book-list-item) .cover-frame,
+  #library-view .series-cover-grid .series-card .cover-frame {
+    border-radius: var(--r-10);
+    box-shadow: none;
+  }
+
+  #library-view .book-grid .book strong,
+  #library-view .series-cover-grid .series-card h2 {
+    margin-top: 2px;
+  }
+}
+
+@media (max-width: 760px) {
+  /* Cards in a row share a height, so a book with a series line does not leave its neighbour short. */
+  #library-view .book-grid {
+    align-items: stretch;
+  }
+
+  #library-view .book-grid .book:not(.book-list-item) {
+    height: 100%;
+    grid-template-rows: auto auto auto 1fr;
+  }
+}

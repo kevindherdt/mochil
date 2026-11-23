@@ -84,10 +84,12 @@ test("a card without a readable image keeps its plain surface", () => {
   assert.equal(element.style.values["--art-tint"], undefined);
 });
 
-test("the tint is mixed in at a strength that cannot fight the text", () => {
+test("a card is a flat surface, and its edge cannot fight the text", () => {
   const css = read("card-surface.css");
   const rule = css.match(/:is\([\s\S]*?\)\s*\{[\s\S]*?\}/)?.[0] || "";
-  assert.match(rule, /radial-gradient\([^)]*var\(--art-tint, var\(--accent\)\) 15%/);
+  // The artwork wash over every card was a second gradient on the page; the sheet's cards are flat.
+  assert.doesNotMatch(rule, /radial-gradient/);
+  assert.match(rule, /background: var\(--card-bg\)/);
   assert.match(css, /--card-bg: color-mix\(in srgb, var\(--surface\) 90%, var\(--text\) 5%\)/);
   assert.match(css, /--card-edge: inset 0 1px 0/);
   assert.match(read("dashboard.css"), /\.jump-card\{[^}]*var\(--art-tint/);

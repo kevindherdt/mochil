@@ -1,4 +1,5 @@
-import { createVideoContinueRail } from "./video-continue-rail.js?v=1";
+import { createVideoContinueRail, watchedLabel } from "./video-continue-rail.js?v=1";
+import { mountHero } from "./home-hero.js?v=1";
 import { mountVideoLibrary } from "./video-library-template.js?v=2";
 import { lazyOnce, reportLoadFailure } from "./lazy-once.js?v=1";
 import { loadFeatureStyles } from "./feature-style-loader.js?v=1";
@@ -13,7 +14,7 @@ export function createDeferredVideoController({ document, $, escapeHTML, request
   const ensure = lazyOnce(() =>
     Promise.all([
       loadFeatureStyles(document, ["/assets/video-player.css?v=7", "/assets/video-controls.css?v=4"]),
-      import("./video-library.js?v=66"),
+      import("./video-library.js?v=67"),
     ]).then(([, { createVideoLibrary }]) => {
       controller = createVideoLibrary({ document, $, escapeHTML, requestJSON, isLibraryVisible, setNavigation });
       return controller;
@@ -42,6 +43,12 @@ export function createDeferredVideoController({ document, $, escapeHTML, request
       void ensure().then(value => { if (requestedGeneration === generation) value.open(item, title); }).catch(failed);
     } },
     addArtwork,
+    hero: mountHero({
+      document,
+      escaped: escapeHTML,
+      watchedLabel: progress => watchedLabel(progress),
+      onOpen: (item, title) => playerController.open(item, title),
+    }),
   });
 
   return {

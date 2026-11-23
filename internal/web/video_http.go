@@ -301,13 +301,21 @@ func (m *multiServer) videoSubtitle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	parts := strings.Split(strings.Trim(strings.TrimPrefix(r.URL.Path, "/api/video-subtitles/"), "/"), "/")
-	if len(parts) != 3 || !strings.HasSuffix(parts[2], ".vtt") {
+	// Two shapes: <lib>/<item>/<track>.vtt for text tracks (extracted on the fly), and
+	// <lib>/<item>/<track>/manifest.json plus <lib>/<item>/<track>/c00001.png for image-based tracks (PGS), which
+	// cannot be WebVTT at all. Android and older clients only ever asked for the first shape.
+	imageShape := len(parts) == 4 && (parts[3] == "manifest.json" || strings.HasSuffix(parts[3], ".png"))
+	if !imageShape && (len(parts) != 3 || !strings.HasSuffix(parts[2], ".vtt")) {
 		http.NotFound(w, r)
 		return
 	}
 	libraryID, firstErr := url.PathUnescape(parts[0])
 	itemID, secondErr := url.PathUnescape(parts[1])
-	streamIndex, thirdErr := strconv.Atoi(strings.TrimSuffix(parts[2], ".vtt"))
+	trackToken := parts[2]
+	if imageShape {
+		trackToken = parts[2]
+	}
+	streamIndex, thirdErr := strconv.Atoi(strings.TrimSuffix(trackToken, ".vtt"))
 	library, ok := m.library(libraryID)
 	if firstErr != nil || secondErr != nil || thirdErr != nil || !ok || library.Video == nil {
 		http.NotFound(w, r)
@@ -319,6 +327,10 @@ func (m *multiServer) videoSubtitle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer file.Close()
+	if imageShape {
+		m.serveSubtitleImage(w, r, library.Video.Open, item, streamIndex, parts[3])
+		return
+	}
 	allowed := false
 	for _, subtitle := range item.Subtitles {
 		if subtitle.Index == streamIndex && subtitle.Text {

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { visibleVideoContinuations } from '../static/video-continue-rail.js'
+import { visibleVideoContinuations, watchedLabel } from '../static/video-continue-rail.js'
 
 test('continue watching remains visible, playable, unfinished, and bounded', () => {
   const progress = { position_seconds:30, duration_seconds:100 }
@@ -18,4 +18,11 @@ test('continue watching remains visible, playable, unfinished, and bounded', () 
 
 test('invalid continuation payloads stay empty', () => {
   assert.deepEqual(visibleVideoContinuations(null, () => true), [])
+})
+
+// "0 min watched" on a rail that exists to resume things read as a mistake.
+test('a film just started says a percentage instead of zero minutes', () => {
+  assert.equal(watchedLabel({ position_seconds: 12, duration_seconds: 6000 }), '1% watched')
+  assert.equal(watchedLabel({ position_seconds: 1800, duration_seconds: 3600 }), '50% watched')
+  assert.equal(watchedLabel({ position_seconds: 30, duration_seconds: 0 }), 'In progress')
 })

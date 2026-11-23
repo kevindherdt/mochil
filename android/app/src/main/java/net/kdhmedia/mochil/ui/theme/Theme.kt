@@ -70,19 +70,21 @@ private fun light(primary: Long, background: Long, surface: Long, raised: Long, 
     )
 }
 
-// Mochil' own palettes. Ember (warm) is the default and Tide (cool) is its counterpart;
-// both keep a light and a dark scheme so the device's switch still means something.
-// Hexes match theme-tokens.css on the web.
-private val Ember = dark(0xFFFFA06B, 0xFF443C34, 0xFF504740, 0xFF5C5149, 0xFFF9F4EC, 0xFFD3C5B4)
-private val EmberLight = light(0xFFB8420A, 0xFFFDF1E3, 0xFFFFFAF3, 0xFFF6E2CD, 0xFF241608, 0xFF6F5540)
-private val Tide = dark(0xFF45DCD4, 0xFF334246, 0xFF3E4E53, 0xFF4A5C63, 0xFFEEF7F8, 0xFFB3C8CC)
-private val TideLight = light(0xFF0A7278, 0xFFEAF6F6, 0xFFF9FDFD, 0xFFD8EEEF, 0xFF0D2426, 0xFF4D6F73)
-// The mark's own colours (field #ff2e7e, pack #fff3e9, lid #8c003b), bolder than the rest on
-// purpose: Ember and Tide lean into chroma where the old palettes stayed muted.
-private val MagentaCream = dark(0xFFFF5C96, 0xFF2E2735, 0xFF393141, 0xFF453B4E, 0xFFFDF1E9, 0xFFC3B0BD)
-private val MagentaCreamLight = light(0xFFC81A5E, 0xFFFFF3E9, 0xFFFFFAF5, 0xFFFFE8DA, 0xFF2A0F1A, 0xFF7A5A60)
-private val EInkDark = dark(0xFFFFFFFF, 0xFF000000, 0xFF000000, 0xFF171717, 0xFFFFFFFF, 0xFFC9C9C9)
-private val EInkLight = light(0xFF111111, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFEEEEEE, 0xFF111111, 0xFF4A4A4A)
+// Mochil's own palettes, read from GeneratedTokens.kt (generated from design/tokens.json) instead of hand-mirrored
+// hex. This is what stops phone and web drifting apart: Compose's Tide used to be a different colour from the web's
+// (#45DCD4/#334246 here vs the web's #38e0c6/#0b2b2c) because nothing enforced the two stayed equal — found and
+// fixed 21 Nov 2026. One edit to tokens.json now reaches both.
+private fun darkFrom(c: GeneratedTokens.Mode): ColorScheme = dark(c.accent, c.bg, c.surface, c.raised, c.text, c.muted)
+private fun lightFrom(c: GeneratedTokens.Mode): ColorScheme = light(c.accent, c.bg, c.surface, c.raised, c.text, c.muted)
+
+private val Ember = darkFrom(GeneratedTokens.Mochil.Dark)
+private val EmberLight = lightFrom(GeneratedTokens.Mochil.Light)
+private val Tide = darkFrom(GeneratedTokens.Kiln.Dark)
+private val TideLight = lightFrom(GeneratedTokens.Kiln.Light)
+private val MagentaCream = darkFrom(GeneratedTokens.MagentaCream.Dark)
+private val MagentaCreamLight = lightFrom(GeneratedTokens.MagentaCream.Light)
+private val EInkDark = darkFrom(GeneratedTokens.Eink.Dark)
+private val EInkLight = lightFrom(GeneratedTokens.Eink.Light)
 
 /** Whether animations are switched off (the default on e-ink screens). Screens use [MotionVisibility] and [scrollTo] instead of animating directly. */
 val LocalReduceMotion = staticCompositionLocalOf { false }

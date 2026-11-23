@@ -76,7 +76,7 @@ func (m *multiServer) musicNamesPlan(w http.ResponseWriter, r *http.Request) {
 		tracks, notes = musicnames.PreClean(tracks)
 		tidied = true
 		settings := m.hermesSettings()
-		if settings.HelperConfigured() && settings.Feature("music") && len(tracks) <= maximumTidyTracks {
+		if settings.AskConfigured() && settings.Feature("music") && len(tracks) <= maximumTidyTracks {
 			ctx, cancel := context.WithTimeout(r.Context(), 75*time.Second)
 			reply, err := hermesAsk(ctx, settings, musicnames.TidyInstructions, musicnames.TidyMessage(tracks))
 			cancel()

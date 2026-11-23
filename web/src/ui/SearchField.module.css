@@ -1,0 +1,38 @@
+/* SearchField — the compact search input the header reveals when the search button is pressed (mock-up: the
+   magnifier sits in the icon cluster, the field only exists while searching). 32px tall to match IconButton, so
+   the row doesn't jump when it swaps. Tokens only (L3). */
+.wrap {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+  height: 32px;
+  padding: 0 var(--space-12);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-pill);
+  background: var(--color-raised);
+  color: var(--color-muted);
+  min-width: 0;
+}
+
+.input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: none;
+  color: var(--color-text);
+  font-family: inherit;
+  font-size: var(--font-size-13);
+  padding: 0;
+}
+
+.input::placeholder {
+  color: var(--color-muted);
+}
+
+.input:focus {
+  outline: none;
+}
+
+.wrap:focus-within {
+  border-color: var(--color-accent);
+}

@@ -1,0 +1,85 @@
+/* MediaGrid — the single card-grid rule (plan §4.3, ui-overhaul-plan.md "Grid: 4 columns at this width, 16–24px
+   gutters"). Container queries, not @media (L7): a grid responds to how wide its own container is, not the
+   viewport, so the same component drops into a narrow phone sheet or a wide desktop panel and just works.
+
+   A column-count breakpoint ladder, not auto-fill: a first attempt used `repeat(auto-fill, minmax(140px,190px))`
+   to stop cards ballooning on a wide desktop monitor (22 Nov 2026, once `wide` Page removed the 960px page cap).
+   That broke phones instead — measured live at 390px (358px available after Page's padding): the grid rendered
+   exactly ONE 190px column, not two (Kevin: "it used to be 2 next to each other"). The CSS spec's auto-fill
+   track-count algorithm uses a track's MAX sizing function for counting when the max is a definite length (not
+   `1fr`/`auto`) — so `minmax(140px, 190px)` picks how many columns fit using 190px, not 140px, which is the
+   opposite of what the rule reads like at a glance. A breakpoint ladder has no such gotcha: each step says
+   explicitly "N columns past this container width," so the already-correct phone behaviour (2 columns under
+   480px) stays exactly as it was, and the desktop-ballooning problem is fixed by simply not freezing the ladder
+   at 5 columns — it keeps adding a column every ~214px of container width (targeting ~190px cards, the same
+   width the original 5-column rule gave at exactly 1040px) instead of stretching the existing 5 forever. */
+.grid {
+  container-type: inline-size;
+}
+
+.inner {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-12);
+}
+
+@container (min-width: 480px) {
+  .inner {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@container (min-width: 760px) {
+  .inner {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: var(--space-24);
+  }
+}
+
+@container (min-width: 1040px) {
+  .inner {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}
+
+@container (min-width: 1260px) {
+  .inner {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+}
+
+@container (min-width: 1474px) {
+  .inner {
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+  }
+}
+
+@container (min-width: 1688px) {
+  .inner {
+    grid-template-columns: repeat(8, minmax(0, 1fr));
+  }
+}
+
+@container (min-width: 1902px) {
+  .inner {
+    grid-template-columns: repeat(9, minmax(0, 1fr));
+  }
+}
+
+@container (min-width: 2116px) {
+  .inner {
+    grid-template-columns: repeat(10, minmax(0, 1fr));
+  }
+}
+
+@container (min-width: 2330px) {
+  .inner {
+    grid-template-columns: repeat(11, minmax(0, 1fr));
+  }
+}
+
+@container (min-width: 2544px) {
+  .inner {
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+  }
+}

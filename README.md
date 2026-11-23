@@ -1,8 +1,7 @@
 # Mochil
 
-
-! Very important do not pull app as of this moment, I am rebuilding the entire UI to look a lot different better than before, Right now the mobile web and mobile desktop version are broken/incomplete.  New build will come as soon as I am happy with the results and everything is tested properly. No ETA at this moment, I don't like to rush updates and features etc, when it is ready it will be ready.
-Thanks for your understanding.
+**The rebuild has shipped.** 0.1.87 replaces the old web app with one written from scratch: the library, the
+reader, the metadata editor and the AI screen all live in it now. If you were waiting for it, this is it.
 
 One place for the books, comics, manga, audiobooks, podcasts and video I already own.
 

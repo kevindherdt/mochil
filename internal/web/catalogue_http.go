@@ -117,6 +117,11 @@ func (m *multiServer) apiBooks(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Book sort is invalid", http.StatusBadRequest)
 		return
 	}
+	statusValue := strings.TrimSpace(r.URL.Query().Get("status"))
+	if statusValue != "" && statusValue != bookStatusInProgress && statusValue != statusUnread && statusValue != bookStatusRead {
+		http.Error(w, "Book status is invalid", http.StatusBadRequest)
+		return
+	}
 	seriesValue := ""
 	if hasSeries {
 		seriesValue = wantSeries[0]
@@ -125,7 +130,7 @@ func (m *multiServer) apiBooks(w http.ResponseWriter, r *http.Request) {
 	if hasAuthor {
 		authorValue = wantAuthor[0]
 	}
-	view := publicationView("books", wantLibrary, strings.TrimSpace(queryValue), strings.ToUpper(strings.TrimSpace(bucketValue)), strconv.FormatBool(hasSeries), seriesValue, strconv.FormatBool(hasAuthor), authorValue, sortValue)
+	view := publicationView("books", wantLibrary, strings.TrimSpace(queryValue), strings.ToUpper(strings.TrimSpace(bucketValue)), strconv.FormatBool(hasSeries), seriesValue, strconv.FormatBool(hasAuthor), authorValue, sortValue, statusValue)
 	cursor, cursorErr := decodePublicationCursor(r.URL.Query().Get("cursor"))
 	if cursorErr != nil || (cursor.Kind != "" && (cursor.Kind != "books" || cursor.View != view)) {
 		http.Error(w, "Book cursor is invalid for this view", http.StatusBadRequest)
@@ -145,6 +150,9 @@ func (m *multiServer) apiBooks(w http.ResponseWriter, r *http.Request) {
 		offset = value
 	}
 	request := catalogquery.BooksRequest{LibraryID: wantLibrary, Query: queryValue, Bucket: bucketValue, Limit: limit, Offset: offset, AfterLibraryID: cursor.LibraryID, AfterBookID: cursor.ItemID, Sort: sortValue}
+	if statusValue != "" {
+		request.Keep = m.keepByReadingStatus(m.readingAccount(r), statusValue)
+	}
 	if hasSeries {
 		request.Series = &wantSeries[0]
 	}

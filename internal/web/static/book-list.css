@@ -92,7 +92,7 @@
 /* Phones: a compact letter strip, air between the tabs and the selector, and a smaller save button that stays inside the card. */
 @media (max-width:600px){
   :root{--catalog-sticky-top:116px}
-  nav.masthead.masthead:has(.shell-context:not([hidden])){height:116px;grid-template-rows:40px 52px;row-gap:14px}
+  nav.masthead.masthead:has(.shell-context:has(> :not([hidden]))){height:116px;grid-template-rows:40px 52px;row-gap:14px}
   .alphabet.alphabet-jump{margin:4px -14px 10px;padding:2px 14px;background:none;backdrop-filter:none;gap:0}
   .alphabet.alphabet-jump a,.alphabet.alphabet-jump button{min-width:30px;min-height:30px;padding:0;font-size:var(--fs-13)}
   .series-cover-grid .series-card .series-save:not(.series-hub-save){position:absolute;top:18px;right:18px;width:32px;height:32px;min-height:0}

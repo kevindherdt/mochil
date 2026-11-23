@@ -1,0 +1,42 @@
+{
+  "extends": ["stylelint-config-standard"],
+  "plugins": ["stylelint-declaration-strict-value"],
+  "ignoreFiles": ["src/styles/tokens.css", "src/features/__lint_fixtures__/**"],
+  "rules": {
+    "custom-property-pattern": null,
+    "selector-class-pattern": null,
+    "no-descending-specificity": null,
+    "color-hex-length": null
+  },
+  "overrides": [
+    {
+      "files": ["src/features/**/*.css", "src/ui/**/*.css"],
+      "rules": {
+        "declaration-property-value-disallowed-list": [
+          {
+            "position": ["/^(fixed|sticky)$/"],
+            "height": ["/vh$|dvh$|svh$|lvh$/"],
+            "min-height": ["/vh$|dvh$|svh$|lvh$/"],
+            "max-height": ["/vh$|dvh$|svh$|lvh$/"]
+          },
+          {
+            "message": "L1 (docs/rewrite-plan.md §4.2): only shell/ may use position:fixed/sticky or vh/dvh/svh/lvh units — everything else flows or reads --vvh."
+          }
+        ],
+        "at-rule-disallowed-list": [
+          ["media"],
+          {
+            "message": "L7: @media is banned outside shell/ and ui/ — primitives respond via container queries, not per-screen breakpoints."
+          }
+        ],
+        "scale-unlimited/declaration-strict-value": [
+          ["/color$/", "/^background/", "border-radius", "box-shadow", "font-size", "gap", "padding", "margin", "transition-duration", "animation-duration", "transition-timing-function"],
+          {
+            "ignoreValues": ["inherit", "initial", "unset", "none", "auto", "transparent", "currentColor", "0", "100%", "max-content", "min-content", "fit-content", "#fff", "#ffffff"],
+            "message": "L3 (docs/rewrite-plan.md §4.2): colour, spacing, radius, font-size, shadow and duration come from tokens (var(--...)) only — no raw px/hex/ms in ui/ or features/. (#fff is allowed: text/icons drawn over a photographic cover's scrim are white regardless of theme, by design — not a themeable surface colour.)"
+          }
+        ]
+      }
+    }
+  ]
+}

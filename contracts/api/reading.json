@@ -1,0 +1,26 @@
+[
+  {
+    "authors": [
+      "Nora Ashcombe"
+    ],
+    "bucket": "B",
+    "cfi": "epubcfi(/6/4)",
+    "cover_modified": "0001-01-01T00:00:00Z",
+    "cover_url": "/covers/books/owner-book",
+    "download_url": "/books/books/owner-book/Owner.epub",
+    "format": "epub",
+    "fraction": 0.42,
+    "id": "owner-book",
+    "library_id": "books",
+    "library_kind": "books",
+    "library_name": "Books",
+    "modified": "0001-01-01T00:00:00Z",
+    "path": "Owner.epub",
+    "read_url": "/reader/books/owner-book",
+    "revision": 1,
+    "series": "Bellwether",
+    "size": 0,
+    "title": "The Bellwether Line",
+    "updated_at": 0
+  }
+]

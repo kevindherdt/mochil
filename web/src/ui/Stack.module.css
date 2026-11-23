@@ -1,0 +1,5 @@
+/* Stack — vertical flex layout with a token-scale gap (plan §4.3). */
+.stack {
+  display: flex;
+  flex-direction: column;
+}

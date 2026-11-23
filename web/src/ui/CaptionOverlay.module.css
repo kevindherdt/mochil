@@ -1,0 +1,42 @@
+/* CaptionOverlay — our own cue box. The `--cue-*` properties are set inline from lib/subtitlePreferences, which works
+   here because this is real DOM, not the browser's cue shadow tree.
+
+   `lifted` raises the block while the transport row is visible; the values are the transport row's own height plus a
+   gap, declared locally so the two cannot drift apart without being edited together. */
+.captions {
+  --caption-lift: 132px;
+  --caption-max-width: 86%;
+  --caption-ink-shadow: rgb(0 0 0 / 90%);
+
+  position: absolute;
+  right: var(--space-16);
+  bottom: var(--space-16);
+  left: var(--space-16);
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+  max-width: var(--caption-max-width);
+  margin-inline: auto;
+  text-align: center;
+  pointer-events: none;
+  transition: bottom var(--duration-fast) var(--ease);
+}
+
+.lifted {
+  bottom: var(--caption-lift);
+}
+
+.line {
+  display: inline-block;
+  padding: 0 var(--space-8);
+  border-radius: var(--radius-4);
+  color: var(--cue-colour, #fff);
+  background: var(--cue-background, rgb(0 0 0 / 55%));
+  font-size: calc(var(--font-size-16) * var(--cue-scale, 1));
+  font-weight: 500;
+  line-height: 1.3;
+  text-shadow: var(--cue-edge, none);
+  white-space: pre-line;
+}

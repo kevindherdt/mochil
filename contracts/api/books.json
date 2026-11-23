@@ -1,0 +1,41 @@
+[
+  {
+    "authors": [
+      "Nora Ashcombe"
+    ],
+    "bucket": "B",
+    "cover_modified": "0001-01-01T00:00:00Z",
+    "cover_url": "/covers/books/owner-book",
+    "download_url": "/books/books/owner-book/Owner.epub",
+    "format": "epub",
+    "id": "owner-book",
+    "library_id": "books",
+    "library_kind": "books",
+    "library_name": "Books",
+    "modified": "0001-01-01T00:00:00Z",
+    "path": "Owner.epub",
+    "read_url": "/reader/books/owner-book",
+    "series": "Bellwether",
+    "size": 0,
+    "title": "The Bellwether Line"
+  },
+  {
+    "authors": [
+      "Nora Ashcombe"
+    ],
+    "bucket": "Q",
+    "cover_modified": "0001-01-01T00:00:00Z",
+    "cover_url": "/covers/books/reader-book",
+    "download_url": "/books/books/reader-book/Reader.epub",
+    "format": "epub",
+    "id": "reader-book",
+    "library_id": "books",
+    "library_kind": "books",
+    "library_name": "Books",
+    "modified": "0001-01-01T00:00:00Z",
+    "path": "Reader.epub",
+    "read_url": "/reader/books/reader-book",
+    "size": 0,
+    "title": "A Quiet Harbour"
+  }
+]

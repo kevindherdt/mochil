@@ -7,5 +7,5 @@ test('bulk TMDB match always asks the server with POST', async () => {
 	const source = await readFile(new URL('../static/video-metadata-match.js', import.meta.url), 'utf8')
 	const requests = source.match(/requestJSON\([^)]*\)[^)]*\)/g) || []
 	assert.ok(requests.length > 0)
-	for (const request of requests) assert.match(request, /method: 'POST'/)
+	for (const request of requests) assert.match(request, /method: ['"]POST['"]/)
 })

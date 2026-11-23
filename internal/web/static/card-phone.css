@@ -1,0 +1,114 @@
+/* The card itself: cover, title, type pill, and the reading state drawn on the artwork's bottom edge. */
+/* The mock-up's card carries a bookmark, not an overflow menu: the ⋯ over the artwork is a third control on a
+   tile that already opens on tap, and it sits where the cover's subject is. Actions stay reachable in list
+   layout and from the book's own page. */
+@media (max-width: 760px) {
+  #library-view .book-more--overlay {
+    display: none;
+  }
+
+  /* The series position lives on the cover as a small plate. It used to be a "Book 1" line under the title as
+     well, which said the same thing twice on the one card. */
+  #library-view .cover-vol {
+    display: block;
+  }
+
+  #library-view .book-series {
+    display: none;
+  }
+}
+
+/* The body copy of the state exists for the list layout; on a card the one over the artwork is the truth. */
+.book-foot {
+  display: none;
+}
+
+@media (max-width: 760px) {
+  /* The mock-up puts the state strip on the cover: a short scrim at the bottom edge, the word, a thin bar. It was
+     moved into the card body because a full-foot scrim covered too much of the artwork; at this height it only
+     shades the last eighth of the image, which is what the sheet shows. The copy in .book-foot stays in the DOM
+     for the list layout and stays hidden here -- two copies of the same line is not a design. */
+  #library-view .book-foot {
+    display: none;
+  }
+
+  #library-view .cover-frame .cover-foot {
+    gap: 4px;
+    padding: 14px 8px 7px;
+  }
+
+  #library-view .cover-frame .cover-foot-label {
+    font: 600 var(--fs-11) / 1.2 "Source Sans", "Segoe UI", sans-serif;
+    letter-spacing: .01em;
+  }
+
+  #library-view .cover-frame .cover-foot-bar {
+    height: 3px;
+    border-radius: 2px;
+    box-shadow: 0 0 0 1px #00000040;
+  }
+
+  /* The card closes with the type/state pill, as the mock-ups draw it: it sits under the title whether or not the
+     cover carries a state strip, because the two say different things ("72% read" and "Narrated"). */
+  #library-view .book-tag {
+    justify-self: start;
+    margin-top: 2px;
+  }
+}
+
+/* The mock-ups put the volume or number on the cover's top-right corner, as a small opaque plate. */
+@media (max-width: 760px) {
+  #library-view .cover-frame {
+    position: relative;
+  }
+
+  #library-view .cover-vol {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 2;
+    padding: 3px 8px;
+    border-radius: var(--r-pill);
+    background: color-mix(in srgb, var(--surface) 88%, transparent);
+    color: var(--text);
+    font: 650 var(--fs-11, 11px) / 1.4 "Source Sans", "Segoe UI", sans-serif;
+    white-space: nowrap;
+    pointer-events: none;
+  }
+
+  /* Nothing absorbs slack any more: the card ends where the pill ends. The 1fr row that used to swallow the
+     leftover height is what left a band of card under the pill. */
+  #library-view .book-grid .book:not(.book-list-item) {
+    grid-template-rows: none;
+    row-gap: 3px;
+  }
+
+  /* One pill height on every card, so a row of cards reads as a row. */
+  #library-view .book-tag {
+    height: 22px;
+    display: inline-flex;
+    align-items: center;
+    padding: 0 8px;
+    font-size: 11px;
+    line-height: 1;
+  }
+
+  /* The text under the cover is a fixed block -- two lines of title, one of author, one pill -- so the pill lands
+     on the same line in every card of a row instead of drifting with the title's length. */
+  #library-view .book-grid .book strong {
+    min-height: 2.5em;
+  }
+
+  #library-view .book-meta {
+    min-height: 22px;
+  }
+
+  /* A title is two lines, never more: a long name clamps instead of pushing the author and the pill down. */
+  #library-view .book-grid .book strong {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+    min-height: 0;
+  }
+}

@@ -195,3 +195,19 @@ test("a layout switch carries the visible card across the reload", () => {
   assert.deepEqual(events[1], ["restore", place]);
   assert.equal(state.itemLayout, "list");
 });
+
+// The bar carries ONE layout switch, not a two-button group: the button names the layout you would get and shows
+// the glyph of the one you are in. Splicing the fixture's array down to one button is what the markup does now.
+test("a single layout switch offers the other layout and reports the current one", () => {
+  const { buttons, state, toolbar } = fixture();
+  buttons.splice(1);
+  state.browse = "books";
+  state.itemLayout = "covers";
+  toolbar.render();
+  assert.equal(buttons[0].dataset.layout, "list", "the switch offers the layout you are not in");
+  assert.equal(buttons[0].pressed, "false", "covers is the layout in force");
+  buttons[0].onclick();
+  assert.equal(state.itemLayout, "list");
+  assert.equal(buttons[0].dataset.layout, "covers");
+  assert.equal(buttons[0].pressed, "true");
+});

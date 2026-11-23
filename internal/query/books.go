@@ -28,18 +28,21 @@ func (s *Service) Books(request BooksRequest) BooksResult {
 		}
 		selected = append(selected, library)
 	}
-	matches := func(indexed indexedBook) bool {
+	matches := func(libraryID string, indexed indexedBook) bool {
 		return (request.Series == nil || indexed.book.Series == *request.Series) &&
 			(request.Author == nil || bookHasAuthor(indexed.book, *request.Author)) &&
 			(bucket == "" || indexed.bucket == bucket) &&
-			(query == "" || strings.Contains(indexed.searchKey, query))
+			(query == "" || strings.Contains(indexed.searchKey, query)) &&
+			(request.Keep == nil || request.Keep(libraryID, indexed.book))
 	}
-	if len(selected) == 1 && request.Series == nil && request.Author == nil && request.Sort == "recent" && query == "" && bucket == "" {
+	// Every fast path below is only valid when nothing else filters the shelf; Keep is a filter, so a status view
+	// always takes the general scan. (A fast path that ignores Keep would count and page the whole library.)
+	if request.Keep == nil && len(selected) == 1 && request.Series == nil && request.Author == nil && request.Sort == "recent" && query == "" && bucket == "" {
 		return selected[0].recentPage(request)
 	}
 	// A single library without series ordering is already title-sorted by its
 	// index. Count the complete result but retain only the requested window.
-	if len(selected) == 1 && request.Series == nil && request.Author == nil && request.Sort == "" {
+	if request.Keep == nil && len(selected) == 1 && request.Series == nil && request.Author == nil && request.Sort == "" {
 		library := selected[0]
 		if query == "" && bucket == "" {
 			indexed := library.snapshot()
@@ -66,7 +69,7 @@ func (s *Service) Books(request BooksRequest) BooksResult {
 		total, start := 0, offset
 		anchorFound := request.AfterBookID == ""
 		for _, indexed := range library.snapshot() {
-			if !matches(indexed) {
+			if !matches(library.library.ID, indexed) {
 				continue
 			}
 			if !anchorFound {
@@ -89,7 +92,7 @@ func (s *Service) Books(request BooksRequest) BooksResult {
 	for _, library := range selected {
 		books := library.snapshot()
 		for index := range books {
-			if matches(books[index]) {
+			if matches(library.library.ID, books[index]) {
 				matched = append(matched, matchRef{library: library, indexed: &books[index]})
 			}
 		}

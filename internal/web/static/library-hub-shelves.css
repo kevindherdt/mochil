@@ -1,0 +1,378 @@
+/* The shelf head, toolbar and phone header of the Library hub, split out of library-hub.css when it passed the
+  550-line budget. The seam is a top-level @media boundary, so every rule keeps the cascade position it had. */
+@media (max-width: 760px) {
+  /* The active pill already says which library you are in, so the back arrow and the bar's copy of the name are
+     two ways of saying it a third and fourth time. Both go whenever the pill row is on screen. */
+  body:has(#library-pills:not([hidden])) .masthead > .masthead-back,
+  body:has(#library-pills:not([hidden])) .masthead > .masthead-title {
+    display: none;
+  }
+
+  /* With only the actions left the bar is a thin row instead of a 48px band with nothing in it. */
+  body:has(#library-pills:not([hidden])) .masthead {
+    grid-template-columns: minmax(0, 1fr) auto !important;
+    padding: 0 10px;
+    min-height: 40px;
+  }
+
+  body:has(#library-pills:not([hidden])) .masthead > .masthead-actions {
+    grid-column: 2;
+  }
+
+  /* The pill row is the switcher: one line, scrolled sideways, never wrapped into a stack of rows. */
+  .library-pills {
+    display: flex !important;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+  }
+
+  .library-pills::-webkit-scrollbar {
+    display: none;
+  }
+
+  .library-pill {
+    flex: 0 0 auto;
+  }
+
+  /* Every chip group -- Discover/Series/Authors, All/Collections, the A-Z index -- is one scrolling line. They were
+     stacking into three rows of vertical space. */
+  .masthead > .shell-context,
+  .shell-context {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    align-items: center;
+    gap: 8px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+    white-space: nowrap;
+  }
+
+  .shell-context::-webkit-scrollbar {
+    display: none;
+  }
+
+  .shell-context > * {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+}
+
+@media (max-width: 760px) {
+  /* The row's display rule is important so it cannot be un-set by older stylesheets; that also defeated the
+     hidden attribute, which is how the app says "no pills on this page". */
+  .library-pills[hidden] {
+    display: none !important;
+  }
+}
+
+@media (max-width: 760px) {
+  /* Three rows, top to bottom, in the order the design reads: the bar, the library pills, then the browse chips.
+     As separate containers they overlapped and drifted; as grid rows in one bar they stack predictably. */
+  .masthead > .library-pills {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    margin: 6px 0 2px;
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 6px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+  }
+
+  .masthead > .library-pills::-webkit-scrollbar {
+    display: none;
+  }
+
+  .masthead > .library-pills[hidden] {
+    display: none !important;
+  }
+
+  .masthead > .shell-context {
+    grid-column: 1 / -1;
+    grid-row: 3;
+  }
+
+  /* The bar is no longer a fixed 48px strip: it grows to whatever rows it holds, so no row is clipped. */
+  body:has(.masthead > .library-pills:not([hidden])) .masthead {
+    height: auto !important;
+    min-height: 0;
+    max-height: none;
+    padding: 6px 10px 8px;
+  }
+}
+
+@media (max-width: 760px) {
+  /* Every browse chip -- Discover, Series, Authors, All, Collections -- is one scrolling line instead of two or
+     three stacked rows that ate the top third of the screen. :not([hidden]) keeps the row honest when the app
+     hides it -- an !important display would otherwise paint an empty 44px row. */
+  .browse-controls:not([hidden]) {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    align-items: center;
+    gap: 8px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+    white-space: nowrap;
+    padding: 0;
+  }
+
+  .browse-controls::-webkit-scrollbar {
+    display: none;
+  }
+
+  .browse-controls > * {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+
+  /* The bar reserved a second row for a context strip that holds only the audio head, which is empty on a book
+     shelf: 44px of blank bar. The browse chips have their own row in the page, so the strip is not needed. */
+  .masthead > .shell-context {
+    display: none !important;
+  }
+
+  /* Same treatment for the A-Z index: one slim scrolling line, not a block. Written as :not([hidden]) because the
+     display rule has to be !important, and an !important display also defeats the hidden attribute -- the media
+     jump nav on a book shelf is empty but was still painting a blank 30px rounded strip under the letters. */
+  .alphabet:not([hidden]),
+  #library-view .alphabet:not([hidden]) {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    height: 30px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+  }
+
+  .alphabet::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@media (max-width: 760px) {
+  /* The chips live inside a destination rail that wraps them into rows; flattening the rail puts Discover, Series,
+     Authors, All and Collections on one scrolling line. */
+  .browse-controls > .publication-destinations,
+  .browse-controls > .destination-rail {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    gap: 8px;
+    overflow: visible;
+    width: auto;
+    flex: 0 0 auto;
+  }
+
+  .browse-controls > .publication-destinations > *,
+  .browse-controls > .destination-rail > * {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+
+  /* The layout toggle is two icon buttons; it goes to the end of the same line rather than a row of its own. */
+  .browse-controls > .layout-toggle {
+    flex: 0 0 auto;
+    margin-left: auto;
+  }
+}
+
+@media (max-width: 760px) {
+  /* The design reads top to bottom as pills, then the icon cluster (search, sort, AI) on the right. The pills take
+     row one across the full width and the actions drop to row two. */
+  .masthead > .library-pills {
+    grid-row: 1 !important;
+    margin: 0 0 2px;
+  }
+
+  .masthead > .masthead-actions {
+    grid-row: 2 !important;
+    grid-column: 1 / -1 !important;
+    justify-self: end;
+    margin: 0 !important;
+  }
+}
+
+@media (max-width: 760px) {
+  /* The bar -- pills, icons, chips -- is chrome, so it stays put while the shelf scrolls under it. It was scrolling
+     away with the content, which is the "upper pills move off the screen" report. */
+  .masthead,
+  .masthead:not(.searching),
+  .masthead.searching {
+    position: sticky;
+    top: 0;
+    z-index: 60;
+    background: var(--bg);
+  }
+}
+
+@media (max-width: 760px) {
+  /* The document must not scroll on a phone. When it does, Chrome hides and re-shows its own toolbar, which drags a
+     fixed dock down out of view on scroll-up and pulls sticky chrome up with it. So the shell is a fixed frame:
+     body is the column, the bar sits at the top, the dock sits at the bottom in normal flow, and only main scrolls.
+     A fixed-position dock is no longer needed at all -- nothing can move it, because nothing moves the page. */
+  html:has(body:not(.vault-reading)) {
+    height: 100%;
+    overflow: hidden;
+  }
+
+  body:not(.vault-reading) {
+    display: flex;
+    flex-direction: column;
+    /* The visible height, published by dock.js from the visual viewport, with 100dvh as the pre-script fallback.
+       dvh alone put the dock behind Firefox Android's bottom navigation bar while Chrome drew it cleanly. */
+    height: var(--visible-height, 100dvh);
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  body:not(.vault-reading) > .masthead {
+    position: relative;
+    top: auto;
+    flex: 0 0 auto;
+  }
+
+  body:not(.vault-reading) > main {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    /* The dock is in flow now, so the old clearance for a floating bar would leave a dead band. */
+    padding-bottom: 12px;
+  }
+
+  body:not(.vault-reading) > .dock {
+    position: static;
+    flex: 0 0 auto;
+    padding-bottom: calc(6px + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+@media (max-width: 760px) {
+  /* The bar's second row was a 48px band holding one search icon. The design puts the shelf's name on the left of
+     that row and the search / sort / AI cluster on the right, so the row earns its height. */
+  body:has(#library-pills:not([hidden])) .masthead > .masthead-title {
+    display: block;
+    grid-row: 2;
+    grid-column: 1;
+    margin: 0 8px 0 2px;
+    font: 700 19px / 1.2 "Source Sans", "Segoe UI", sans-serif;
+    letter-spacing: -.01em;
+  }
+
+  body:has(#library-pills:not([hidden])) .masthead > .masthead-actions {
+    grid-row: 2;
+    grid-column: 2;
+  }
+
+  body:has(#library-pills:not([hidden])) .masthead {
+    grid-template-columns: minmax(0, 1fr) auto !important;
+  }
+
+  /* Cards: the mock-up's card is cover, title, author -- about 40px of type under the cover, not 90px of gaps. */
+  #library-view .book {
+    padding: 0 0 10px;
+  }
+
+  #library-view .book .book-meta,
+  #library-view .book .book-title,
+  #library-view .book .book-author,
+  #library-view .book h3,
+  #library-view .book p {
+    min-height: 0 !important;
+    margin: 0 !important;
+  }
+
+  #library-view .book .book-title,
+  #library-view .book h3 {
+    margin: 6px 0 0 !important;
+    font-size: 14px !important;
+    line-height: 1.25 !important;
+  }
+
+  #library-view .book .book-author,
+  #library-view .book .book-subtitle {
+    margin-top: 2px !important;
+    font-size: 12.5px !important;
+    line-height: 1.3 !important;
+  }
+
+  /* Dock: five places in the same rhythm as the design -- 20px glyph, 10px label, no fat padding. */
+  .dock {
+    padding: 5px 6px calc(4px + env(safe-area-inset-bottom, 0px));
+    gap: 0;
+  }
+
+  .dock-place {
+    gap: 1px;
+    padding: 4px 1px 2px;
+    border-radius: var(--r-10);
+    font-size: 10px;
+    line-height: 1.05;
+  }
+
+  .dock-place svg {
+    width: 20px;
+    height: 20px;
+  }
+}
+
+/* The sheet's phone header is four compact bands -- pills, name + count, chips, cards. The A-Z index row was a
+   fifth band of 30px for a jump list the design does not show, and the bar carried a second icon row under the
+   pills, so the first cover started ~250px down. */
+@media (max-width: 760px) {
+  /* The jump rail carries alphabet-jump, which is the phone variant -- hide the row itself, whatever class it has. */
+  /* Same shape as the strip fix above: the one-line A-Z rule is !important, so hiding the row has to be too. */
+  #library-view #alphabet:not([hidden]) {
+    display: none !important;
+  }
+
+  body:has(#library-pills:not([hidden])) .masthead {
+    padding: 4px 12px 2px;
+    min-height: 0;
+  }
+
+  .masthead > .library-pills {
+    margin: 0;
+    gap: 8px;
+  }
+
+  .library-pill {
+    min-height: 34px;
+    padding: 0 12px;
+    font-size: 13px;
+  }
+
+  /* The heading, the count and the icon cluster are one compact block, the way the sheet stacks them. */
+  #library-view .shelf-head {
+    margin: 6px 2px 0;
+  }
+
+  #library-view .shelf-title {
+    font-size: 19px;
+    line-height: 1.15;
+  }
+
+  #library-view .shelf-meta {
+    font-size: 12px;
+    margin-top: 1px;
+  }
+
+  #library-view .library-tools {
+    margin: 4px 0 2px;
+    padding: 2px 0;
+  }
+
+  #library-view .browse-controls {
+    min-height: 36px;
+  }
+
+  #library-view .browse-controls > * {
+    min-height: 32px;
+  }
+}

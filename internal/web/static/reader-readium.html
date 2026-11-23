@@ -7,7 +7,7 @@
   <title>Reader (Readium preview) · Mochil</title>
   <script src="/assets/reader-readium-engine.js"></script>
   <link rel="icon" type="image/png" href="/assets/icons/favicon-32.png" />
-  <link rel="stylesheet" href="/assets/design-tokens.css?v=3">
+  <link rel="stylesheet" href="/assets/design-tokens.css?v=5">
   <link rel="stylesheet" href="/assets/reader.css?v=15">
   <link rel="stylesheet" href="/assets/reader-readium.css?v=17">
   <link rel="stylesheet" href="/assets/motion.css?v=4">
@@ -41,14 +41,12 @@
   <dialog id="reader-settings" aria-labelledby="reader-settings-title">
     <header><h2 id="reader-settings-title">Settings</h2><button class="reader-button" id="close-settings" aria-label="Close settings"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button></header>
     <div class="rs-tabs" role="tablist" aria-label="Settings sections">
-      <button type="button" role="tab" id="rs-tab-text" data-rs-tab="text" aria-selected="true" aria-controls="rs-panel-text">Text</button>
-      <button type="button" role="tab" id="rs-tab-layout" data-rs-tab="layout" aria-selected="false" tabindex="-1" aria-controls="rs-panel-layout">Layout</button>
-      <button type="button" role="tab" id="rs-tab-appearance" data-rs-tab="appearance" aria-selected="false" tabindex="-1" aria-controls="rs-panel-appearance">Appearance</button>
-      <button type="button" role="tab" id="rs-tab-paging" data-rs-tab="paging" aria-selected="false" tabindex="-1" aria-controls="rs-panel-paging">Page turning</button>
-      <button type="button" role="tab" id="rs-tab-narration" data-rs-tab="narration" aria-selected="false" tabindex="-1" aria-controls="narration-settings" hidden>Read aloud</button>
+      <button type="button" role="tab" id="rs-tab-typography" data-rs-tab="typography" aria-selected="true" aria-controls="rs-panel-typography">Typography</button>
+      <button type="button" role="tab" id="rs-tab-narration" data-rs-tab="narration" aria-selected="false" tabindex="-1" aria-controls="narration-settings" hidden>Narration</button>
+      <button type="button" role="tab" id="rs-tab-display" data-rs-tab="display" aria-selected="false" tabindex="-1" aria-controls="rs-panel-display">Display &amp; theme</button>
     </div>
     <div class="rs-body">
-      <section class="rs-section" id="rs-panel-text" role="tabpanel" data-rs-panel="text" aria-labelledby="rs-tab-text"><h3>Text</h3>
+      <section class="rs-section" id="rs-panel-typography" role="tabpanel" data-rs-panel="typography" aria-labelledby="rs-tab-typography"><h3>Typography</h3>
         <div class="rs-row"><span>Size</span><div class="rs-stepper"><button type="button" id="size-down" aria-label="Smaller text">−</button><output id="size-readout">100%</output><button type="button" id="size-up" aria-label="Larger text">+</button></div></div>
         <label class="rs-row"><span>Font</span><select id="reading-font"><option value="">Book default</option><option value="serif">Serif</option><option value="sans-serif">Sans serif</option><option value="monospace">Monospace</option></select></label>
         <label class="rs-row"><span>Add font</span><input id="reading-font-upload" type="file" accept=".ttf,.otf,.woff,.woff2"></label>
@@ -56,29 +54,25 @@
         <p class="rs-note" id="reading-font-status" role="status">Custom fonts are stored only in this browser (up to 10 fonts, 10 MB each).</p>
         <label class="rs-row"><span>Line spacing</span><select id="reading-line-height"><option value="1.4">Compact</option><option value="1.6">Comfortable</option><option value="1.8">Relaxed</option><option value="2">Wide</option></select></label>
       </section>
-      <section class="rs-section" id="rs-panel-layout" role="tabpanel" data-rs-panel="layout" aria-labelledby="rs-tab-layout" hidden><h3>Layout</h3>
-        <label class="rs-row"><span>Reading mode</span><select id="reading-flow" aria-describedby="reading-flow-note"><option value="paginated">Pages</option><option value="scrolled">Scroll</option></select></label>
-        <p class="rs-note" id="reading-flow-note">Scroll is not a continuous webtoon mode and may not apply to fixed-layout books.</p>
-        <label class="rs-row"><span>Pages on screen</span><select id="reading-columns" aria-describedby="reading-columns-note"><option value="0">Automatic</option><option value="1">One page</option><option value="2">Two pages (wide screens)</option></select></label>
-        <p class="rs-note" id="reading-columns-note">Pages on screen applies in Pages mode. Two pages may use one on narrow screens.</p>
-        <label class="rs-row"><span>Page margins</span><select id="reading-margin"><option value="16">Minimal</option><option value="24">Narrow</option><option value="40">Comfortable</option><option value="64">Wide</option></select></label>
-        <p class="rs-note">Text and layout settings apply to reflowable EPUBs; fixed-layout books may not change.</p>
+      <section class="rs-section" id="narration-settings" role="tabpanel" data-rs-panel="narration" aria-labelledby="rs-tab-narration" hidden><h3>Narration</h3>
+        <label class="rs-field" hidden>Language<select id="narration-language"></select></label>
+        <label class="rs-field">Voice<select id="narration-voice"></select></label>
+        <div class="rs-pair"><label class="rs-field">Speed<select id="narration-speed"></select></label><label class="rs-field">Sleep timer<select id="narration-sleep"><option value="0">Off</option><option value="15">15 minutes</option><option value="30">30 minutes</option><option value="45">45 minutes</option><option value="60">1 hour</option><option value="chapter">End of this chapter</option></select></label></div>
+        <p class="rs-note" id="narration-sleep-left"></p>
       </section>
-      <section class="rs-section" id="rs-panel-appearance" role="tabpanel" data-rs-panel="appearance" aria-labelledby="rs-tab-appearance" hidden><h3>Appearance</h3>
+      <section class="rs-section" id="rs-panel-display" role="tabpanel" data-rs-panel="display" aria-labelledby="rs-tab-display" hidden><h3>Display &amp; theme</h3>
         <label class="rs-row"><span>Reader theme</span><select id="reading-theme"><option value="app">Match app</option><option value="light">Light</option><option value="sepia">Sepia</option><option value="dark">Night</option></select></label>
         <label class="rs-field" for="reading-warmth">Warm filter <output id="reading-warmth-value" for="reading-warmth">Off</output></label>
         <input id="reading-warmth" type="range" min="0" max="100" step="1" value="0" aria-describedby="reading-warmth-note">
         <p class="rs-note" id="reading-warmth-note">Applies a sepia tint to the whole book, including images; colors may shift and become less vivid. This is not a calibrated blue-light filter.</p>
         <p class="rs-note" id="reading-warmth-status" role="status" aria-live="polite"></p>
-      </section>
-      <section class="rs-section" id="rs-panel-paging" role="tabpanel" data-rs-panel="paging" aria-labelledby="rs-tab-paging" hidden><h3>Page turning</h3>
+        <label class="rs-row"><span>Reading mode</span><select id="reading-flow" aria-describedby="reading-flow-note"><option value="paginated">Pages</option><option value="scrolled">Scroll</option></select></label>
+        <p class="rs-note" id="reading-flow-note">Scroll is not a continuous webtoon mode and may not apply to fixed-layout books.</p>
+        <label class="rs-row"><span>Pages on screen</span><select id="reading-columns" aria-describedby="reading-columns-note"><option value="0">Automatic</option><option value="1">One page</option><option value="2">Two pages (wide screens)</option></select></label>
+        <p class="rs-note" id="reading-columns-note">Pages on screen applies in Pages mode. Two pages may use one on narrow screens.</p>
+        <label class="rs-row"><span>Page margins</span><select id="reading-margin"><option value="16">Minimal</option><option value="24">Narrow</option><option value="40">Comfortable</option><option value="64">Wide</option></select></label>
         <label class="rs-row"><span>Tap zones</span><select id="tap-zones-select"><option value="edges">Edges</option><option value="one hand">One hand</option><option value="off">Off</option></select></label>
-      </section>
-      <section class="rs-section" id="narration-settings" role="tabpanel" data-rs-panel="narration" aria-labelledby="rs-tab-narration" hidden><h3>Read aloud</h3>
-        <label class="rs-field" hidden>Language<select id="narration-language"></select></label>
-        <label class="rs-field">Voice<select id="narration-voice"></select></label>
-        <div class="rs-pair"><label class="rs-field">Speed<select id="narration-speed"></select></label><label class="rs-field">Sleep timer<select id="narration-sleep"><option value="0">Off</option><option value="15">15 minutes</option><option value="30">30 minutes</option><option value="45">45 minutes</option><option value="60">1 hour</option><option value="chapter">End of this chapter</option></select></label></div>
-        <p class="rs-note" id="narration-sleep-left"></p>
+        <p class="rs-note">Text, layout and theme settings apply to reflowable EPUBs; fixed-layout books may not change.</p>
       </section>
     </div>
   </dialog>
@@ -88,7 +82,7 @@
     <p id="book-search-status" role="status"></p>
     <div id="book-search-results"></div>
   </dialog>
-  <script type="module" src="/assets/reader-readium.js?v=55"></script>
+  <script type="module" src="/assets/reader-readium.js?v=58"></script>
   <script type="module" src="/assets/readium-warm-filter.js?v=2"></script>
 </body>
 </html>

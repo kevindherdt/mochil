@@ -1,4 +1,4 @@
-import { jumpCardHTML } from './jump-back-in.js?v=24'
+import { jumpCardHTML } from './jump-back-in.js?v=30'
 
 /** Books put on hold or dropped, on Home under Finished: folded, and only there when something is shelved. */
 export function heldBooks(books, isLibraryVisible = () => true, limit = 48) {

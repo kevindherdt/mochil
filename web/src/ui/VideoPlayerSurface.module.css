@@ -1,0 +1,311 @@
+/* VideoPlayback — the full-screen player's chrome. A feature component, not a screen: law L2 lets a feature own its
+   layout while a screen may not, which is exactly why this file exists next to screens/VideoPlayerScreen.tsx rather
+   than inside it.
+
+   Law L1 also applies here: no position:fixed/sticky and no vh/dvh. The shell's `shellBare` wrapper owns the viewport
+   (fixed, height --vvh) and this fills it. Sizes that are genuinely optical — the transport buttons, the scrubber's
+   hit area — are local custom properties, declared once per element that uses them.
+
+   The colours below are not themeable surface colours: a player's ground is black and its chrome is white over a black
+   scrim whatever palette the app is in (the same reasoning that allows #fff over cover art). They are declared as
+   custom properties so each value exists in one place and law L3 sees tokens rather than raw colour on a background. */
+.screen {
+  --video-ground: rgb(0 0 0);
+
+  width: 100%;
+  height: 100%;
+  background: var(--video-ground);
+}
+
+.centred {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-12);
+  width: 100%;
+  height: 100%;
+  padding: var(--space-24);
+  box-sizing: border-box;
+  background: var(--video-ground);
+}
+
+/* WebVTT captions are drawn by ui/CaptionOverlay, not by the browser: the cue shadow tree ignores custom properties,
+   sizes inconsistently across engines and cannot be moved away from the transport row. The only rule needed here is
+   to keep the browser from painting its own copy — the track is set to "hidden" for that, and this is the belt to
+   that braces, in case a track ever slips through as "showing". */
+.player video::cue {
+  background-color: transparent;
+}
+
+.player {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background: var(--video-ground);
+}
+
+.video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: var(--video-ground);
+}
+
+/* Controls fade rather than slide: opacity only, which is what law L7 allows to animate. */
+.topBar,
+.bottomBar,
+.centrePlay {
+  transition: opacity 150ms var(--ease);
+}
+
+.idle .topBar,
+.idle .bottomBar,
+.idle .centrePlay {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.topBar {
+  --scrim-top: linear-gradient(to bottom, rgb(0 0 0 / 70%), transparent);
+
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-12);
+  padding: var(--space-16);
+  background: var(--scrim-top);
+  color: #fff;
+}
+
+.titleBlock {
+  flex: 1;
+  min-width: 0;
+}
+
+.title {
+  display: block;
+  overflow: hidden;
+  font-size: var(--font-size-14);
+  font-weight: 600;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.topActions {
+  display: flex;
+  gap: var(--space-4);
+}
+
+.bottomBar {
+  --scrim-bottom: linear-gradient(to top, rgb(0 0 0 / 78%), transparent);
+
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+  padding: var(--space-16);
+  background: var(--scrim-bottom);
+  color: #fff;
+}
+
+.scrubber {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.track {
+  --scrubber-height: 6px;
+  --scrubber-track: rgb(255 255 255 / 22%);
+
+  position: relative;
+  height: var(--scrubber-height);
+  border-radius: var(--radius-pill);
+  background: var(--scrubber-track);
+}
+
+.buffered,
+.played {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  border-radius: var(--radius-pill);
+}
+
+.buffered {
+  --scrubber-buffered: rgb(255 255 255 / 34%);
+
+  background: var(--scrubber-buffered);
+}
+
+.played {
+  background: var(--color-accent);
+}
+
+/* The range input sits over the drawn bar and is the actual control: transparent so the bar shows through, full width
+   so the whole strip is draggable, and taller than the bar so a thumb is reachable with a fingertip. */
+.range {
+  --scrubber-hit: 14px;
+
+  position: absolute;
+  inset: calc(var(--scrubber-hit) * -0.5) 0;
+  width: 100%;
+  height: var(--scrubber-hit);
+  margin: 0;
+  background: transparent;
+  appearance: none;
+  cursor: pointer;
+}
+
+.range::-webkit-slider-thumb {
+  --scrubber-thumb: 14px;
+
+  width: var(--scrubber-thumb);
+  height: var(--scrubber-thumb);
+  border: none;
+  border-radius: var(--radius-pill);
+  background: #fff;
+  appearance: none;
+}
+
+.range::-moz-range-thumb {
+  --scrubber-thumb: 14px;
+
+  width: var(--scrubber-thumb);
+  height: var(--scrubber-thumb);
+  border: none;
+  border-radius: var(--radius-pill);
+  background: #fff;
+}
+
+.range:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 4px;
+}
+
+.times {
+  --times-ink: rgb(255 255 255 / 78%);
+
+  display: flex;
+  justify-content: space-between;
+  font-size: var(--font-size-12);
+  font-variant-numeric: tabular-nums;
+  color: var(--times-ink);
+}
+
+/* The transport is a floating capsule rather than loose glyphs on bare film. Over a bright scene the old row lost
+   its shape entirely; a translucent surface with a hairline keeps the controls readable without a heavier scrim. */
+.transportRow {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: var(--space-8);
+}
+
+.transport {
+  --transport-surface: rgb(0 0 0 / 55%);
+  --transport-line: rgb(255 255 255 / 12%);
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-12);
+  padding: var(--space-4) var(--space-8);
+  border: 1px solid var(--transport-line);
+  border-radius: var(--radius-pill);
+  background: var(--transport-surface);
+  backdrop-filter: blur(10px);
+}
+
+.transportEnd {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-4);
+}
+
+.iconButton,
+.playButton,
+.textButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: none;
+  color: #fff;
+  cursor: pointer;
+}
+
+.iconButton {
+  --player-icon-button: 44px;
+
+  width: var(--player-icon-button);
+  height: var(--player-icon-button);
+  border-radius: var(--radius-pill);
+}
+
+.playButton {
+  --player-play-button: 60px;
+  --play-surface: rgb(255 255 255 / 16%);
+
+  width: var(--player-play-button);
+  height: var(--player-play-button);
+  border-radius: var(--radius-pill);
+  background: var(--play-surface);
+}
+
+.iconButton:hover,
+.playButton:hover {
+  --hover-surface: rgb(255 255 255 / 22%);
+
+  background: var(--hover-surface);
+}
+
+.centrePlay {
+  --player-centre-button: 84px;
+  --centre-surface: rgb(0 0 0 / 46%);
+
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--player-centre-button);
+  height: var(--player-centre-button);
+  border: none;
+  border-radius: var(--radius-pill);
+  background: var(--centre-surface);
+  color: #fff;
+  cursor: pointer;
+  transform: translate(-50%, -50%);
+}
+
+.textButton {
+  --soft-surface: rgb(255 255 255 / 16%);
+
+  padding: var(--space-8) var(--space-16);
+  border-radius: var(--radius-pill);
+  background: var(--soft-surface);
+  font-size: var(--font-size-13);
+}
+
+.spinner {
+  --spinner-ink: rgb(255 255 255 / 72%);
+
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: var(--font-size-13);
+  color: var(--spinner-ink);
+}

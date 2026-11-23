@@ -24,16 +24,30 @@ var (
 // given a one-line task once looped through Home Assistant calls for an hour. A plain model has nothing to wander into,
 // and no long agent prompt to read first. It keeps no history, so helpers never show up among the person's chats.
 // The caller owns the timeout.
+// helperTarget says where a one-shot question goes. A dedicated helper model wins when one is configured; otherwise the
+// question goes to the Hermes gateway itself — the same address, key and model the chat uses — so the one-shots follow
+// whatever the profile runs by default instead of needing a second endpoint kept in step with it.
+func helperTarget(settings appconfig.Hermes) (base, model, key string, ok bool) {
+	if settings.HelperConfigured() {
+		address := strings.TrimRight(strings.TrimSpace(settings.HelperURL), "/")
+		if !strings.HasSuffix(address, "/v1") {
+			address += "/v1"
+		}
+		return address, strings.TrimSpace(settings.HelperModel), "", true
+	}
+	if !settings.AskConfigured() {
+		return "", "", "", false
+	}
+	return strings.TrimRight(strings.TrimSpace(settings.URL), "/") + "/v1", strings.TrimSpace(settings.Model), strings.TrimSpace(settings.Key), true
+}
+
 func hermesAsk(ctx context.Context, settings appconfig.Hermes, system, user string) (string, error) {
-	if !settings.HelperConfigured() {
+	base, model, key, ok := helperTarget(settings)
+	if !ok {
 		return "", errHelperNotSet
 	}
-	base := strings.TrimRight(strings.TrimSpace(settings.HelperURL), "/")
-	if !strings.HasSuffix(base, "/v1") {
-		base += "/v1"
-	}
 	request, _ := json.Marshal(map[string]any{
-		"model": strings.TrimSpace(settings.HelperModel), "stream": false,
+		"model": model, "stream": false,
 		"reasoning_effort": "none", // thinking models: just answer (ignored by servers that do not know it)
 		"messages":         []map[string]string{{"role": "system", "content": system}, {"role": "user", "content": user}},
 	})
@@ -42,6 +56,9 @@ func hermesAsk(ctx context.Context, settings appconfig.Hermes, system, user stri
 		return "", errors.Join(errHermesUnreachable, err)
 	}
 	call.Header.Set("Content-Type", "application/json")
+	if key != "" {
+		call.Header.Set("Authorization", "Bearer "+key)
+	}
 	response, err := (&http.Client{}).Do(call)
 	if err != nil {
 		return "", errors.Join(errHermesUnreachable, err)

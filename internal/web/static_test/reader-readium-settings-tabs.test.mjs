@@ -19,20 +19,23 @@ test('every pre-existing settings control id is still present after the reorgani
   for (const id of ALL_CONTROL_IDS) assert.ok(html.includes(`id="${id}"`), `${id} is still present`)
 })
 
-test('the settings dialog is organized into a tablist with one tab per former section', async () => {
+// Three tabs, not five: Text, Layout, Appearance and Page turning were regrouped into two (Typography, Display & theme)
+// because five tabs on a phone put the last two below the fold. Narration is the third and only appears when a book can
+// be read aloud.
+test('the settings dialog is organized into a tablist of typography, display and narration', async () => {
   const html = await readFile(htmlPath, 'utf8')
   assert.match(html, /role="tablist"/)
-  for (const label of ['Text', 'Layout', 'Appearance', 'Page turning', 'Read aloud']) {
+  for (const label of ['Typography', 'Display &amp; theme', 'Narration']) {
     assert.match(html, new RegExp(`<button[^>]*role="tab"[^>]*>${label}</button>`), `a tab button exists for ${label}`)
   }
   const tabpanelCount = (html.match(/role="tabpanel"/g) || []).length
-  assert.equal(tabpanelCount, 5, 'five tab panels (Text, Layout, Appearance, Page turning, Read aloud)')
+  assert.equal(tabpanelCount, 3, 'three tab panels (Typography, Display & theme, Narration)')
 })
 
 test('only the first tab panel is visible until a different tab is chosen', async () => {
   const html = await readFile(htmlPath, 'utf8')
   const panels = [...html.matchAll(/<section[^>]*role="tabpanel"[^>]*>/g)].map(m => m[0])
-  assert.equal(panels.length, 5)
+  assert.equal(panels.length, 3)
   assert.ok(!/\shidden/.test(panels[0]), 'first panel starts visible')
   for (const panel of panels.slice(1)) assert.ok(/\shidden/.test(panel), 'later panels start hidden')
 })

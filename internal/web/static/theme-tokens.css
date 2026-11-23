@@ -68,15 +68,17 @@
 :root[data-palette="material"][data-theme="dark"],
 [data-swatch][data-palette="kiln"][data-theme="dark"] {
   color-scheme: dark;
-  --bg: #334246;
-  --surface: #3e4e53;
-  --raised: #4a5c63;
-  --line: #5f7980;
-  --text: #eef7f8;
-  --muted: #b3c8cc;
-  --accent: #45dcd4;
+  /* Deep Teal, taken from the phone sheets: a nearly-black teal ground, cards a shade above it, and a cyan that
+     glows against both. The greys this replaced read as slate next to the design's warm-green depth. */
+  --bg: #0b2b2c;
+  --surface: #103638;
+  --raised: #164445;
+  --line: #1e4f50;
+  --text: #e7f6f3;
+  --muted: #93b7b2;
+  --accent: #38e0c6;
   --accent-ink: #04211f;
-  --wash: #0f5f61;
+  --wash: #0d4a4a;
   --error: #ff8f9e;
   --accent-video: #c084fc;
   --accent-music: #fbbf24;

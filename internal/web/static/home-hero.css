@@ -1,0 +1,82 @@
+/* Home's hero, per the design. */
+/* Home's hero, per the design: one large continuation card above the rails -- kicker, title, meta, and a filled
+   Resume button. It only exists when something is actually in progress. */
+@media (max-width: 760px) {
+  .home-hero {
+    margin: 4px 0 18px;
+    border-radius: 14px;
+    overflow: hidden;
+    background: var(--surface);
+  }
+
+  .home-hero[hidden] {
+    display: none;
+  }
+
+  .hero-inner {
+    position: relative;
+    display: grid;
+    gap: 0;
+  }
+
+  .hero-art {
+    display: block;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    object-fit: cover;
+    background: var(--raised);
+  }
+
+  .hero-copy {
+    position: absolute;
+    inset: auto 0 0;
+    display: grid;
+    gap: 6px;
+    padding: 44px 14px 14px;
+    background: linear-gradient(to top, #000000f2 0%, #000000a6 48%, #00000000 100%);
+    color: #fff;
+  }
+
+  .hero-kicker {
+    margin: 0;
+    color: var(--accent);
+    font: 700 var(--fs-11, 11px) / 1 "Source Sans", "Segoe UI", sans-serif;
+    letter-spacing: .09em;
+    text-transform: uppercase;
+  }
+
+  .hero-title {
+    margin: 0;
+    font: 600 26px / 1.1 Newsreader, Georgia, serif;
+    letter-spacing: -.02em;
+  }
+
+  .hero-meta {
+    margin: 0;
+    color: #ffffffc4;
+    font-size: var(--fs-12);
+  }
+
+  .hero-resume {
+    justify-self: start;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    min-height: 38px;
+    margin-top: 4px;
+    padding: 0 16px 0 12px;
+    border: 0;
+    border-radius: var(--r-pill);
+    background: var(--accent);
+    color: var(--accent-ink);
+    font: 700 var(--fs-14) / 1 "Source Sans", "Segoe UI", sans-serif;
+    cursor: pointer;
+  }
+
+  .hero-resume svg {
+    width: 17px;
+    height: 17px;
+    fill: currentColor;
+    stroke: none;
+  }
+}

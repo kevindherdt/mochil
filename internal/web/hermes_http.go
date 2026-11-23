@@ -26,10 +26,28 @@ import (
 
 const maximumHermesRequestBytes = 256 << 10
 
+// Attachments are base64 inside the chat request, so the ceiling has to be a real one rather than the 256 kB a
+// text-only message needed. Four files at 6 MB encoded is already more than any phone should push through a chat
+// box; the per-file limit below is the one a person actually hits.
+const (
+	maximumHermesAttachments     = 4
+	maximumHermesAttachmentBytes = 6 << 20
+	maximumHermesAttachmentTotal = 16 << 20
+)
+
 var (
 	hermesChatIDPattern = regexp.MustCompile(`^[a-z0-9][a-z0-9-]{7,47}$`)
 	hermesNotAlnum      = regexp.MustCompile(`[^a-z0-9]+`)
 )
+
+// hermesAttachment is one file riding along with a message. `Data` is standard base64 (no data: prefix) — the
+// browser reads the file and sends the bytes, so nothing has to be stored server-side and there is no upload
+// directory to clean up, expire or secure.
+type hermesAttachment struct {
+	Name      string `json:"name"`
+	MediaType string `json:"media_type"`
+	Data      string `json:"data"`
+}
 
 type hermesChatRequest struct {
 	Session string `json:"session"`
@@ -38,6 +56,8 @@ type hermesChatRequest struct {
 	Spoken bool `json:"spoken"`
 	// Interrupted is true when the person talked over her previous spoken reply, which was cut off.
 	Interrupted bool `json:"interrupted"`
+	// Attachments are images and plain-text documents sent with the message (a screenshot, a note, a CSV).
+	Attachments []hermesAttachment `json:"attachments"`
 }
 
 const hermesSpokenStyle = "Your reply will be read aloud. Answer the way you would speak: short, natural sentences, usually two to four of them unless asked for more. " +
@@ -400,9 +420,10 @@ func hermesRelay(w http.ResponseWriter, ctx context.Context, settings appconfig.
 	writeJSON(w, http.StatusOK, map[string]bool{"ok": true})
 }
 
-// hermesChat sends one message into a Hermes session and relays the streamed reply (server-sent events). The request
-// to Hermes runs to the end even if the browser goes away, so the reply is saved in the session and any device can
-// open it afterwards.
+// hermesAttachmentParts converts attachments into chat content parts, or returns a sentence saying why one cannot
+// be sent. Images go as data URLs; plain-text files are inlined as text, which works on every model; anything else
+// (a PDF, a Word file) is refused with a reason instead of being silently dropped — a person who attached their
+// tax return deserves to know it was not sent.
 func (m *multiServer) hermesChat(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		w.Header().Set("Allow", "POST")
@@ -415,7 +436,10 @@ func (m *multiServer) hermesChat(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var input hermesChatRequest
-	if err := decodeJSONRequest(w, r, maximumHermesRequestBytes, &input, true); err != nil {
+	// Base64 costs a third on top of the bytes themselves, so the JSON ceiling for a chat with attachments is the
+	// attachment budget plus the message, not the 256 kB a text-only request needed.
+	chatLimit := int64(maximumHermesRequestBytes + maximumHermesAttachmentTotal*4/3 + 64<<10)
+	if err := decodeJSONRequest(w, r, chatLimit, &input, true); err != nil {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "Invalid chat request"})
 		return
 	}
@@ -428,7 +452,7 @@ func (m *multiServer) hermesChat(w http.ResponseWriter, r *http.Request) {
 	if model == "" {
 		model = "hermes-agent"
 	}
-	messages := []map[string]string{}
+	messages := []any{}
 	guidance := hermesPersona(settings)
 	if input.Spoken {
 		guidance = strings.TrimSpace(guidance + "\n\n" + hermesSpokenStyle)
@@ -456,7 +480,19 @@ func (m *multiServer) hermesChat(w http.ResponseWriter, r *http.Request) {
 	if guidance != "" {
 		messages = append(messages, map[string]string{"role": "system", "content": guidance})
 	}
-	messages = append(messages, map[string]string{"role": "user", "content": input.Message})
+	parts, problem := hermesAttachmentParts(input.Attachments)
+	if problem != "" {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": problem})
+		return
+	}
+	if len(parts) == 0 {
+		messages = append(messages, map[string]string{"role": "user", "content": input.Message})
+	} else {
+		// OpenAI-style content parts: the text first, then the files. A model that cannot see images ignores the
+		// image part; one that can answers about them.
+		content := append([]any{map[string]any{"type": "text", "text": input.Message}}, parts...)
+		messages = append(messages, map[string]any{"role": "user", "content": content})
+	}
 	body, _ := json.Marshal(map[string]any{"model": model, "stream": true, "messages": messages})
 
 	ctx, cancel := context.WithTimeout(context.WithoutCancel(r.Context()), 15*time.Minute)

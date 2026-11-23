@@ -47,8 +47,11 @@ class BookCardTextTest {
     }
 
     @Test
-    fun `a finished book is complete on the artwork`() {
-        assertEquals("Read", bookProgressLabel(book(fraction = .98, finished = true)))
+    fun `a finished book is marked with a tick, not a strip over the artwork`() {
+        // The strip ("Read", a 100%-filled bar) is gone for a finished book -- BookFinishedBadge draws the one
+        // mark a reader needs in the cover's free corner instead, the same rule as the web's .cover-done (0.1.83).
+        assertNull(bookProgressLabel(book(fraction = .98, finished = true)))
+        assertEquals(false, bookProgressBarShown(book(fraction = .98, finished = true)))
         assertEquals("", bookCardTag(book(fraction = .98, finished = true)))
     }
 
@@ -96,6 +99,7 @@ class BookCardTextTest {
         val opened = book(fraction = 0.42)
         assertEquals("42% read", bookProgressLabel(opened))
         assertEquals(true, bookProgressBarShown(opened))
-        assertEquals(true, bookProgressBarShown(book(finished = true)))
+        // Finished has no bar and no label at all -- see "a finished book is marked with a tick..." above.
+        assertEquals(false, bookProgressBarShown(book(finished = true)))
     }
 }

@@ -32,7 +32,8 @@
   padding: var(--card-pad);
   border: 1px solid var(--card-border);
   border-radius: var(--card-radius);
-  background: radial-gradient(120% 78% at 4% 0%, color-mix(in srgb, var(--art-tint, var(--accent)) 15%, transparent), transparent 62%), var(--card-bg);
+  /* Flat: the artwork wash was a gradient over every card, and it read as the page gradient coming back. */
+  background: var(--card-bg);
   box-shadow: var(--card-edge);
   transition: background-color .18s ease, border-color .18s ease, transform .18s ease, box-shadow .18s ease;
 }
@@ -109,3 +110,27 @@
 @media (max-width:899px){#audio-index[data-kind="music"] #audio-items>.audio-item:not(.music-track-card){contain-intrinsic-size:auto 58px}}
 /* Rows that are skipped while off screen have to guess their height, and every wrong guess moves the page under your finger. Music lists are paged and covers load lazily, so they render in full. */
 #audio-index[data-kind="music"] #audio-items>.audio-item{content-visibility:visible}
+
+/* A finished book: one 18px tick in the free top-left corner of the cover. It replaces both the "Read" pill and the
+   100% strip, which turned a shelf of read books into a wall of green lines for a fact that needs one glance. */
+.cover-done {
+  position: absolute;
+  inset-block-start: 6px;
+  inset-inline-start: 6px;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #2fae5f;
+  color: #04211f;
+  box-shadow: 0 1px 3px #00000066;
+  pointer-events: none;
+}
+
+.cover-done svg {
+  width: 11px;
+  height: 11px;
+  display: block;
+}

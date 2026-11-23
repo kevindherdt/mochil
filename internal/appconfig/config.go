@@ -77,6 +77,12 @@ type Hermes struct {
 	HelperModel string `json:"helper_model,omitempty"`
 }
 
+// AskConfigured says whether a one-shot question has somewhere to go: a dedicated helper model, or the gateway itself
+// answering with whatever model the profile runs by default.
+func (h Hermes) AskConfigured() bool {
+	return h.HelperConfigured() || (strings.TrimSpace(h.URL) != "" && strings.TrimSpace(h.Model) != "")
+}
+
 // HelperConfigured says whether the one-shot helpers have a model to call.
 func (h Hermes) HelperConfigured() bool {
 	return strings.TrimSpace(h.HelperURL) != "" && strings.TrimSpace(h.HelperModel) != ""

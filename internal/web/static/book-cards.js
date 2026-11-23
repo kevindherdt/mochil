@@ -120,25 +120,35 @@ function seriesLine(book) {
   return `<small class="book-series">${escapeHTML(parts.join(' · '))}</small>`
 }
 
-// What the card says under its cover in one word, mirroring the app's card: state or format, never a
-// claim about the software. The mock-ups this follows print "AI Whispersync ready" on every cover.
+// What the card says under its cover in one word: the format or a state the cover cannot show. The cover already
+// prints the reading state and the bar, so repeating it here is how a card ended up saying "Started" above
+// "In progress" -- one fact, two lines, both competing for the same glance.
 function bookCardTag(book) {
-  // Every card carries one pill, as the mock-up does, and it reads the same state as the foot of the cover:
-  // two places deciding "started or not" is how a card ends up saying "Started" above "To read".
   if (book?.read_along) return 'Narrated'
+  // A pill is only worth its line when it says something the card cannot show by itself. Progress is already the
+  // strip on the cover, a finished book is the green tick, and "nobody has opened this" is the default state of a
+  // shelf -- printing it on every unread card is noise, and the shelf reads cleaner with no pill at all. Only a
+  // book the reader deliberately parked or dropped earns a word here.
   const status = book?.reading_progress?.status
   if (status === 'on_hold') return 'On hold'
   if (status === 'dropped') return 'Dropped'
-  const state = bookReadingState(book)
-  if (state.finished) return 'Read'
-  if (state.percentage > 0 || state.label === 'Started') return 'In progress'
-  return 'To read'
+  return ''
+}
+
+// A small green tick on the corner of a finished book's cover. 18px and no text, because "finished" is the one
+// state that is binary and needs no explanation; anything louder competes with the artwork it is drawn over.
+function finishedMark(book) {
+  if (!bookReadingState(book).finished) return ''
+  return '<span class="cover-done" role="img" aria-label="Finished"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2.6 6.2 5 8.5 9.4 3.8" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg></span>'
 }
 
 // The foot of a cover: the reading state in a word and a bar, printed over the artwork so the grid stays a
 // wall of covers. A book with no progress gets no foot at all.
 function coverFoot(book) {
   const state = bookReadingState(book)
+  // A finished book gets the small tick instead of a full-width "Read" strip: a 100% bar on every read book turns
+  // the shelf into a wall of green lines, and the tick says the same thing in 18px.
+  if (state.finished) return ''
   if (!state.label) return ''
   // A book opened once sits at a fraction of a percent; a bar drawn at that width is a 1px sliver that reads as
   // a rendering fault. Under one percent the foot says "Started" and shows no bar, which is the truth.
@@ -194,15 +204,15 @@ function bookMarkup(book, layout = 'covers', showListAuthor = true) {
       <span class="book-check" aria-hidden="true">${selectIcon}</span>
       ${bookMenu(book, true)}
       <a class="book-open" href="${book.read_url}" aria-label="Read ${escapeHTML(displayTitle(book))}">
-        <span class="cover-frame"><img class="cover" decoding="async" fetchpriority="low" data-src="${escapeHTML(book.cover_url)}" data-title="${escapeHTML(book.title)}" alt="Cover of ${escapeHTML(book.title)}">${readAlongMarkup(book, 'cover')}${coverFoot(book)}</span>
+        <span class="cover-frame"><img class="cover" decoding="async" fetchpriority="low" data-src="${escapeHTML(book.cover_url)}" data-title="${escapeHTML(book.title)}" alt="Cover of ${escapeHTML(book.title)}">${seriesIndex(book) ? `<span class="cover-vol">Vol. ${escapeHTML(String(seriesIndex(book)))}</span>` : ''}${readAlongMarkup(book, 'cover')}${coverFoot(book)}${finishedMark(book)}</span>
         <strong>${escapeHTML(displayTitle(book))}</strong>
       </a>
       ${seriesLine(book)}
-      <div class="book-meta"><small>${escapeHTML(author(book))}</small></div>
-      ${coverFoot(book) ? '' : `<span class="book-tag">${escapeHTML(bookCardTag(book))}</span>`}
+      <div class="book-meta"><small>${escapeHTML(author(book))}</small>${bookCardTag(book) ? `<span class="book-tag">${escapeHTML(bookCardTag(book))}</span>` : ''}</div>
+      <div class="book-foot">${coverFoot(book)}</div>
     </article>`
 }
 
 
-return { author, bookmarkIcon, bookCardTag, bookMarkup, displayTitle, seriesIndex, seriesIndexLabel, installCoverFallbacks, releaseCovers }
+return { author, bookmarkIcon, bookCardTag, bookMarkup, displayTitle, finishedMark, seriesIndex, seriesIndexLabel, installCoverFallbacks, releaseCovers }
 }

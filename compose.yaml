@@ -10,6 +10,7 @@ services:
       # reports the linker default and the settings page cannot tell one local build from another.
       args:
         VERSION: ${MOCHIL_VERSION:-local}
+        COMMIT: ${MOCHIL_COMMIT:-}
     image: mochil:local
     restart: unless-stopped
     healthcheck:

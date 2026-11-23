@@ -84,7 +84,9 @@ function setName(name) {
   state.name = name || "Hermes";
   document.title = `${state.name} · Mochil`;
   $("#hm-brand").textContent = state.name;
-  $("#hm-avatar").textContent = $("#hm-avatar-side").textContent = initial();
+  // The bar has no avatar any more (the design puts the name and the connection line up there); the sidebar
+  // and the empty state still carry her initial.
+  $("#hm-avatar-side").textContent = initial();
   $("#hm-input").placeholder = `Message ${state.name}`;
 }
 
@@ -176,7 +178,11 @@ async function refreshList() {
 }
 
 function setTitle() {
-  $("#hm-title").textContent = state.chats.find((chat) => chat.id === state.current)?.title || "New chat";
+  // The bar names the assistant, the way the design does; which conversation you are in is what the sidebar list
+  // and the document title are for. The chat's own name used to replace "Lyana AI" up here, so the screen never
+  // said what it was until you read the sidebar.
+  const chat = state.chats.find((item) => item.id === state.current);
+  document.title = chat?.title ? `${chat.title} · Lyana AI` : "Lyana AI · Mochil";
 }
 
 // Messages

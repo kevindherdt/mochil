@@ -1,0 +1,33 @@
+/* GridList — a list of cards that becomes columns once its container is wide enough.
+ *
+ * The Settings hub was a single 928 px strip of eleven cards inside a 1440 px window — the sheet calls for a
+ * two-column settings page and Phase 3 lists it as its open item. A plain `Stack` could not express that, and law
+ * L3 keeps media queries and raw column counts out of feature code, so the layout belongs in a primitive.
+ *
+ * Container queries, not @media (law L7), for the same reason MediaGrid uses them: this should respond to how much
+ * room it actually has — in a phone sheet, a narrow panel, or a full desktop column — rather than to the viewport,
+ * which knows nothing about the sidebar beside it. */
+.grid {
+  container-type: inline-size;
+}
+
+.inner {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-12);
+}
+
+/* One column stays the default up to a comfortable card width; 720px of container is where two of them fit
+   without the label/description pair starting to wrap. */
+@container (min-width: 720px) {
+  .inner {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-16);
+  }
+}
+
+@container (min-width: 1120px) {
+  .inner {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}

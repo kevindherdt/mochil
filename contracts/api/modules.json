@@ -1,0 +1,105 @@
+[
+  {
+    "default_on": false,
+    "description": "Movies, TV and anime with streaming, subtitles and resume.",
+    "enabled": true,
+    "id": "video",
+    "kinds": [
+      "movies",
+      "tv",
+      "anime"
+    ],
+    "name": "Video"
+  },
+  {
+    "default_on": false,
+    "description": "Audiobooks, podcasts and music with queue, playlists and chapters.",
+    "enabled": true,
+    "id": "audio",
+    "kinds": [
+      "audiobooks",
+      "podcasts",
+      "music"
+    ],
+    "name": "Audio"
+  },
+  {
+    "default_on": false,
+    "description": "Documents and the wiki vault.",
+    "enabled": true,
+    "id": "documents",
+    "kinds": [
+      "documents",
+      "vault"
+    ],
+    "name": "Documents"
+  },
+  {
+    "default_on": false,
+    "description": "Read any book aloud with a local Pocket TTS voice. Needs the voice runtime installed.",
+    "enabled": true,
+    "id": "narration",
+    "kinds": null,
+    "name": "Narration"
+  },
+  {
+    "default_on": false,
+    "description": "Mark books as currently reading or read on your Hardcover account. Uses the Hardcover token from the Metadata settings.",
+    "enabled": true,
+    "id": "hardcover",
+    "kinds": null,
+    "name": "Hardcover shelf sync"
+  },
+  {
+    "default_on": false,
+    "description": "Also send how far you are through each book to your Hardcover shelf, as a page count, at most every 15 minutes per book. Needs Hardcover shelf sync, and only touches books already on your shelf that Hardcover knows the page count of.",
+    "enabled": true,
+    "group": "hardcover",
+    "id": "hardcover_progress",
+    "kinds": null,
+    "name": "Hardcover reading progress",
+    "option": true
+  },
+  {
+    "default_on": false,
+    "description": "Send the star rating you give a book in the Library editor to your Hardcover shelf. Needs Hardcover shelf sync, and only changes books already on your shelf that Mochil has matched.",
+    "enabled": true,
+    "group": "hardcover",
+    "id": "hardcover_ratings",
+    "kinds": null,
+    "name": "Hardcover ratings",
+    "option": true
+  },
+  {
+    "default_on": false,
+    "description": "Chat with your Hermes Agent from Mochil. Needs the Hermes API server address and key in the config (hermes.url, hermes.key).",
+    "enabled": true,
+    "id": "hermes",
+    "kinds": null,
+    "name": "Hermes chat"
+  },
+  {
+    "default_on": false,
+    "description": "A Live2D character beside the Hermes chat that blinks, moves and speaks along with her voice. Put model folders in the avatar folder and choose one in Settings, Avatar. Needs the Hermes module.",
+    "enabled": true,
+    "id": "avatar",
+    "kinds": null,
+    "name": "Avatar"
+  },
+  {
+    "default_on": true,
+    "description": "A spreadsheet-style page to review and edit book titles, authors, series and numbers, one book or many at once. Edits are kept by Mochil and never change your files.",
+    "enabled": true,
+    "id": "editor",
+    "kinds": null,
+    "name": "Library editor"
+  },
+  {
+    "default_on": true,
+    "description": "Pairing, APK download and the API the Android app talks to.",
+    "enabled": true,
+    "id": "android",
+    "kinds": null,
+    "name": "Android app"
+  }
+]

@@ -14,6 +14,27 @@ import (
 type matchCandidate struct {
 	enrichment.Suggestion
 	Score float64 `json:"score"`
+	// Overview shadows the suggestion's own blurb so it can be left out of a list response. It is read in exactly one
+	// place — staging a match fills the description only when the book has none — and it is the largest field on the
+	// row (about 700 bytes each), so sending it for a book that already has a description is pure waste.
+	Overview string `json:"overview,omitempty"`
+}
+
+// forList returns the candidate as a list row should carry it: the blurb only when it is the only description there is.
+//
+// The value can be in either place: a candidate built right now has it on the embedded suggestion, and one that came
+// back from the on-disk cache has it on this struct's own field, because that is the field JSON writes. Read both
+// before clearing, or the second shape silently loses every blurb.
+func (c *matchCandidate) forList(row *editorRow) *matchCandidate {
+	blurb := c.Overview
+	if blurb == "" {
+		blurb = c.Suggestion.Overview
+	}
+	c.Overview = ""
+	if row.Description == "" {
+		c.Overview = blurb
+	}
+	return c
 }
 
 // matchScore ranks a candidate against a book: the title counts most, the author confirms it. A book with no known

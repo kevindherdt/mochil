@@ -1,0 +1,59 @@
+/* Composer — the message input row at the bottom of Lyana's chat (plan ui-overhaul-plan.md §B4). Shaped like
+   SearchField (pill input + icon action) since both are "a field plus one button", just taller to feel like
+   somewhere to type a sentence rather than a quick filter. Tokens only (L3). */
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+  padding: var(--space-8) var(--space-12);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-pill);
+  background: var(--color-raised);
+}
+
+.input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: none;
+  color: var(--color-text);
+  font-family: inherit;
+  font-size: var(--font-size-14);
+  padding: var(--space-4) 0;
+}
+
+.input::placeholder {
+  color: var(--color-muted);
+}
+
+.input:focus {
+  outline: none;
+}
+
+.row:focus-within {
+  border-color: var(--color-accent);
+}
+
+.send {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: var(--radius-pill);
+  background: var(--color-accent);
+  color: var(--color-bg);
+  cursor: pointer;
+}
+
+/* Disabled keeps the accent, dimmed, instead of falling back to the line colour: against the composer's raised surface
+   a line-coloured pill disappeared, so the control read as missing rather than unavailable (reported from a phone
+   screenshot). The icon stays above 3:1 against its own pill so it is still identifiable, while the faint fill says
+   "not yet". */
+.send:disabled {
+  background: color-mix(in srgb, var(--color-accent) 26%, var(--color-line));
+  color: color-mix(in srgb, var(--color-accent) 78%, var(--color-text));
+  cursor: default;
+}

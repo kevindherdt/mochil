@@ -38,7 +38,7 @@ var isbnAskJob = editorJob{
 	key: isbnAskKey,
 	available: func(m *multiServer) bool {
 		settings := m.hermesSettings()
-		return m.isbnFound != nil && settings.HelperConfigured() && settings.Feature("isbn")
+		return m.isbnFound != nil && settings.AskConfigured() && settings.Feature("isbn")
 	},
 	unavailable: "Asking needs a helper model and the ISBN ability switched on in Settings, Hermes.",
 	busy:        "Hermes is already looking at ISBNs in this library.",

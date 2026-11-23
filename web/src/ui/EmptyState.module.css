@@ -1,0 +1,14 @@
+/* EmptyState/ErrorState — one muted line + the one action that fixes it (plan §4.2, L5). Tokens only (L3). */
+.state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-12);
+  padding: var(--space-32);
+  text-align: center;
+  color: var(--color-muted);
+}
+
+.errorMessage {
+  color: var(--color-error);
+}

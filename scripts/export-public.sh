@@ -34,13 +34,13 @@ fi
 # Note: docs/ is deliberately not shipped wholesale. It holds 148 dated internal audits and
 # per-release notes from before the rename; the three files below are the ones a reader needs.
 dirs=(
-  .github cmd internal
+  .github cmd internal web design
   android/app android/gradle android/gradle.properties android/gradlew android/gradlew.bat
   android/build.gradle.kts android/settings.gradle.kts android/lint.xml android/gradle.properties
   config contracts deployment example nix scripts screenshots
 )
 root_files=(
-  .gitignore .dockerignore .env.example CHANGELOG.md VERSION CONTRIBUTING.md Containerfile Containerfile.calibre Containerfile.narration
+  .gitignore .dockerignore .graphifyignore .env.example CHANGELOG.md VERSION CONTRIBUTING.md Containerfile Containerfile.calibre Containerfile.narration
   DESIGN.md LICENSE PRODUCT.md README.md SECURITY.md THIRD_PARTY_NOTICES.md TRADEMARK.md
   compose.calibre.yaml compose.narration.yaml compose.yaml
   go.mod go.sum package.json package-lock.json mochil.example.json flake.nix android/README.md
@@ -53,7 +53,7 @@ excludes=(
   --exclude='local.properties' --exclude='keystore.properties' --exclude='.signing/'
   --exclude='*.apk' --exclude='*.aab' --exclude='*.jks' --exclude='*.keystore'
   --exclude='*.bak*' --exclude='*.orig' --exclude='*.rej'
-  --exclude='dist/' --exclude='HERMES_PLAN.md' --exclude='PERFORMANCE.md'
+  --exclude='dist/' --exclude='node_modules/' --exclude='HERMES_PLAN.md' --exclude='PERFORMANCE.md'
 )
 
 if [[ -e $dest ]]; then

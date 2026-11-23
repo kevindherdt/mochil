@@ -1,0 +1,75 @@
+/* PillRow — the top media-type switcher (ui-overhaul-plan.md §4 "Header, phone"). Tokens only (L3).
+   Sized by measuring the mock-up against a 390px screen, not by eye: ~28px pills, 12.5px labels at medium weight,
+   ~14px glyphs, 8px gaps, 12px side padding. Three earlier passes each overshot in a different direction — 34px
+   with 600 labels, then 30px, then 26px with 11.5px labels and a hairline outline that read as "harsher" than the
+   sheet. The mock-up's idle pills are a soft ghost: dark fill, faint outline, medium-weight light text.
+
+   The pills scroll. The right-edge fade used to be unconditional, which made a row that fits look clipped; it is
+   now applied only while something is genuinely hidden (`.fading`, set by PillRow from scrollWidth vs clientWidth),
+   and it fades *both* edges once you are scrolled away from the start so the first visible pill is not sliced
+   either. Both `-webkit-mask-image` and `mask-image` are set: Chrome for Android only recently began honouring the
+   unprefixed property.
+
+   `cursor: grab` is honest here: the row really is drag-scrollable with a mouse, and that plus the wheel handler in
+   PillRow.tsx is what makes a 30-pill voice list reachable without a trackpad. */
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+  min-width: 0;
+}
+
+.scroll {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+  min-width: 0;
+  overflow: auto hidden;
+  scrollbar-width: none;
+  padding-right: var(--space-4);
+  cursor: grab;
+  overscroll-behavior-x: contain;
+}
+
+/* Fade only while there is more to the right. 44px is long enough that a pill dissolves rather than ending in a
+   visible sliver next to a pinned `trailing` control. */
+.fading {
+  /* stylelint-disable-next-line property-no-vendor-prefix -- Chrome for Android still paints only the prefixed form */
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 44px), transparent 100%);
+  mask-image: linear-gradient(to right, #000 calc(100% - 44px), transparent 100%);
+}
+
+.scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.scroll:active {
+  cursor: grabbing;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  gap: var(--space-4);
+  height: var(--chrome-pill-height);
+  padding: 0 var(--space-8);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: var(--font-size-11);
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+/* The active pill carries no border: a border around the accent fill reads as an outline on a solid pill and makes
+   it look heavier than the mock-up's. Its label keeps the same weight as every other pill — the fill is the only
+   signal, so no single pill shouts. */
+.active {
+  border-color: transparent;
+  background: var(--color-accent);
+  color: var(--color-accent-ink);
+}

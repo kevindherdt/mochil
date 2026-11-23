@@ -37,6 +37,24 @@ button { cursor: pointer; }
 
 /* Main column */
 .hm-main { display: flex; flex-direction: column; min-width: 0; min-height: 0; position: relative; }
+
+/* The bar names the assistant and says whether she is connected. It carried a library dropdown until now, which
+   read as "which shelf am I chatting about" and pushed the name off the line -- the design's bar is just the
+   name, the connection line, and two icons. */
+.hm-bar > .hm-nav,
+.hm-bar > .shelf-switcher {
+  display: none;
+}
+
+.hm-head strong {
+  font-size: 1.06rem;
+  font-weight: 650;
+}
+
+.hm-state {
+  font-size: .78rem;
+}
+
 .hm-bar { display: flex; align-items: center; gap: .75rem; padding: .7rem 1rem; padding-top: max(.7rem, env(safe-area-inset-top)); border-bottom: 1px solid var(--line); background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: blur(8px); }
 .hm-head { display: flex; flex-direction: column; min-width: 0; flex: 1; line-height: 1.25; }
 .hm-head strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

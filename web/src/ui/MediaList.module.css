@@ -1,0 +1,93 @@
+/* MediaList — the list counterpart of MediaGrid (the cover/list toggle in the library header). One row per item,
+   ~64px tall: a 40×60 thumbnail, title, subtitle, and the same reading-progress bar the card shows, so switching
+   layouts never changes what information is available. Tokens only (L3). */
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-12);
+  width: 100%;
+  padding: var(--space-8);
+  border-radius: var(--radius-8);
+  background: none;
+  border: none;
+  font-family: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.row:hover {
+  background: var(--color-surface);
+}
+
+.thumb {
+  position: relative;
+  flex-shrink: 0;
+  width: 40px;
+  height: 60px;
+  border-radius: var(--radius-4);
+  overflow: hidden;
+  background: var(--color-raised);
+}
+
+.thumbImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  min-width: 0;
+  flex: 1;
+}
+
+.title {
+  margin: 0;
+  color: var(--color-text);
+  font-size: var(--font-size-14);
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.subtitle {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: var(--font-size-12);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bar {
+  margin-top: var(--space-4);
+  height: 3px;
+  width: 100%;
+  border-radius: var(--radius-pill);
+  background: var(--color-raised);
+  overflow: hidden;
+}
+
+.barFill {
+  height: 100%;
+  background: var(--color-accent);
+}
+
+/* A finished book reads as done at a glance in the list too — same rule as the cards (no percentage text). */
+.done {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  color: var(--color-success);
+}

@@ -51,6 +51,11 @@ var vaultAssetFormats = map[string]string{
 	".webp": "image/webp",
 	".gif":  "image/gif",
 	".avif": "image/avif",
+	// SVG is included because Obsidian notes embed hand-drawn diagrams constantly and an unserved SVG renders as
+	// nothing (a real note in Kevin's vault — the ocarina fingering chart — lost its only illustration). Scripts
+	// inside an SVG never run in an <img>, and `serveDocument` adds a sandboxing CSP for the direct-navigation
+	// case, so this does not hand note authors script execution on the app's origin.
+	".svg": "image/svg+xml",
 }
 
 func identify(libraryID, relative string, size int64, modified time.Time, allowVaultAssets bool) (Item, bool) {

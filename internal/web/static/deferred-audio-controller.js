@@ -1,4 +1,4 @@
-import { createAudioContinueRail } from "./audio-continue-rail.js?v=1";
+import { createAudioContinueRail } from "./audio-continue-rail.js?v=2";
 import { createAudioItemView } from "./audio-item-view.js?v=13";
 import { createAudioArtworkLoader } from "./audio-artwork-loader.js?v=8";
 import { relativePublishedDate } from "./date-format.js?v=1";

@@ -1,0 +1,26 @@
+/* Rail — a horizontally scrolling shelf of the same cards the grid uses (plan §4.3 lists Rail; Discover is the
+   first screen that needs one). Cards keep a fixed width so a cover stays 2:3 and the row reads as a shelf rather
+   than a squeezed grid. Children are sized by the rail, not by themselves: `> *` gets the width, so a caller just
+   maps cards in and never has to wrap each one. Tokens only (L3). */
+.rail {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-12);
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding-bottom: var(--space-4);
+
+  /* The row runs to the screen edge and its last card fades rather than being sliced mid-card. */
+  /* stylelint-disable-next-line property-no-vendor-prefix -- Chrome for Android still paints only the prefixed form */
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 24px), transparent 100%);
+  mask-image: linear-gradient(to right, #000 calc(100% - 24px), transparent 100%);
+}
+
+.rail::-webkit-scrollbar {
+  display: none;
+}
+
+.rail > * {
+  flex: 0 0 128px;
+  min-width: 0;
+}

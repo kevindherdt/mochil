@@ -212,6 +212,12 @@ func (s *Store) Put(account string, next Position, baseRevision int64) (Position
 		next.WebAnchor = current.WebAnchor
 	}
 	next.UpdatedAt = time.Now().UnixMilli()
+	// A genuine new position is the reader actively moving through the book — the same signal
+	// RecordKoSync already treats as "bring it back": reopening and continuing a book the reader
+	// (or Discover/the in_progress filter) had dismissed must revive it, or it stays invisible on
+	// every shelf forever even while being actively read (Kevin, 22 Nov 2026: progress was accurate
+	// in the reader, but the book never reappeared in Light Novels -> In Progress or Discover).
+	next.Dismissed = false
 	if next.Fraction >= .98 {
 		next.Finished = true
 		if current.FinishedAt != 0 {

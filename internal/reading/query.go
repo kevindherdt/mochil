@@ -44,6 +44,20 @@ func (s *Store) Get(account, libraryID, bookID string) (Position, bool) {
 	return clonePosition(position), ok
 }
 
+// Snapshot returns one account's whole position map, cloned under a single read lock. It exists for callers that
+// need to ask about many books at once — the library's reading-status filter runs over thousands of books in one
+// shelf scan, and calling Get per book would take the lock thousands of times while the query holds its own scan.
+func (s *Store) Snapshot(account string) map[string]Position {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	source := s.data.Accounts[account]
+	out := make(map[string]Position, len(source))
+	for key, position := range source {
+		out[key] = clonePosition(position)
+	}
+	return out
+}
+
 // FindKoSyncDocument answers which book a KoSync document hash refers to. The same file can sit in
 // more than one library and be linked from each, so the answer cannot be whichever copy the account
 // map yields first: a push carries only the hash, and alternated between the copies, dropping the
