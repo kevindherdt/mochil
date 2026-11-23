@@ -55,17 +55,68 @@ books = [
     ("The Understory", "Kai Lindqvist", "A forest, a family, and forty years between them.", (150, 70, 110)),
 ]
 
-def cover(width, height, rgb):
-    # A tiny solid-colour PNG is enough to prove covers load and tint.
+# A cover, drawn rather than borrowed: the book's own initial on a colour ground, with a lighter band under it. Real
+# cover art belongs to whoever made it, and this demo exists to be screenshotted into a public repository — so the
+# covers are ours, and they look like a designed series instead of six empty squares.
+GLYPHS = {
+    "A": ("01110", "10001", "10001", "11111", "10001", "10001", "10001"),
+    "B": ("11110", "10001", "11110", "10001", "10001", "10001", "11110"),
+    "C": ("01110", "10001", "10000", "10000", "10000", "10001", "01110"),
+    "D": ("11110", "10001", "10001", "10001", "10001", "10001", "11110"),
+    "E": ("11111", "10000", "11110", "10000", "10000", "10000", "11111"),
+    "F": ("11111", "10000", "11110", "10000", "10000", "10000", "10000"),
+    "G": ("01110", "10001", "10000", "10111", "10001", "10001", "01111"),
+    "H": ("10001", "10001", "11111", "10001", "10001", "10001", "10001"),
+    "I": ("11111", "00100", "00100", "00100", "00100", "00100", "11111"),
+    "J": ("00111", "00010", "00010", "00010", "00010", "10010", "01100"),
+    "K": ("10001", "10010", "10100", "11000", "10100", "10010", "10001"),
+    "L": ("10000", "10000", "10000", "10000", "10000", "10000", "11111"),
+    "M": ("10001", "11011", "10101", "10101", "10001", "10001", "10001"),
+    "N": ("10001", "11001", "10101", "10011", "10001", "10001", "10001"),
+    "O": ("01110", "10001", "10001", "10001", "10001", "10001", "01110"),
+    "P": ("11110", "10001", "10001", "11110", "10000", "10000", "10000"),
+    "Q": ("01110", "10001", "10001", "10001", "10101", "10010", "01101"),
+    "R": ("11110", "10001", "10001", "11110", "10100", "10010", "10001"),
+    "S": ("01111", "10000", "01110", "00001", "00001", "10001", "01110"),
+    "T": ("11111", "00100", "00100", "00100", "00100", "00100", "00100"),
+    "U": ("10001", "10001", "10001", "10001", "10001", "10001", "01110"),
+    "V": ("10001", "10001", "10001", "10001", "10001", "01010", "00100"),
+    "W": ("10001", "10001", "10001", "10101", "10101", "11011", "10001"),
+    "X": ("10001", "01010", "00100", "00100", "00100", "01010", "10001"),
+    "Y": ("10001", "01010", "00100", "00100", "00100", "00100", "00100"),
+    "Z": ("11111", "00001", "00010", "00100", "01000", "10000", "11111"),
+}
+
+
+def cover(width, height, rgb, letter):
     r, g, b = rgb
-    raw = b"".join(b"\x00" + bytes([r, g, b]) * width for _ in range(height))
+    # The band is the same hue lifted, so the cover reads as designed rather than as a flat fill.
+    band = (min(255, r + 60), min(255, g + 60), min(255, b + 60))
+    ink = (245, 242, 236)
+    rows = []
+    scale = max(4, width // 12)
+    glyph = GLYPHS.get(letter.upper(), GLYPHS["T"])
+    glyph_w, glyph_h = 5 * scale, 7 * scale
+    left, top = (width - glyph_w) // 2, (height - glyph_h) // 2 - height // 12
+    for y in range(height):
+        row = bytearray()
+        for x in range(width):
+            colour = band if y > height - height // 4 else (r, g, b)
+            gx, gy = (x - left) // scale, (y - top) // scale
+            if 0 <= gx < 5 and 0 <= gy < 7 and glyph[gy][gx] == "1":
+                colour = ink
+            row.extend(colour)
+        rows.append(b"\x00" + bytes(row))
+
     def chunk(kind, data):
         import zlib, struct
         body = kind + data
         return struct.pack(">I", len(data)) + body + struct.pack(">I", zlib.crc32(body) & 0xFFFFFFFF)
+
     import zlib, struct
     header = struct.pack(">IIBBBBB", width, height, 8, 2, 0, 0, 0)
-    return (b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", header) + chunk(b"IDAT", zlib.compress(raw, 9)) + chunk(b"IEND", b""))
+    return b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", header) + chunk(b"IDAT", zlib.compress(b"".join(rows), 9)) + chunk(b"IEND", b"")
+
 
 for index, (title, author, blurb, rgb) in enumerate(books, start=1):
     slug = f"book-{index}"
@@ -94,7 +145,7 @@ for index, (title, author, blurb, rgb) in enumerate(books, start=1):
         "OEBPS/nav.xhtml": '<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops"><head><title>Contents</title></head><body><nav epub:type="toc"><ol><li><a href="chapter-1.xhtml">One</a></li><li><a href="chapter-2.xhtml">Two</a></li></ol></nav></body></html>',
         "OEBPS/chapter-1.xhtml": f'<html xmlns="http://www.w3.org/1999/xhtml"><head><title>One</title></head><body><h1>{title}</h1><h2>{author}</h2>{chapter}</body></html>',
         "OEBPS/chapter-2.xhtml": f'<html xmlns="http://www.w3.org/1999/xhtml"><head><title>Two</title></head><body><h1>Two</h1>{chapter}</body></html>',
-        "OEBPS/cover.png": cover(120, 180, rgb),
+        "OEBPS/cover.png": cover(300, 450, rgb, title.strip()[0]),
     }
     with zipfile.ZipFile(os.path.join(out, f"{slug}.epub"), "w") as archive:
         archive.writestr("mimetype", files.pop("mimetype"), compress_type=zipfile.ZIP_STORED)
@@ -114,6 +165,15 @@ cat > "$work/config.json" <<JSON
 }
 JSON
 
+# A demo from an earlier run that is still holding the port looks exactly like a working one: the new server fails to
+# bind, the old one keeps answering, and every measurement describes code from days ago. On 23 Nov 2026 that is how a
+# screenshot run captured the retired interface.
+if (exec 3<>/dev/tcp/127.0.0.1/$port) 2>/dev/null; then
+  exec 3<&- 3>&-
+  echo "port $port is already in use — something else is serving a demo" >&2
+  echo "find it: ss -ltnp | grep $port    then stop it, or run with UI_DEMO_PORT=<other>" >&2
+  exit 1
+fi
 MOCHIL_DATA_DIR="$work/cache" "$work/mochil" -config "$work/config.json" > "$work/server.log" 2>&1 &
 echo $! > "$work/pid"
 

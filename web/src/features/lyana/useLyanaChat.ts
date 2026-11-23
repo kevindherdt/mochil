@@ -8,7 +8,8 @@
 // cards, and shows a single generic "thinking…" status instead of the full step list; that is a real
 // left-out-on-purpose gap (recorded in docs/rewrite-progress.md), not a silent drop, matching how
 // AudioDetailScreen documents its own left-out features instead of faking them.
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { openChat } from "./api/chats";
 
 export interface LyanaCard {
   kind: string;
@@ -102,15 +103,82 @@ function parseCards(raw: unknown): LyanaCard[] {
 export interface LyanaChatState {
   messages: LyanaMessage[];
   busy: boolean;
+  /** The chat this screen is talking in — the Hermes session id, which is also what `/api/hermes/chats` lists. */
+  session: string;
+  /** True while an earlier chat is being loaded into the transcript. */
+  loading: boolean;
   send: (text: string, attachments?: ChatAttachment[]) => Promise<void>;
   stop: () => void;
+  /** Reattaches to a chat that already exists, loading its transcript. */
+  resume: (id: string) => Promise<void>;
+  /** Starts a fresh chat and remembers it for the next visit. */
+  startNew: () => void;
+}
+
+/** Writes the current chat id, so a reload continues where the person left off instead of showing an empty screen. */
+function rememberSession(id: string) {
+  try {
+    window.localStorage.setItem(SESSION_KEY, id);
+  } catch {
+    // Storage is a convenience; a chat still works for this visit without it.
+  }
 }
 
 export function useLyanaChat(): LyanaChatState {
   const [messages, setMessages] = useState<LyanaMessage[]>([]);
   const [busy, setBusy] = useState(false);
-  const sessionRef = useRef<string>(readSession());
+  const [session, setSession] = useState<string>(() => readSession());
+  const [loading, setLoading] = useState(false);
+  const sessionRef = useRef<string>(session);
   const abortRef = useRef<AbortController | null>(null);
+
+  sessionRef.current = session;
+
+  // On a reload the screen used to come back empty even though the session id survived: the id said which conversation
+  // this is, and nothing ever asked the server what was in it. Load it once, quietly — a chat with no history answers
+  // with an empty list, so this costs one request and removes the "my conversation vanished" surprise.
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      setLoading(true);
+      try {
+        const history = await openChat(sessionRef.current);
+        // Anything typed while the history was loading stays: the transcript is only replaced when nothing has happened.
+        if (!cancelled) setMessages((current) => (current.length === 0 ? history : current));
+      } catch {
+        // A server that cannot list history still chats; an empty transcript is the same as a new conversation.
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const resume = useCallback(async (id: string) => {
+    abortRef.current?.abort();
+    setLoading(true);
+    try {
+      const history = await openChat(id);
+      sessionRef.current = id;
+      setSession(id);
+      rememberSession(id);
+      setMessages(history);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const startNew = useCallback(() => {
+    abortRef.current?.abort();
+    const fresh = newSessionId();
+    sessionRef.current = fresh;
+    setSession(fresh);
+    rememberSession(fresh);
+    setMessages([]);
+  }, []);
 
   const stop = useCallback(() => {
     abortRef.current?.abort();
@@ -219,5 +287,5 @@ export function useLyanaChat(): LyanaChatState {
     setBusy(false);
   }, [busy]);
 
-  return { messages, busy, send, stop };
+  return { messages, busy, session, loading, send, stop, resume, startNew };
 }

@@ -18,6 +18,11 @@ export interface ComposerProps {
   placeholder?: string;
   /** Omitted when speech recognition is not set up on this server — the mic is then not drawn at all. */
   onTranscribe?: ((recording: Blob) => Promise<string | undefined>) | undefined;
+  /**
+   * Dictation through the browser's own recogniser, for a server with no speech-to-text. Used only when `onTranscribe`
+   * is absent; the mic is drawn when either is given.
+   */
+  onListen?: (() => Promise<string | undefined>) | undefined;
   /** Receives the transcribed text; hands-free sends it immediately, otherwise it fills the field. */
   onTranscribed?: ((text: string) => void) | undefined;
   /** Pending attachments, shown as chips above the field. Omit both to hide the paperclip entirely. */
@@ -40,6 +45,7 @@ export function Composer({
   disabled = false,
   placeholder = "Message",
   onTranscribe,
+  onListen,
   onTranscribed,
   attachments,
   onAttach,
@@ -49,6 +55,7 @@ export function Composer({
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const [recording, setRecording] = useState(false);
+  const [listenBusy, setListenBusy] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -169,21 +176,40 @@ export function Composer({
               type="button"
               className={styles.send}
               aria-label="Attach a picture or document"
-              disabled={disabled}
+              disabled={disabled || listenBusy}
               onClick={() => fileRef.current?.click()}
             >
               <Paperclip size={16} />
             </button>
           </>
         )}
-        {onTranscribe !== undefined && (
+        {(onTranscribe !== undefined || onListen !== undefined) && (
           <button
             type="button"
             className={styles.send}
             aria-label={recording ? "Stop recording" : "Speak a message"}
-            aria-pressed={recording}
+            aria-pressed={recording || listenBusy}
             disabled={disabled || busy}
-            onClick={() => (recording ? stopRecording() : void startRecording())}
+            onClick={() => {
+              if (onTranscribe !== undefined) {
+                if (recording) {
+                  stopRecording();
+                } else {
+                  void startRecording();
+                }
+                return;
+              }
+              if (busy || onListen === undefined) return;
+              setListenBusy(true);
+              void onListen()
+                .then((text) => {
+                  if (text !== undefined && text.trim() !== "") onTranscribed?.(text.trim());
+                })
+                .catch((caught: unknown) => {
+                  setError(caught instanceof Error ? caught.message : "Could not hear that.");
+                })
+                .finally(() => setListenBusy(false));
+            }}
           >
             {recording ? <Square size={15} /> : <Mic size={16} />}
           </button>

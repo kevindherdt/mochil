@@ -108,6 +108,12 @@ export function CompanionSheet({ onClose }: { onClose: () => void }) {
               })}
             />
           )}
+          {narration.data !== undefined && narration.data.enabled && !narration.data.available && (
+            <Text size="11" muted>
+              This server has voices configured but the narration runtime is not running, so reading aloud falls back to
+              the device's own voice — changing the choice here will not be heard until it is.
+            </Text>
+          )}
           {narration.data !== undefined && !narration.data.manage && (
             <Text size="11" muted>
               Only an administrator can change the default voice on this server.

@@ -1,8 +1,5 @@
 # Mochil
 
-**The rebuild has shipped.** 0.1.87 replaces the old web app with one written from scratch: the library, the
-reader, the metadata editor and the AI screen all live in it now. If you were waiting for it, this is it.
-
 One place for the books, comics, manga, audiobooks, podcasts and video I already own.
 
 Mochil is a small server you run yourself. It reads the folders you already have, shows them in a
@@ -10,28 +7,30 @@ browser, and serves them to an Android app, a Kobo running KOReader, or any OPDS
 no import step for files you already have. Point it at a folder and it is there. Bringing files in
 from somewhere else — another PC, a drop folder — is one optional step away, in Settings → Libraries.
 
-![The web library on a desktop](screenshots/web-library.png)
+![The library on a desktop](screenshots/web-library.png)
 
-| Phone | Settings |
+| On a phone | Settings |
 |---|---|
-| ![Library on a phone](screenshots/web-mobile-library.png) | ![Settings](screenshots/web-settings.png) |
+| ![The library on a phone](screenshots/web-mobile-library.png) | ![Settings](screenshots/web-settings.png) |
+
+The books in these pictures are invented and their covers are drawn for the demo, so nothing here is
+anyone else's artwork. Every picture is taken from the disposable demo instance (`scripts/ui-demo.sh`),
+never from a real library.
 
 ### Themes
 
-Five themes, each with its own accent and background rather than five shades of the same brown. Two of
-them carry a dark and a light scheme that follows the device, and the phone app has the same set, so
+Four themes, each with its own accent and background rather than four shades of the same brown. Each
+one has a dark and a light scheme that follows the device, and the Android app has the same set, so
 the library looks the same wherever you open it.
 
-| Tide | Magenta Cream |
+| Deep Teal | Magenta Cream |
 |---|---|
-| ![Tide, dark](screenshots/theme-tide.png) | ![Magenta Cream, dark](screenshots/theme-magenta-cream.png) |
+| ![Deep Teal, dark](screenshots/web-library.png) | ![Magenta Cream, dark](screenshots/theme-magenta-cream.png) |
 
-| Tide on a phone | Magenta Cream on a phone |
-|---|---|
-| ![Tide on a phone](screenshots/theme-tide-phone.png) | ![Magenta Cream on a phone](screenshots/theme-magenta-cream-phone.png) |
+![Magenta Cream on a phone](screenshots/theme-magenta-cream-phone.png)
 
-The other three are Ember (warm, the default), Paper (one flat light scheme that never follows the
-device) and e-ink (pure black and white, for a Kobo or a matte screen).
+The other two are Ember (warm, the default) and E-ink (no gradients, no transitions, pure black and
+white, for a Kobo or a matte screen).
 
 ## Why this exists
 
@@ -116,6 +115,12 @@ Podcasts download for offline listening.
 
 Libraries can be plain folders or a Calibre library, and Calibre's own metadata is used when it is
 there. Covers and details can come from Open Library, Hardcover or TMDB if you want them.
+
+Wrong metadata is fixable in bulk. The editor shows the whole library as one scrolling table: search
+and sort across every book on the server, select one or a thousand, and change a field, a series or an
+author in one go. Nothing is written until you have seen what would change, and every write can be
+undone. ISBNs and Hardcover matches can be looked up across the whole library as a job that keeps
+running when you close the tab.
 
 Any OPDS reader can browse the same catalogue, so a Kobo or another app works without the Mochil app
 at all.

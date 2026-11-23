@@ -1,6 +1,6 @@
 // features/editor/api/editor.ts — the library editor's metadata table.
 //
-// The server side already exists and is the same API the legacy Calibre-style editor used (internal/web/library_editor.go):
+// The server side already exists and is the same API the legacy editor used (internal/web/library_editor.go):
 //
 //   GET  /api/metadata/editor/books?library=&q=&filter=&sort=&dir=&offset=&limit=
 //        → { items[], total, library_total, counts{}, collections[], columns[], hardcover_sync }

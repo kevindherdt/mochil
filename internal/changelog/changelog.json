@@ -2,11 +2,24 @@
  "entries": [
   {
    "component": "web",
+   "version": "0.1.88",
+   "date": "2026-11-23",
+   "changes": [
+    "The assistant can read her answers out loud. A finished reply carries a speaker, and it speaks in the server's own narration voice — the one the companion was given — instead of the device's. The button names which voice it will use, so a server without the voice runtime says \"device voice\" rather than quietly sounding different.",
+    "Choosing a voice now actually changes it. The picker in the assistant's settings wrote a setting that nothing read: every spoken reply asked for the default, so picking another voice made no difference to what you heard. The choice is sent with each sentence, so it applies to the next thing she says, not the next time you reload.",
+    "Conversations can be continued. The screen used to hold one chat in memory and start empty on every visit, with no way back to anything earlier. It now lists your earlier chats, opens any of them with its history, starts a new one, and deletes one — and reopening a chat picks up her own memory of it.",
+    "The microphone is always there. It used to appear only when the server had speech-to-text compiled in, which most installs do not, so in practice there was no voice button. If the server cannot listen, Chrome and Android's own recogniser is used instead.",
+    "There is a call button: listen, send what was heard, speak the answer, listen again, until you stop it. It is drawn only when the browser can actually listen.",
+    "The README's pictures are the current interface, taken from the demo library rather than a real one, so nothing in them belongs to anyone else."
+   ]
+  },
+  {
+   "component": "web",
    "version": "0.1.87",
    "date": "2026-11-23",
    "changes": [
     "The new app is the default now. It answers at /, and the retired shell moved to /legacy for the last pages that still live in it. Old /next links and #/bookmarks land where they meant to go, the reader, pairing and login are untouched, and a typo'd API path answers with a JSON error instead of the app's own page.",
-    "The metadata editor is here, modelled on Calibre. The whole library is one scrolling table — search, sort and filter across every book on the server, not just the page you can see — with keyboard navigation, range selection, and cells you can edit in place.",
+    "The metadata editor is here. The whole library is one scrolling table — search, sort and filter across every book on the server, not just the page you can see — with keyboard navigation, range selection, and cells you can edit in place.",
     "Editing many books at once is a first-class job, not a loop of single edits: set a field, a series, an author, renumber a series in the shown order, find and replace, or reset a book to what its file says, all from one dialog. Nothing is written until you preview it, and every write can be undone.",
     "The editor can go and find things for you. ISBNs and Hardcover matches can be looked up across a selection or the entire library as a background job that survives a closed tab, and what it finds is staged for review — you see exactly which field changes on which book before applying it.",
     "Columns do what a spreadsheet's do: resize, reorder, hide, and the layout you choose is remembered. Collections can be listed, added to and created from the table, and a book can be moved or copied to another library with a check-first step that says how many would go and how many are blocked.",
@@ -688,7 +701,7 @@
    "version": "0.1.18",
    "date": "2026-11-19",
    "changes": [
-    "Settings → Libraries now has a top-level \"Import…\" link to the existing Calibre-style import page — copy files from a drop folder straight into any writable library (Calibre libraries are correctly excluded as targets, since Mochil never writes to those). The page already existed but was hidden behind an unrelated \"Library editor\" module toggle that was off by default, so it was effectively undiscoverable."
+    "Settings → Libraries now has a top-level \"Import…\" link to the existing import page — copy files from a drop folder straight into any writable library (Calibre libraries are correctly excluded as targets, since Mochil never writes to those). The page already existed but was hidden behind an unrelated \"Library editor\" module toggle that was off by default, so it was effectively undiscoverable."
    ]
   },
   {

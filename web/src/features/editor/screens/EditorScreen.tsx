@@ -1,8 +1,8 @@
-// features/editor/screens/EditorScreen.tsx — the metadata editor, modelled on the legacy Calibre-style one.
+// features/editor/screens/EditorScreen.tsx — the metadata editor.
 //
-// Calibre's editor is a spreadsheet over the library: pick columns, sort by any of them, select many rows and set one
-// field across all of them, then inspect a single book's every field in a details pane underneath. That shape is kept
-// here because it is the shape the work has — fixing a wrong series name is a bulk job, fixing a description is not.
+// A spreadsheet over the library: pick columns, sort by any of them, select many rows and set one field across all of
+// them, then inspect a single book's every field in a details pane underneath. That shape is the shape the work has —
+// fixing a wrong series name is a bulk job, fixing a description is not.
 //
 // The whole library is loaded (in 1 000-row chunks) and scrolled as one virtualized list, the way the legacy editor
 // did it — paging is the wrong mental model for a spreadsheet and breaks selection and renumber across pages. Only the

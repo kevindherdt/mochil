@@ -11,10 +11,13 @@
 // draws above the log (Books · Audiobooks · Music / All · Manga) — nothing here reads or writes a filter yet, so
 // drawing it would be chrome with no effect.
 import { useEffect, useRef, useState } from "react";
-import { Bot, User } from "lucide-react";
+import { Bot, User, Volume2, Square, History, Phone, PhoneOff } from "lucide-react";
 import { Page, Stack, Inline, Text, Heading, Composer, CoverImage, EmptyState } from "../../../ui";
 import { useLyanaChat, type ChatAttachment, type LyanaMessage } from "../useLyanaChat";
 import { CompanionSheet } from "../CompanionSheet";
+import { ChatsSheet } from "../ChatsSheet";
+import { createSpeaker, type Speaker } from "../api/speech";
+import { browserCanListen, createListener } from "../api/listen";
 import { useCompanionName, useHandsFree, useNarration } from "../useCompanion";
 import { transcribe } from "../api/companion";
 import { Settings } from "lucide-react";
@@ -22,9 +25,23 @@ import { IconButton, type PendingAttachment } from "../../../ui";
 import { useAiModuleState } from "../../../lib/useModules";
 import { usePlayer } from "../../player/PlayerContext";
 
-function MessageBubble({ message }: { message: LyanaMessage }) {
+function MessageBubble({
+  message,
+  speaking,
+  voiceName,
+  onSpeak,
+}: {
+  message: LyanaMessage;
+  speaking: boolean;
+  /** Which voice the speaker will use — the server's own, or the device's, named so the two are never confused. */
+  voiceName: string;
+  onSpeak: () => void;
+}) {
   const player = usePlayer();
   const isUser = message.role === "user";
+  // The speaker only makes sense on a finished answer: reading a reply that is still arriving would start over with
+  // every new sentence.
+  const canSpeak = !isUser && message.text.trim() !== "" && message.streaming !== true;
   return (
     <Inline gap={8} align="flex-start" justify={isUser ? "flex-end" : "flex-start"}>
       {!isUser && (
@@ -60,6 +77,13 @@ function MessageBubble({ message }: { message: LyanaMessage }) {
             </Text>
           )}
         </div>
+        {canSpeak && (
+          <IconButton
+            icon={speaking ? Square : Volume2}
+            label={speaking ? "Stop reading aloud" : `Read this aloud (${voiceName})`}
+            onClick={onSpeak}
+          />
+        )}
         {message.cards !== undefined && message.cards.length > 0 && (
           <Inline gap={8} wrap>
             {message.cards.map((card) => (
@@ -107,8 +131,106 @@ export function LyanaScreen() {
   const handsFree = useHandsFree();
   const narration = useNarration();
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [chatsOpen, setChatsOpen] = useState(false);
   const [pending, setPending] = useState<ChatAttachment[]>([]);
+  const [speakingId, setSpeakingId] = useState<string | null>(null);
+  const [callActive, setCallActive] = useState(false);
+  const speakerRef = useRef<Speaker | null>(null);
+  const [speakerSource, setSpeakerSource] = useState<"server" | "browser" | null>(null);
+  // The voice is read lazily at speak time: the speaker is built once, but the person can change the voice between
+  // messages, and a closure over the first render's settings would keep speaking in the old one.
+  const voiceRef = useRef("");
+  useEffect(() => {
+    voiceRef.current = narration.data?.voice ?? "";
+  }, [narration.data?.voice]);
+  const callRef = useRef<{ stop: () => void } | null>(null);
   const logRef = useRef<HTMLDivElement>(null);
+  // The call loop speaks the answer that just arrived, and `send` resolves before React has necessarily re-rendered, so
+  // the newest assistant text is read from a ref rather than from `chat.messages` inside the loop.
+  const latestReply = useRef<string>("");
+
+  useEffect(() => {
+    const last = [...chat.messages].reverse().find((message) => message.role === "assistant");
+    if (last !== undefined && last.streaming !== true) latestReply.current = last.text;
+  }, [chat.messages]);
+
+  // Built once, and only when the screen is open: creating it asks the server whether it can narrate.
+  useEffect(() => {
+    let cancelled = false;
+    void createSpeaker({ voice: () => voiceRef.current }).then((speaker) => {
+      if (cancelled) {
+        speaker.stop();
+        return;
+      }
+      speakerRef.current = speaker;
+      setSpeakerSource(speaker.source);
+    });
+    return () => {
+      cancelled = true;
+      speakerRef.current?.stop();
+      speakerRef.current = null;
+    };
+  }, []);
+
+  // A call is the same pieces as a typed conversation, in a loop: hear, send, speak the answer, listen again — until it
+  // is stopped. It uses the browser's recogniser because a server without speech-to-text is exactly the server this
+  // button exists for.
+  const startCall = () => {
+    const listener = createListener({ continuous: false });
+    if (listener === null) return;
+    setCallActive(true);
+    let stopped = false;
+    callRef.current = {
+      stop: () => {
+        stopped = true;
+        listener.stop();
+      },
+    };
+    const loop = async () => {
+      while (!stopped) {
+        const heard = await listener.listen();
+        if (stopped) break;
+        if (heard.trim() === "") {
+          // Nothing was heard — a quiet room, a denied microphone, or Chrome ending the session on its own. Pause
+          // before asking again: without this the loop spins as fast as the recogniser can fail.
+          await new Promise((resolve) => setTimeout(resolve, 600));
+          continue;
+        }
+        latestReply.current = "";
+        await chat.send(heard);
+        if (stopped) break;
+        const reply = latestReply.current;
+        if (reply !== "") await speakerRef.current?.speak(reply);
+      }
+    };
+    void loop().finally(() => {
+      stopped = true;
+      setCallActive(false);
+      callRef.current = null;
+    });
+  };
+
+  const stopCall = () => {
+    callRef.current?.stop();
+    speakerRef.current?.stop();
+  };
+
+  const toggleSpeak = (message: LyanaMessage) => {
+    const speaker = speakerRef.current;
+    if (speaker === null) return;
+    if (speakingId === message.id) {
+      speaker.stop();
+      setSpeakingId(null);
+      return;
+    }
+    setSpeakingId(message.id);
+    void speaker
+      .speak(message.text)
+      .catch(() => {
+        // A device that cannot play audio simply stays silent; the button must not get stuck showing "speaking".
+      })
+      .finally(() => setSpeakingId((current) => (current === message.id ? null : current)));
+  };
 
   useEffect(() => {
     if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight;
@@ -137,20 +259,48 @@ export function LyanaScreen() {
             name they want"). The chosen name is used in the copy and the placeholder instead. */}
         <Inline justify="space-between" align="center">
           <Heading size="18">AI</Heading>
-          <IconButton icon={Settings} label="Assistant settings" onClick={() => setSettingsOpen((open) => !open)} />
+          <Inline gap={4} align="center">
+            {browserCanListen() && (
+              <IconButton
+                icon={callActive ? PhoneOff : Phone}
+                label={callActive ? "End the call" : "Talk instead of typing"}
+                onClick={() => (callActive ? stopCall() : startCall())}
+              />
+            )}
+            <IconButton icon={History} label="Earlier chats" onClick={() => setChatsOpen((open) => !open)} />
+            <IconButton icon={Settings} label="Assistant settings" onClick={() => setSettingsOpen((open) => !open)} />
+          </Inline>
         </Inline>
+        {chatsOpen && (
+          <ChatsSheet
+            current={chat.session}
+            onOpen={(id) => void chat.resume(id)}
+            onNew={() => chat.startNew()}
+            onClose={() => setChatsOpen(false)}
+          />
+        )}
         {settingsOpen && <CompanionSheet onClose={() => setSettingsOpen(false)} />}
         <div
           ref={logRef}
           style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", gap: "var(--space-16)", overflowY: "auto", overscrollBehavior: "contain" }}
         >
-          {chat.messages.length === 0 ? (
+          {chat.loading && chat.messages.length === 0 ? (
+            <Text muted>Opening your chat…</Text>
+          ) : chat.messages.length === 0 ? (
             <Text muted>
               Ask {name} about anything in your library — "what should I read next", "play something from Discworld",
               or just talk.
             </Text>
           ) : (
-            chat.messages.map((message) => <MessageBubble key={message.id} message={message} />)
+            chat.messages.map((message) => (
+              <MessageBubble
+                key={message.id}
+                message={message}
+                speaking={speakingId === message.id}
+                voiceName={speakerSource === "server" ? "Pocket TTS" : "device voice"}
+                onSpeak={() => toggleSpeak(message)}
+              />
+            ))
           )}
         </div>
         <div style={{ flex: "0 0 auto" }}>
@@ -181,6 +331,15 @@ export function LyanaScreen() {
           placeholder={`Message ${name}`}
           // Only when the server can actually listen — an unusable mic is worse than none.
           onTranscribe={narration.data?.listen === true ? transcribe : undefined}
+          // No server speech-to-text: the browser's own recogniser keeps the mic working rather than hiding it.
+          onListen={
+            narration.data?.listen === true || !browserCanListen()
+              ? undefined
+              : () => {
+                  const listener = createListener();
+                  return listener === null ? Promise.resolve(undefined) : listener.listen();
+                }
+          }
           onTranscribed={(text) => {
             if (handsFree) {
               setDraft("");
