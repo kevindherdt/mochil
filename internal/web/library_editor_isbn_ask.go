@@ -42,7 +42,7 @@ var isbnAskJob = editorJob{
 	},
 	unavailable: "Asking needs a helper model and the ISBN ability switched on in Settings, Hermes.",
 	busy:        "Hermes is already looking at ISBNs in this library.",
-	run: func(ctx context.Context, m *multiServer, lib Library, books []catalog.Book, _ bool) (string, error) {
+	run: func(ctx context.Context, m *multiServer, lib Library, books []catalog.Book, _ editorJobOptions) (string, error) {
 		store, settings := m.isbnFound, m.hermesSettings()
 		var asked, picked, unsure, nothing, unreadable, clear, hadISBN, alreadyAsked int
 		for index, book := range books {

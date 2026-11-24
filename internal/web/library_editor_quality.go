@@ -15,7 +15,7 @@ func bookCheckKey(library string) string { return "book-check:" + library }
 
 // qualityIssues are the findings of the quality check. They have their own filters and do not count towards "Needs
 // review", which is for things that are wrong with a book's catalogue entry.
-var qualityIssues = map[string]bool{"no_description": true, "no_isbn": true, "no_cover": true, "unreadable": true, "isbn_found": true, "isbn_unsure": true, "match_found": true, "match_unsure": true, "match_none": true, "hardcover_doubt": true, "hardcover_nomatch": true, "hardcover_ignored": true}
+var qualityIssues = map[string]bool{"no_description": true, "no_isbn": true, "no_cover": true, "unreadable": true, "isbn_found": true, "isbn_differs": true, "isbn_unsure": true, "match_found": true, "match_unsure": true, "match_none": true, "hardcover_doubt": true, "hardcover_nomatch": true, "hardcover_ignored": true}
 
 // quickQualityIssues needs nothing but the catalogue, so it is always on show.
 func quickQualityIssues(book catalog.Book) []string {
@@ -63,7 +63,7 @@ var checkJob = editorJob{
 	available:   func(m *multiServer) bool { return m.bookQuality != nil },
 	unavailable: "The quality check is not available right now.",
 	busy:        "The check is already running for this library.",
-	run: func(ctx context.Context, m *multiServer, lib Library, books []catalog.Book, _ bool) (string, error) {
+	run: func(ctx context.Context, m *multiServer, lib Library, books []catalog.Book, _ editorJobOptions) (string, error) {
 		store := m.bookQuality
 		total := int64(len(books))
 		problems := 0

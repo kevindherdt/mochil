@@ -24,22 +24,54 @@ interface NoteTreeProps {
   root: VaultTreeNode;
   onOpen: (page: VaultPage) => void;
   openingId: string | null;
+  /** Path of the note currently open, so its folder opens itself and the open note is visible in the tree. */
+  revealPath?: string | undefined;
+  /** Id of the note currently open, so its row can be marked. */
+  activeId?: string | undefined;
 }
 
-export function NoteTree({ root, onOpen, openingId }: NoteTreeProps) {
+export function NoteTree({ root, onOpen, openingId, revealPath, activeId }: NoteTreeProps) {
   const [open, setOpen] = useState<Set<string>>(new Set());
-  const toggle = (path: string) =>
-    setOpen((current) => {
+  // Folders the reader closed by hand. The open note's own folder chain is expanded by derivation, not by an effect —
+  // an effect that calls setState on every path change re-renders the whole tree for something that is pure arithmetic,
+  // and lint (react-hooks/set-state-in-effect) is right to refuse it.
+  const [closed, setClosed] = useState<Set<string>>(new Set());
+
+  const revealed = (() => {
+    const set = new Set<string>();
+    if (revealPath === undefined || revealPath === "") return set;
+    let cut = revealPath.lastIndexOf("/");
+    while (cut !== -1) {
+      set.add(revealPath.slice(0, cut));
+      cut = revealPath.slice(0, cut).lastIndexOf("/");
+    }
+    return set;
+  })();
+
+  const isExpanded = (path: string) => (revealed.has(path) ? !closed.has(path) : open.has(path));
+  const toggle = (path: string) => {
+    if (isExpanded(path)) {
+      setOpen((current) => {
+        const next = new Set(current);
+        next.delete(path);
+        return next;
+      });
+      if (revealed.has(path)) setClosed((current) => new Set(current).add(path));
+      return;
+    }
+    setOpen((current) => new Set(current).add(path));
+    setClosed((current) => {
+      if (!current.has(path)) return current;
       const next = new Set(current);
-      if (next.has(path)) next.delete(path);
-      else next.add(path);
+      next.delete(path);
       return next;
     });
+  };
 
   const rows: ReactNode[] = [];
   const walk = (node: VaultTreeNode, depth: number) => {
     for (const folder of node.folders) {
-      const expanded = open.has(folder.path);
+      const expanded = isExpanded(folder.path);
       rows.push(
         <button
           key={`folder:${folder.path}`}
@@ -74,6 +106,7 @@ export function NoteTree({ root, onOpen, openingId }: NoteTreeProps) {
     }
     for (const note of node.notes) {
       const opening = openingId === note.id;
+      const active = activeId === note.id;
       rows.push(
         <button
           key={`note:${note.id}`}
@@ -84,10 +117,12 @@ export function NoteTree({ root, onOpen, openingId }: NoteTreeProps) {
             all: "unset",
             cursor: opening ? "default" : "pointer",
             display: "block",
-            padding: "var(--space-12) 0",
+            padding: "var(--space-8) var(--space-8)",
             paddingLeft: `calc(var(--space-8) * ${depth} + var(--space-24))`,
             width: "100%",
-            borderBottom: "1px solid var(--color-line)",
+            borderRadius: "var(--radius-8)",
+            background: active ? "color-mix(in srgb, var(--color-accent) 16%, transparent)" : "transparent",
+            color: active ? "var(--color-accent)" : "var(--color-text)",
             boxSizing: "border-box",
           }}
         >

@@ -1,0 +1,23 @@
+/* A column rule that is also the drag target: a one-pixel line drawn inside a nine-pixel hit area.
+   It used to be a nine-pixel *filled* bar, which read as a heavy divider rather than a boundary, and it doubled up with
+   the header cell's own border — two lines a few pixels apart look like a mistake. Tokens only (L3). */
+.handle {
+  background: transparent;
+}
+
+.handle::after {
+  content: "";
+  position: absolute;
+  left: 4px;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: color-mix(in srgb, var(--color-text) 20%, transparent);
+  transition: background-color var(--duration-fast) var(--ease), width var(--duration-fast) var(--ease);
+}
+
+.handle:hover::after,
+.handle:active::after {
+  width: 2px;
+  background: var(--color-accent);
+}

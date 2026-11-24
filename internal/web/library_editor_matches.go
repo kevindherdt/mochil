@@ -17,9 +17,16 @@ import (
 
 func hardcoverMatchKey(library string) string { return "hardcover-match:" + library }
 
+// matchFindingVersion is the shape of a stored finding. A finding written by an older version is missing fields the
+// editor now uses — series and its position arrived in version 2 — and there is no way to tell "Hardcover does not know
+// the series" from "this was looked up before we asked". Such a finding is refreshed on the next run rather than shown
+// as if it were complete.
+const matchFindingVersion = 2
+
 // bulkMatch is what looking a book up on Hardcover found. It is only a finding: nothing is applied to the book until
 // the person takes it, and the lookup is kept for as long as the book's file stays the same.
 type bulkMatch struct {
+	Version    int              `json:"v,omitempty"`
 	How        string           `json:"how"` // "isbn" (exact) or "title"
 	ISBN       string           `json:"isbn,omitempty"`
 	Clear      bool             `json:"clear"`
@@ -100,7 +107,7 @@ var matchJob = editorJob{
 	available:   func(m *multiServer) bool { return m.matchFound != nil && m.hardcover != nil && m.moduleOn("hardcover") },
 	unavailable: "Turn on the Hardcover module in Settings to find matches.",
 	busy:        "Finding matches is already running for this library.",
-	run: func(ctx context.Context, m *multiServer, lib Library, books []catalog.Book, recount bool) (string, error) {
+	run: func(ctx context.Context, m *multiServer, lib Library, books []catalog.Book, opts editorJobOptions) (string, error) {
 		store := m.matchFound
 		total := int64(len(books))
 		var done, byISBN, byTitle, unsure, none, failed int
@@ -110,7 +117,7 @@ var matchJob = editorJob{
 			if m.hardcoverKnown(lib, book) {
 				continue
 			}
-			if _, have := store.Get(lib.ID, book.ID, book.Size, book.Modified); have && !recount {
+			if have, ok := store.Get(lib.ID, book.ID, book.Size, book.Modified); ok && have.Version >= matchFindingVersion && !opts.Recount {
 				continue
 			}
 			if m.matchISBN(lib, book) != "" {
@@ -124,6 +131,7 @@ var matchJob = editorJob{
 			jobs.Report(ctx, int64(min(skipped+done+failed, len(books))), total, "Finding matches on Hardcover")
 		}
 		record := func(book catalog.Book, match bulkMatch) {
+			match.Version = matchFindingVersion
 			store.Put(lib.ID, book.ID, book.Size, book.Modified, match)
 			done++
 			if done%25 == 0 {

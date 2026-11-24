@@ -119,7 +119,7 @@ export function CollectionsDialog({
             <TextField label="Name for the new collection" value={name} onChange={(event) => setName(event.target.value)} />
           )}
 
-          {problem !== undefined && <div style={{ fontSize: "var(--font-size-12)", color: "var(--color-danger, #e5484d)" }}>{problem}</div>}
+          {problem !== undefined && <div style={{ fontSize: "var(--font-size-12)", color: "var(--color-error)" }}>{problem}</div>}
 
           <Inline gap={8} wrap>
             <Button variant="primary" disabled={busy} onClick={() => void save(false)}>

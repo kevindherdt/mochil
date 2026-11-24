@@ -19,6 +19,30 @@
   cursor: pointer;
 }
 
+/* With text the trigger becomes a normal control: same height and radius as a secondary button, so a toolbar of
+   menus and buttons lines up instead of mixing 32px glyphs with 40px pills. */
+.trigger:has(.text) {
+  width: auto;
+  gap: var(--space-8);
+  padding: 0 var(--space-12);
+  border: 1px solid var(--color-line);
+  color: var(--color-text);
+  font-family: inherit;
+  font-size: var(--font-size-13);
+}
+
+.text {
+  max-width: 18ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chevron {
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
 .trigger[aria-expanded="true"] {
   background: var(--color-raised);
   color: var(--color-accent);
@@ -27,7 +51,8 @@
 .panel {
   position: absolute;
   top: calc(100% + var(--space-4));
-  right: 0;
+  left: 0;
+  right: auto;
   z-index: 20;
   min-width: 176px;
   padding: var(--space-4);
@@ -35,6 +60,11 @@
   border: 1px solid var(--color-line);
   border-radius: var(--radius-12);
   box-shadow: var(--shadow-2);
+}
+
+.panelEnd {
+  left: auto;
+  right: 0;
 }
 
 .section {

@@ -38,7 +38,7 @@ var matchAskJob = editorJob{
 	},
 	unavailable: "Asking needs a helper model and the Hardcover match ability switched on in Settings, Hermes. Run Find Hardcover matches first.",
 	busy:        "Hermes is already looking at Hardcover matches in this library.",
-	run: func(ctx context.Context, m *multiServer, lib Library, books []catalog.Book, _ bool) (string, error) {
+	run: func(ctx context.Context, m *multiServer, lib Library, books []catalog.Book, _ editorJobOptions) (string, error) {
 		store, settings := m.matchFound, m.hermesSettings()
 		var asked, picked, unsure, waiting int
 		for index, book := range books {

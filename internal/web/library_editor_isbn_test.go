@@ -116,3 +116,66 @@ func newISBNStore(t *testing.T) (*filefacts.Store[isbn.Result], error) {
 	t.Helper()
 	return filefacts.Open[isbn.Result](filepath.Join(t.TempDir(), "isbn-found.json"))
 }
+
+// A book that already carries an ISBN is skipped by default, and that is the point of the recheck option: reading it
+// anyway is the only way to learn that the number in the metadata is not the number printed in the file.
+func TestRecheckReadsBooksThatAlreadyHaveAnISBN(t *testing.T) {
+	server := countServer(t)
+	books := server.libraries[0].Store.Books()
+	// Give the book whose file the fixture can serve an ISBN that the file disagrees with.
+	for index := range books {
+		if books[index].ID == "a1" {
+			books[index].Identifiers = map[string]string{"isbn": "9781111111111"}
+		}
+	}
+	server.libraries[0].Store = server.metadataOverrides.Wrap("books", epubBackend{
+		staticBackend: staticBackend{books: books},
+		file:          epubWithCopyrightPage(t),
+	})
+	var err error
+	if server.isbnFound, err = newISBNStore(t); err != nil {
+		t.Fatal(err)
+	}
+
+	// Default run: nothing to find, so nothing is read and nothing is reported.
+	if response := editorCall(server, http.MethodPost, "/api/metadata/editor/isbn", `{"library":"books"}`); response.Code != http.StatusAccepted {
+		t.Fatalf("start: %d %s", response.Code, response.Body)
+	}
+	// The message wording depends on whether anything else was unreadable, so the state is what gets asserted: skipped
+	// means nothing was stored about this book, so the column stays empty and no badge appears.
+	if status := waitForISBN(t, server); status["status"] != "ready" {
+		t.Fatalf("status = %v", status)
+	}
+	for _, row := range listEditor(t, server, "").Items {
+		if row.ID == "a1" && row.IsbnFound != "" {
+			t.Fatalf("a book with an ISBN was read without being asked: %+v", row)
+		}
+	}
+	if rows := listEditor(t, server, "&filter=issues"); rows.Counts["isbn_differs"] != 0 {
+		t.Fatalf("nothing should differ before a recheck: %v", rows.Counts)
+	}
+
+	// Recheck: the book is read, the file's ISBN is shown beside the metadata one, and the mismatch is a badge.
+	if recheck := editorCall(server, http.MethodPost, "/api/metadata/editor/isbn", `{"library":"books","recheck":true}`); recheck.Code != http.StatusAccepted {
+		t.Fatalf("recheck: %d %s", recheck.Code, recheck.Body)
+	}
+	if status := waitForISBN(t, server); status["status"] != "ready" {
+		t.Fatalf("status = %v", status)
+	}
+	rows := listEditor(t, server, "")
+	var checked *editorRow
+	for index := range rows.Items {
+		if rows.Items[index].ID == "a1" {
+			checked = &rows.Items[index]
+		}
+	}
+	if checked == nil || checked.IsbnFound != "9780306406157" {
+		t.Fatalf("the file's ISBN is reported for a book that already has one: %+v", checked)
+	}
+	if counts := listEditor(t, server, "&filter=issues").Counts; counts["isbn_differs"] != 1 {
+		t.Fatalf("counts = %v", counts)
+	}
+	if differing := listEditor(t, server, "&filter=isbn_differs"); differing.Total != 1 {
+		t.Fatalf("the differing ISBN is filterable: %+v", differing)
+	}
+}

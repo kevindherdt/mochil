@@ -14,7 +14,7 @@ func TestISBNsAreLookedUpTogetherAndOnlyKnownOnesComeBack(t *testing.T) {
 		raw, _ := io.ReadAll(request.Body)
 		bodies = append(bodies, string(raw))
 		return &http.Response{StatusCode: http.StatusOK, Header: make(http.Header), Body: io.NopCloser(strings.NewReader(`{"data":{"editions":[
-			{"isbn_13":"9780306406157","book":{"id":5,"title":"Dune","description":"Spice.","release_year":1965,"slug":"dune","contributions":[{"author":{"name":"Frank Herbert"}}]}},
+			{"isbn_13":"9780306406157","book":{"id":5,"title":"Dune","description":"Spice.","release_year":1965,"slug":"dune","contributions":[{"author":{"name":"Frank Herbert"}}],"book_series":[{"position":1,"featured":true,"series":{"name":"Dune"}}]}},
 			{"isbn_13":"9780306406157","book":{"id":6,"title":"Dune (duplicate edition)","slug":"x","contributions":[]}},
 			{"isbn_13":"9780743273565","book":{"id":0,"title":"Broken","slug":"y","contributions":[]}}]}}`))}, nil
 	})})
@@ -28,6 +28,11 @@ func TestISBNsAreLookedUpTogetherAndOnlyKnownOnesComeBack(t *testing.T) {
 	dune, ok := found["9780306406157"]
 	if !ok || dune.ProviderID != "5" || dune.Title != "Dune" || dune.Year != 1965 || dune.Overview != "Spice." || dune.Authors[0] != "Frank Herbert" {
 		t.Fatalf("dune = %+v %v", dune, ok)
+	}
+	// An ISBN names one edition, which makes it the lookup most likely to be right — so its series has to travel too,
+	// or the books the editor can fix most confidently are the ones it cannot rename the series of.
+	if dune.Series != "Dune" || dune.SeriesIndex == nil || *dune.SeriesIndex != 1 {
+		t.Fatalf("the ISBN lookup lost the series: %+v", dune)
 	}
 	if len(found) != 1 {
 		t.Fatalf("unknown and broken entries are left out: %+v", found)

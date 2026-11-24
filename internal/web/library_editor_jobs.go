@@ -18,9 +18,17 @@ type editorJob struct {
 	key       func(library string) string
 	available func(*multiServer) bool
 	// run does the work. It should look at ctx between books and return when it is canceled.
-	run func(ctx context.Context, m *multiServer, lib Library, books []catalog.Book, recount bool) (string, error)
+	run func(ctx context.Context, m *multiServer, lib Library, books []catalog.Book, opts editorJobOptions) (string, error)
 	// unavailable and busy are the sentences a person sees when it cannot start.
 	unavailable, busy string
+}
+
+// editorJobOptions are what the person asked for when starting the job. `recount` re-runs work that was already done;
+// `recheck` means "look again at books that already have what the job looks for" — the ISBN search uses it to read books
+// that already carry an ISBN, which is how a wrong or duplicated ISBN becomes visible.
+type editorJobOptions struct {
+	Recount bool
+	Recheck bool
 }
 
 func (m *multiServer) serveEditorJob(w http.ResponseWriter, r *http.Request, job editorJob) {
@@ -54,6 +62,7 @@ func (m *multiServer) startEditorJob(w http.ResponseWriter, r *http.Request, job
 		Library string   `json:"library"`
 		IDs     []string `json:"ids"`
 		Recount bool     `json:"recount"`
+		Recheck bool     `json:"recheck"`
 	}
 	if err := decodeJSONRequest(w, r, 1<<20, &req, true); err != nil {
 		http.Error(w, "The request could not be read.", http.StatusBadRequest)
@@ -78,7 +87,7 @@ func (m *multiServer) startEditorJob(w http.ResponseWriter, r *http.Request, job
 		books = kept
 	}
 	err := m.backgroundJobs.Submit(job.key(lib.ID), func(ctx context.Context) error {
-		message, err := job.run(ctx, m, lib, books, req.Recount)
+		message, err := job.run(ctx, m, lib, books, editorJobOptions{Recount: req.Recount, Recheck: req.Recheck})
 		if err != nil {
 			return err
 		}

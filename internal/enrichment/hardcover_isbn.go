@@ -3,8 +3,6 @@ package enrichment
 import (
 	"context"
 	"errors"
-	"net/url"
-	"strconv"
 	"strings"
 )
 
@@ -32,23 +30,11 @@ func (h *Hardcover) LookupISBNs(ctx context.Context, isbns []string) (map[string
 	}
 	var payload struct {
 		Editions []struct {
-			ISBN13 string `json:"isbn_13"`
-			Book   struct {
-				ID            int64  `json:"id"`
-				Title         string `json:"title"`
-				Description   string `json:"description"`
-				ReleaseYear   int    `json:"release_year"`
-				Slug          string `json:"slug"`
-				CachedImage   any    `json:"cached_image"`
-				Contributions []struct {
-					Author struct {
-						Name string `json:"name"`
-					} `json:"author"`
-				} `json:"contributions"`
-			} `json:"book"`
+			ISBN13 string        `json:"isbn_13"`
+			Book   hardcoverBook `json:"book"`
 		} `json:"editions"`
 	}
-	query := `query EditionsByISBN($isbns: [String!]!) { editions(where: {isbn_13: {_in: $isbns}}, limit: 100) { isbn_13 book { id title description release_year slug cached_image contributions { author { name } } } } }`
+	query := `query EditionsByISBN($isbns: [String!]!) { editions(where: {isbn_13: {_in: $isbns}}, limit: 100) { isbn_13 book { id title description release_year slug cached_image contributions { author { name } } book_series { position featured series { name } } } } }`
 	if err := h.graphql(ctx, query, map[string]any{"isbns": isbns}, &payload); err != nil {
 		return nil, err
 	}
@@ -61,18 +47,7 @@ func (h *Hardcover) LookupISBNs(ctx context.Context, isbns []string) (map[string
 		if _, seen := found[edition.ISBN13]; seen {
 			continue
 		}
-		authors := make([]string, 0, len(book.Contributions))
-		for _, contribution := range book.Contributions {
-			if name := strings.TrimSpace(contribution.Author.Name); name != "" {
-				authors = append(authors, name)
-			}
-		}
-		slug := safeSlug(book.Slug)
-		source := "https://hardcover.app/books/" + slug
-		if slug == "" {
-			source = "https://hardcover.app/search?query=" + url.QueryEscape(book.Title)
-		}
-		found[edition.ISBN13] = Suggestion{Title: book.Title, Authors: authors, Year: book.ReleaseYear, Overview: boundedText(book.Description, 2000), CoverURL: hardcoverImageURL(book.CachedImage), Provider: "Hardcover", ProviderID: strconv.FormatInt(book.ID, 10), SourceURL: source}
+		found[edition.ISBN13] = hardcoverSuggestion(book)
 	}
 	return found, nil
 }

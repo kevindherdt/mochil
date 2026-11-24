@@ -26,6 +26,7 @@ import { NoteTree, NoteSearchResults } from "../NoteTree";
 import { buildTree, noteName } from "../tree";
 import { Markdown } from "../markdown";
 import { isVaultPage, type VaultEntry, type VaultPage } from "../api/vault";
+import { useShellVariant } from "../../../shell/ShellVariant";
 
 type Selection = { kind: "existing"; page: VaultPage; folder: string; name: string } | { kind: "new"; folder: string } | null;
 
@@ -39,6 +40,7 @@ export function NotesScreen() {
   const library = useVaultLibrary();
   const entriesQuery = useVaultEntries(library);
   const mutations = useNotesMutations();
+  const variant = useShellVariant();
   const [selection, setSelection] = useState<Selection>(null);
   const [content, setContent] = useState("");
   const [revision, setRevision] = useState("");
@@ -128,12 +130,11 @@ export function NotesScreen() {
     );
   }
 
-  if (selection !== null) {
+  const reader = selection === null ? null : (() => {
     const isNew = selection.kind === "new";
     const heading = isNew ? "New note" : noteName(selection.page);
     const location = isNew ? (newFolder === "" ? "Vault root" : newFolder) : folderOf(selection.page.path) || "Vault root";
     return (
-      <Page>
         <Stack gap={16}>
           {/* Sticky, because a long note scrolls for screens and the Edit button must not scroll away with it. */}
           <div
@@ -159,9 +160,11 @@ export function NotesScreen() {
                   {editing ? "Done" : "Edit"}
                 </Button>
               )}
-              <Button variant="secondary" onClick={close}>
-                Back
-              </Button>
+              {variant !== "desktop" && (
+                <Button variant="secondary" onClick={close}>
+                  Back
+                </Button>
+              )}
             </Inline>
           </Inline>
           </div>
@@ -195,7 +198,9 @@ export function NotesScreen() {
               }}
             />
           ) : (
-            <div>
+            // Any unbroken token (a JWT, a path, a hash) is allowed to break mid-word inside a note: the alternative is
+            // a paragraph that pushes the whole screen sideways, which is what a note full of keys did.
+            <div style={{ overflowWrap: "anywhere", maxWidth: "100%" }}>
               {content.trim() === "" ? (
                 <Text size="13" muted>
                   This note is empty{writable ? " — press Edit to start writing." : "."}
@@ -282,13 +287,11 @@ export function NotesScreen() {
             </Text>
           )}
         </Stack>
-      </Page>
     );
-  }
+  })();
 
-  return (
-    <Page>
-      <Stack gap={16}>
+  const explorer = (
+    <Stack gap={12}>
         <Inline justify="space-between" align="center">
           <Heading size="18">Notes</Heading>
           <Button variant="primary" onClick={openNew}>
@@ -317,12 +320,47 @@ export function NotesScreen() {
                   <NoteSearchResults notes={visible} onOpen={openPage} openingId={openingId} />
                 )
               ) : (
-                <NoteTree root={tree} onOpen={openPage} openingId={openingId} />
+                <NoteTree
+                  root={tree}
+                  onOpen={openPage}
+                  openingId={openingId}
+                  revealPath={selection?.kind === "existing" ? selection.page.path : undefined}
+                  activeId={selection?.kind === "existing" ? selection.page.id : undefined}
+                />
               )}
             </Stack>
           )}
-        </Async>
-      </Stack>
-    </Page>
+    </Async>
+    </Stack>
   );
+
+  // Desktop: the vault's folders stay beside the note, the way they do in the app that owns the vault. Opening a note no
+  // longer costs the list, so there is nothing to go "back" to. A phone keeps the one-column flow — a 300px tree next to
+  // a note is two columns of nothing.
+  if (variant === "desktop") {
+    return (
+      <Page wide>
+        <div style={{ display: "flex", gap: "var(--space-16)", alignItems: "flex-start" }}>
+          <div
+            style={{
+              width: 300,
+              flexShrink: 0,
+              position: "sticky",
+              top: 0,
+              maxHeight: "calc(var(--vvh, 100vh) - 140px)",
+              overflowY: "auto",
+              paddingRight: "var(--space-8)",
+            }}
+          >
+            {explorer}
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            {reader ?? <EmptyState message="Pick a note on the left, or start a new one." />}
+          </div>
+        </div>
+      </Page>
+    );
+  }
+
+  return <Page>{reader ?? explorer}</Page>;
 }

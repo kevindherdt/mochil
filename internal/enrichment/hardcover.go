@@ -26,6 +26,85 @@ type Hardcover struct {
 	cache  map[string]cacheEntry
 }
 
+// hardcoverBook is the slice of a Hardcover book this server uses. Both the title search and the ISBN lookup decode
+// it, so the two ways of finding a book carry exactly the same fields — a book found by its number is the one most
+// likely to be right, and it would be the odd one out if it lacked a series.
+type hardcoverBook struct {
+	ID            int64  `json:"id"`
+	Title         string `json:"title"`
+	Description   string `json:"description"`
+	ReleaseYear   int    `json:"release_year"`
+	Slug          string `json:"slug"`
+	CachedImage   any    `json:"cached_image"`
+	Contributions []struct {
+		Author struct {
+			Name string `json:"name"`
+		} `json:"author"`
+	} `json:"contributions"`
+	BookSeries []hardcoverSeriesRow `json:"book_series"`
+}
+
+// hardcoverSeriesRow is one entry of a book's book_series relation. Hardcover files a book under several listings —
+// the main series, a publication-order one, a comics line — and each has its own position in that listing.
+type hardcoverSeriesRow struct {
+	Position *float64 `json:"position"`
+	Featured bool     `json:"featured"`
+	Series   struct {
+		Name string `json:"name"`
+	} `json:"series"`
+}
+
+// hardcoverSeries returns the series a book's page leads with: the featured listing. Taking the first row instead
+// names whichever listing Hardcover happened to store first, which is how "The Witcher (Publication order)" becomes
+// the series of a book that belongs to "The Witcher". A position of 0 is Hardcover's "not set" — the API sends it for
+// books it has not placed — so it is reported as no position rather than as book zero.
+func hardcoverSeries(rows []hardcoverSeriesRow) (string, *float64) {
+	chosen := -1
+	for index, row := range rows {
+		if strings.TrimSpace(row.Series.Name) == "" {
+			continue
+		}
+		if row.Featured {
+			chosen = index
+			break
+		}
+		if chosen < 0 {
+			chosen = index
+		}
+	}
+	if chosen < 0 {
+		return "", nil
+	}
+	position := rows[chosen].Position
+	if position != nil && *position <= 0 {
+		position = nil
+	}
+	return strings.TrimSpace(rows[chosen].Series.Name), position
+}
+
+// hardcoverSuggestion turns a looked-up book into what the editor stores and shows.
+func hardcoverSuggestion(book hardcoverBook) Suggestion {
+	authors := make([]string, 0, len(book.Contributions))
+	for _, contribution := range book.Contributions {
+		if name := strings.TrimSpace(contribution.Author.Name); name != "" {
+			authors = append(authors, name)
+		}
+	}
+	id := strconv.FormatInt(book.ID, 10)
+	slug := safeSlug(book.Slug)
+	sourceURL := "https://hardcover.app/books/" + slug
+	if slug == "" {
+		sourceURL = "https://hardcover.app/search?query=" + url.QueryEscape(book.Title)
+	}
+	series, seriesIndex := hardcoverSeries(book.BookSeries)
+	return Suggestion{
+		Title: book.Title, Authors: authors, Year: book.ReleaseYear,
+		Series: series, SeriesIndex: seriesIndex,
+		Overview: boundedText(book.Description, 2000), CoverURL: hardcoverImageURL(book.CachedImage),
+		Provider: "Hardcover", ProviderID: id, SourceURL: sourceURL,
+	}
+}
+
 func NewHardcover(token string, client *http.Client) *Hardcover {
 	if client == nil {
 		client = &http.Client{Timeout: 10 * time.Second}
@@ -96,21 +175,9 @@ func (h *Hardcover) Search(ctx context.Context, query Query) ([]Suggestion, erro
 		return nil, nil
 	}
 	var details struct {
-		Books []struct {
-			ID            int64  `json:"id"`
-			Title         string `json:"title"`
-			Description   string `json:"description"`
-			ReleaseYear   int    `json:"release_year"`
-			Slug          string `json:"slug"`
-			CachedImage   any    `json:"cached_image"`
-			Contributions []struct {
-				Author struct {
-					Name string `json:"name"`
-				} `json:"author"`
-			} `json:"contributions"`
-		} `json:"books"`
+		Books []hardcoverBook `json:"books"`
 	}
-	if err := h.graphql(ctx, `query BookDetails($ids: [Int!]!) { books(where: {id: {_in: $ids}}) { id title description release_year slug cached_image contributions { author { name } } } }`, map[string]any{"ids": ids}, &details); err != nil {
+	if err := h.graphql(ctx, `query BookDetails($ids: [Int!]!) { books(where: {id: {_in: $ids}}) { id title description release_year slug cached_image contributions { author { name } } book_series { position featured series { name } } } }`, map[string]any{"ids": ids}, &details); err != nil {
 		return nil, err
 	}
 	order := make(map[int64]int, len(ids))
@@ -123,19 +190,7 @@ func (h *Hardcover) Search(ctx context.Context, query Query) ([]Suggestion, erro
 		if book.ID <= 0 || strings.TrimSpace(book.Title) == "" {
 			continue
 		}
-		authors := make([]string, 0, len(book.Contributions))
-		for _, contribution := range book.Contributions {
-			if name := strings.TrimSpace(contribution.Author.Name); name != "" {
-				authors = append(authors, name)
-			}
-		}
-		id := strconv.FormatInt(book.ID, 10)
-		slug := safeSlug(book.Slug)
-		sourceURL := "https://hardcover.app/books/" + slug
-		if slug == "" {
-			sourceURL = "https://hardcover.app/search?query=" + url.QueryEscape(book.Title)
-		}
-		results = append(results, Suggestion{Title: book.Title, Authors: authors, Year: book.ReleaseYear, Overview: boundedText(book.Description, 2000), CoverURL: hardcoverImageURL(book.CachedImage), Provider: "Hardcover", ProviderID: id, SourceURL: sourceURL})
+		results = append(results, hardcoverSuggestion(book))
 	}
 	h.store(key, results)
 	return append([]Suggestion(nil), results...), nil

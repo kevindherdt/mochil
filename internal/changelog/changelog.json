@@ -2,6 +2,25 @@
  "entries": [
   {
    "component": "web",
+   "version": "0.1.91",
+   "date": "2026-11-24",
+   "new": [
+    "The metadata editor's toolbar is one row at one height and the lookup tools are chips with their explanation on hover, so the library table gets the space back.",
+    "The editor's keyboard works: the arrow keys move the cell, Tab and Shift+Tab walk the fields and wrap to the next row, Enter or F2 edits, Escape cancels, Space selects the row, Shift with the arrows selects a range, Ctrl+A selects everything, Home and End jump to the first and last column, and Page Up and Page Down move a screen of rows.",
+    "Values that are a judgement rather than a fact are colour-coded: a match percentage reads green from 90%, amber from 50% and red below, the ISBN found inside a file is green when it agrees with the book and red when it disagrees, and status badges are coloured by what they mean instead of all looking alike.",
+    "Taking a match has two modes: fill the fields a book has nothing in, or replace what the match disagrees about, including the title, authors, series, volume number, year, description and the Hardcover link.",
+    "Every candidate Hardcover returned for a book can be seen and chosen: the Match cell opens the ranked list with its scores, and the search words can be edited and searched again when the first answer is wrong.",
+    "The editor can write its metadata back beside the books as a metadata.opf that Calibre reads when a folder is imported, optionally into the EPUB itself, for libraries Mochil owns.",
+    "Each library remembers how it was last browsed (books, series or authors) and which layout, individually."
+   ],
+   "fixed": [
+    "Discarding a book during review no longer brings it back in the next batch: a discarded book is set aside, the count is shown with a way to bring it back, and a whole batch can be discarded at once.",
+    "The editor's keyboard no longer stops working after the first click in the table.",
+    "Writing metadata into an EPUB no longer loses that book's match: the match follows the file it rewrote."
+   ]
+  },
+  {
+   "component": "web",
    "version": "0.1.90",
    "date": "2026-11-23",
    "changes": [

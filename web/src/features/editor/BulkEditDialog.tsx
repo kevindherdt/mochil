@@ -301,7 +301,7 @@ export function BulkEditDialog({
           )}
 
           {problem !== undefined && (
-            <div style={{ fontSize: "var(--font-size-12)", color: "var(--color-danger, #e5484d)" }}>{problem}</div>
+            <div style={{ fontSize: "var(--font-size-12)", color: "var(--color-error)" }}>{problem}</div>
           )}
 
           <Inline gap={8}>

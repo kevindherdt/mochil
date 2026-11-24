@@ -19,9 +19,13 @@ const (
 )
 
 type Suggestion struct {
-	Title       string   `json:"title"`
-	Authors     []string `json:"authors,omitempty"`
-	Year        int      `json:"year,omitempty"`
+	Title   string   `json:"title"`
+	Authors []string `json:"authors,omitempty"`
+	Year    int      `json:"year,omitempty"`
+	// Series and SeriesIndex are the reading order the provider states, when it states one. They travel with the
+	// suggestion so the editor can offer to fix a series name, not only fill an empty field with it.
+	Series      string   `json:"series,omitempty"`
+	SeriesIndex *float64 `json:"series_index,omitempty"`
 	Overview    string   `json:"overview,omitempty"`
 	MediaType   string   `json:"media_type,omitempty"`
 	CoverURL    string   `json:"cover_url,omitempty"`

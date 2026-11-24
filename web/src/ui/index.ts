@@ -2,6 +2,7 @@
 // owning its own layout (law L2) or raw CSS values (law L3). Exported from one barrel so a screen writes
 // `import { Stack, Button, Card } from "../../ui"` instead of reaching into individual files.
 export * from "./Page";
+export * from "./ResizeHandle";
 export * from "./Stack";
 export * from "./Inline";
 export * from "./GridList";
@@ -22,6 +23,7 @@ export * from "./TextField";
 export * from "./TextArea";
 export * from "./PillRow";
 export * from "./FilterChips";
+export * from "./Toolbar";
 export * from "./Menu";
 export * from "./GroupCard";
 export * from "./IconButton";

@@ -19,6 +19,11 @@ export interface EditorMatch {
   title: string;
   authors: string[];
   year: number;
+  /** The provider's series name, "" when it does not know one. Carried so a *wrong* series can be renamed, not only an
+   *  empty one filled. */
+  series: string;
+  /** The provider's position in that series, undefined when it does not say. */
+  seriesIndex: number | undefined;
   overview: string;
   provider: string;
   providerId: string;
@@ -93,6 +98,8 @@ const bookSchema = z.looseObject({
       title: z.string().optional(),
       authors: z.array(z.string()).nullable().optional(),
       year: z.number().nullable().optional(),
+      series: z.string().nullable().optional(),
+      series_index: z.number().nullable().optional(),
       overview: z.string().nullable().optional(),
       provider: z.string().nullable().optional(),
       provider_id: z.string().nullable().optional(),
@@ -294,6 +301,8 @@ export async function fetchEditorBooks(query: EditorQuery): Promise<EditorPage> 
               title: book.match.title ?? "",
               authors: book.match.authors ?? [],
               year: book.match.year ?? 0,
+              series: book.match.series ?? "",
+              seriesIndex: book.match.series_index ?? undefined,
               overview: book.match.overview ?? "",
               provider: book.match.provider ?? "",
               providerId: book.match.provider_id ?? "",
@@ -359,6 +368,56 @@ export async function applyChanges(libraryId: string, changes: EditorChanges, re
 
 export async function undoChanges(libraryId: string, token: string): Promise<void> {
   await request<unknown>("/api/metadata/editor/undo", { method: "POST", body: { library: libraryId, undo: token } });
+}
+
+/** One book's outcome from writing metadata files. `written` and `exists` mean the folder is fine as it is. */
+export interface MetadataFileResult {
+  id: string;
+  title: string;
+  status: "written" | "exists" | "failed";
+  sidecar: string;
+  message: string;
+}
+
+export interface MetadataFileOutcome {
+  results: MetadataFileResult[];
+  summary: { written: number; exists: number; failed: number };
+}
+
+/**
+ * Write the metadata Mochil already stores back out beside the books, so a program that is not Mochil reads it: Calibre
+ * picks up `metadata.opf` when a folder is added, which is the whole point of "fix it here, drag it into Calibre".
+ *
+ * This writes what is *saved*, not what is pending, and it never touches a Calibre library — the server refuses those,
+ * because the folder and the sidecar in it belong to Calibre. `embed` also writes the fields into the EPUB itself.
+ */
+export async function writeMetadataFiles(
+  libraryId: string,
+  ids: string[],
+  options: { embed: boolean; overwrite: boolean },
+): Promise<MetadataFileOutcome> {
+  const raw = await request<{
+    results?: { id?: string; title?: string; status?: string; sidecar?: string; message?: string }[];
+    summary?: { written?: number; exists?: number; failed?: number };
+  }>("/api/metadata/editor/metadata-files", {
+    method: "POST",
+    body: { library: libraryId, ids, sidecar: true, embed: options.embed, overwrite: options.overwrite },
+  });
+  const results = (raw.results ?? []).map((entry): MetadataFileResult => ({
+    id: entry.id ?? "",
+    title: entry.title ?? "",
+    status: entry.status === "written" || entry.status === "exists" ? entry.status : "failed",
+    sidecar: entry.sidecar ?? "",
+    message: entry.message ?? "",
+  }));
+  return {
+    results,
+    summary: {
+      written: raw.summary?.written ?? results.filter((entry) => entry.status === "written").length,
+      exists: raw.summary?.exists ?? results.filter((entry) => entry.status === "exists").length,
+      failed: raw.summary?.failed ?? results.filter((entry) => entry.status === "failed").length,
+    },
+  };
 }
 
 /** Count of pending field edits, for the save bar. */
@@ -514,6 +573,148 @@ export function matchFills(books: EditorBook[], editable: readonly EditorField[]
   return next;
 }
 
+/** A title, a name or a series as a person compares them: case, spacing, accents and punctuation are not the
+ *  difference anyone is looking for. "Dune: Messiah" and "Dune Messiah" are the same book, and rewriting one into the
+ *  other would bury the changes that matter under a page of cosmetic ones. */
+function sameText(left: string, right: string): boolean {
+  const shape = (value: string) =>
+    value
+      .normalize("NFKD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/[^\p{L}\p{N}]+/gu, "");
+  return shape(left) === shape(right);
+}
+
+/**
+ * What "Replace from the match" rewrites: every field the match owns and disagrees about.
+ *
+ * The point is the case the fill mode cannot touch — "The Last Wish (Polish)" is not empty, so filling never fixes it,
+ * and a series spelled "Wiedźmin" next to Hardcover's "The Witcher" stays wrong forever.
+ *
+ * Names (title, authors, series, series position) are compared loosely, because "Dune: Messiah" and "Dune Messiah" are
+ * the same name and rewriting one into the other is noise. The year and the blurb are compared exactly: a different
+ * year is a different year, and a blurb is prose, so punctuation is not a cosmetic difference inside it.
+ *
+ * The hardcover link is written here too. A wrong or missing hardcover id is the one identifier a match can correct,
+ * and it is what every later refresh greps for; the ISBN is left alone, because a match never tells you an ISBN.
+ *
+ * It never blanks a field. A match that does not know the series says nothing about the one the book already has.
+ */
+export function matchReplace(book: EditorBook, editable: readonly EditorField[]): Partial<Record<EditorField, string>> {
+  const match = book.match;
+  if (match === undefined || !book.matchClear) return {};
+  const fields: Partial<Record<EditorField, string>> = {};
+  const take = (field: EditorField, from: string, to: string, compare: (a: string, b: string) => boolean = sameText) => {
+    if (!editable.includes(field)) return;
+    const wanted = to.trim();
+    if (wanted === "" || compare(from.trim(), wanted)) return;
+    fields[field] = wanted;
+  };
+  const exact = (left: string, right: string) => left === right;
+  take("title", book.title, match.title);
+  take("authors", book.authors.join(" & "), match.authors.join(" & "));
+  take("series", book.series, match.series);
+  take("published", yearOf(book.published), match.year > 0 ? String(match.year) : "", exact);
+  take("description", book.description, match.overview, exact);
+  // 0 is Hardcover's "not placed in this series", and the server reads series_index as a number: writing it would make
+  // the book the zeroth of its series. Undefined means the provider said nothing, not that the book has no position.
+  const index = match.seriesIndex;
+  if (editable.includes("series_index") && index !== undefined && index > 0 && index !== book.seriesIndex) {
+    fields.series_index = String(index);
+  }
+  // The identifier list is a whole string: the link is merged in so an existing isbn: (or amazon:) survives.
+  if (editable.includes("identifiers") && match.providerId !== "" && /hardcover/i.test(match.provider)) {
+    const identifiers = identifierWith(book.identifiers, "hardcover", match.providerId);
+    if (identifiers !== book.identifiers) fields.identifiers = identifiers;
+  }
+  return fields;
+}
+
+/** One search on Hardcover for one book, with whatever words the person chose. */
+export interface CandidateSearch {
+  /** The words the server actually searched with (it retries without the author when that finds nothing). */
+  title: string;
+  authors: string[];
+  candidates: EditorMatch[];
+  /** One candidate is well ahead of the rest. */
+  clear: boolean;
+}
+
+/**
+ * Search Hardcover again for one book, with words the person can change.
+ *
+ * The bulk lookup searches once, with the book's own title — and a title like "-EIGHTY-SIX - Volume 07" finds
+ * "Lovelace, Volume 07" at 16%, which is worse than nothing because it looks like an answer. Being able to say
+ * "86 EIGHTY SIX Vol 7 Mist" and see the ranked list is the difference between a wrong match and a right one.
+ */
+export async function searchMatches(
+  libraryId: string,
+  bookId: string,
+  query: { title?: string; author?: string } = {},
+): Promise<CandidateSearch> {
+  const params = new URLSearchParams({ library: libraryId, book: bookId });
+  if (query.title !== undefined && query.title !== "") params.set("title", query.title);
+  if (query.author !== undefined && query.author !== "") params.set("author", query.author);
+  const raw = await request<{
+    title?: string;
+    authors?: string[] | null;
+    clear?: boolean;
+    candidates?: {
+      title?: string;
+      authors?: string[] | null;
+      year?: number | null;
+      series?: string | null;
+      series_index?: number | null;
+      overview?: string | null;
+      provider?: string | null;
+      provider_id?: string | null;
+      score?: number | null;
+    }[] | null;
+  }>(`/api/metadata/editor/match?${params}`);
+  return {
+    title: raw.title ?? "",
+    authors: raw.authors ?? [],
+    clear: raw.clear === true,
+    candidates: (raw.candidates ?? []).map((entry) => ({
+      title: entry.title ?? "",
+      authors: entry.authors ?? [],
+      year: entry.year ?? 0,
+      series: entry.series ?? "",
+      seriesIndex: entry.series_index ?? undefined,
+      overview: entry.overview ?? "",
+      provider: entry.provider ?? "",
+      providerId: entry.provider_id ?? "",
+      score: entry.score ?? 0,
+    })),
+  };
+}
+
+/** Bulk "Replace from the match": every book with a certain match the match disagrees with, as pending edits. */
+export function matchReplaces(books: EditorBook[], editable: readonly EditorField[]): EditorChanges {
+  const next: EditorChanges = {};
+  for (const book of books) {
+    const fields = matchReplace(book, editable);
+    if (Object.keys(fields).length > 0) next[book.id] = fields;
+  }
+  return next;
+}
+
+/**
+ * How the ISBN read from the file compares with the one the book already carries:
+ * `missing` — the book has none, and the file offers one (the only case the bulk fill acts on);
+ * `same` — the file agrees with the metadata; `differs` — it does not, which is what a wrong or duplicated ISBN
+ * looks like and the reason the search can be asked to recheck books that already have one.
+ */
+export function isbnState(book: EditorBook): "none" | "missing" | "same" | "differs" {
+  const found = (book.isbnFound ?? "").trim();
+  if (found === "") return "none";
+  const current = isbnOf(book);
+  if (current === "") return "missing";
+  const digits = (value: string) => value.toLowerCase().replace(/[^0-9x]/g, "");
+  return digits(found) === digits(current) ? "same" : "differs";
+}
+
 /** Bulk "Use found ISBNs": only books that have none and were given one by the Find ISBNs job. */
 export function isbnFills(books: EditorBook[], editable: readonly EditorField[]): EditorChanges {
   if (!editable.includes("identifiers")) return {};
@@ -639,8 +840,16 @@ function jobPath(tool: EditorTool): string {
 }
 
 /** Start a job on the selection (ids) or the whole library (no ids). It keeps running if this page closes. */
-export async function startJob(libraryId: string, tool: EditorTool, ids: string[]): Promise<void> {
-  await request<unknown>(jobPath(tool), { method: "POST", body: { library: libraryId, ids } });
+export async function startJob(
+  libraryId: string,
+  tool: EditorTool,
+  ids: string[],
+  options?: { recheck?: boolean },
+): Promise<void> {
+  await request<unknown>(jobPath(tool), {
+    method: "POST",
+    body: { library: libraryId, ids, ...(options?.recheck === true ? { recheck: true } : {}) },
+  });
 }
 
 export async function jobState(libraryId: string, tool: EditorTool): Promise<JobState> {

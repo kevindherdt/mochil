@@ -245,6 +245,26 @@ export function LibraryScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- intentionally only re-checks on these two signals
   }, [search.lib, librariesQuery.data]);
 
+  // Opening a shelf without saying how to browse it lands on how that shelf was last browsed — the rule selectLibrary
+  // already applies to a pill click, extended to every other way in (a sidebar link, a bookmark, the back button).
+  // Without this the default wins on arrival and the effect below then saves that default over the memory: the shelf
+  // was remembered correctly and overwritten one render later, which is exactly why "Series" never stuck.
+  const restorePending =
+    search.lib !== undefined && search.view === undefined && readLibraryView(search.lib)?.view !== undefined;
+  useEffect(() => {
+    if (search.lib === undefined || search.view !== undefined) return;
+    if (librariesQuery.data === undefined) return;
+    if (!libraries.some((library) => library.id === search.lib)) return;
+    const remembered = readLibraryView(search.lib);
+    if (remembered?.view === undefined) return;
+    void navigate({
+      to: "/library",
+      search: (previous) => ({ ...previous, view: remembered.view, layout: remembered.layout ?? previous.layout }),
+      replace: true,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- re-checks only when the shelf or its view arrives
+  }, [search.lib, search.view, librariesQuery.data]);
+
   // Written back whenever the shelf/view/layout actually settle on something real, so the *next* visit (not this
   // one) remembers it. Not `group`/`groupName` — a drilled-in album is session-local, not "the shelf I was on".
   // Both keys are written: LAST_SHELF_KEY for "which single shelf to land on for a brand-new visit", LIBRARY_VIEW
@@ -252,6 +272,9 @@ export function LibraryScreen() {
   // restores its own view/layout rather than whatever shelf happened to be open last.
   useEffect(() => {
     if (activeId === undefined) return;
+    // The restore above is about to say what this shelf shows; saving the default now would overwrite the memory the
+    // restore is reading, and the next visit would land flat again.
+    if (restorePending) return;
     try {
       window.localStorage.setItem(LAST_SHELF_KEY, JSON.stringify({ lib: activeId, view, layout }));
     } catch {
@@ -259,7 +282,7 @@ export function LibraryScreen() {
       // requirement, so a write failure here must never break browsing.
     }
     writeLibraryView(activeId, view, layout);
-  }, [activeId, view, layout]);
+  }, [activeId, view, layout, restorePending]);
 
 
   const filter = {

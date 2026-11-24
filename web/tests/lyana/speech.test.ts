@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { speechChunks } from "./speech";
+import { speechChunks } from "../../src/features/lyana/api/speech";
 
 // The server takes 16 kB of text per request and starts speaking as soon as the first piece arrives, so a long answer is
 // cut at a sentence end rather than mid-word. These pin the cutting, which is the part that is easy to get subtly wrong.

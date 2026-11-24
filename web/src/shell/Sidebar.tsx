@@ -2,14 +2,16 @@
 // drift, so both read navPlaces() from the same shell/places.ts rather than keeping their own lists.
 import { Link, useRouterState } from "@tanstack/react-router";
 import { navPlaces } from "./places";
+import { useEditorEnabled } from "../lib/useModules";
 import styles from "./Sidebar.module.css";
 
 export function Sidebar({ hermes = false }: { hermes?: boolean }) {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const editorEnabled = useEditorEnabled();
 
   return (
     <nav className={styles.sidebar} aria-label="Primary">
-      {navPlaces({ hermes }).map((place) => {
+      {navPlaces({ hermes, editor: editorEnabled }).map((place) => {
         const Icon = place.icon;
         const active = pathname.startsWith(place.to);
         return (

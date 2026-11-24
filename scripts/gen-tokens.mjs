@@ -110,7 +110,10 @@ ${paletteBlocks}
 // different colours under the same name, because nothing enforced they match).
 // ---------------------------------------------------------------------------------------------------------------
 const kotlinIdentifier = (id) => id.replace(/(^|-)([a-z])/g, (_, __, c) => c.toUpperCase());
-const roleOrder = ["bg", "surface", "raised", "line", "text", "muted", "accent", "accentInk", "wash", "error", "success", "accentVideo", "accentMusic", "accentPodcast", "accentComics"];
+// `warning` sits between error and success because that is what it is for: the middle of a scale — a match that is
+// half right, a value that is not wrong but not settled. On e-ink it is the text colour like the other two, since a
+// monochrome screen has no third hue to spend.
+const roleOrder = ["bg", "surface", "raised", "line", "text", "muted", "accent", "accentInk", "wash", "error", "success", "warning", "accentVideo", "accentMusic", "accentPodcast", "accentComics"];
 
 function generatedTokensKt() {
   const themeObjects = tokens.canonicalThemes.map((id) => {

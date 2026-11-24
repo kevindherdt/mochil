@@ -1,0 +1,26 @@
+/* Toolbar — one row of controls at one height.
+   The editor is why this exists: a search field at touch height (44px) beside a menu trigger that is already 32px read
+   as two rows pretending to be one, and the taller row cost space the table needed. Colour and spacing come from
+   tokens; the one number here is the control height, because this primitive's whole job is that number. */
+.toolbar {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+
+.toolbar button,
+.toolbar input {
+  min-height: 32px;
+  height: 32px;
+  font-size: var(--font-size-13);
+}
+
+.toolbar button {
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.toolbar input {
+  padding-top: 0;
+  padding-bottom: 0;
+}

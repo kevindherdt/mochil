@@ -8,6 +8,7 @@
 //
 // Deliberately tiny otherwise: no nesting, no icons inside items, closes on pick / outside click / Escape.
 import { useEffect, useId, useRef, useState, type ComponentType } from "react";
+import { ChevronDown } from "lucide-react";
 import styles from "./Menu.module.css";
 
 export interface MenuItem {
@@ -22,13 +23,25 @@ export interface MenuProps {
   /** Every id that is currently selected — the menu shows a tick on each (a browse mode AND a layout). */
   activeIds?: string[];
   onSelect: (id: string) => void;
-  /** The trigger's glyph. It has no visible text, so `label` is required as its accessible name. */
+  /** The trigger's glyph. Without `text` it is the whole button, so `label` carries its accessible name. */
   icon: ComponentType<{ size?: number }>;
   label: string;
+  /** Shown beside the glyph — for menus where the current choice matters ("Books", "All books"). */
+  text?: string;
+  /**
+   * Which edge the panel lines up with. `auto` (the default) picks it from where the trigger sits: a trigger in the
+   * right half of the window opens leftwards, one in the left half opens rightwards, so the panel lands on screen
+   * either way. It used to be anchored right always, which cut "Light Novels" down to "ovels" at the left edge; the
+   * fix overcorrected and cut the library header's own menu at the right edge. `start`/`end` remain as overrides.
+   */
+  align?: "auto" | "start" | "end";
 }
 
-export function Menu({ items, activeIds = [], onSelect, icon: Icon, label }: MenuProps) {
+export function Menu({ items, activeIds = [], onSelect, icon: Icon, label, text, align = "auto" }: MenuProps) {
   const [open, setOpen] = useState(false);
+  // Decided from the trigger's own position when the panel opens: there is no layout to measure before that, and
+  // measuring after opening would show the panel on the wrong side for a frame.
+  const [reversed, setReversed] = useState(false);
   const wrap = useRef<HTMLSpanElement>(null);
   const panelId = useId();
 
@@ -63,12 +76,22 @@ export function Menu({ items, activeIds = [], onSelect, icon: Icon, label }: Men
         aria-haspopup="menu"
         aria-expanded={open}
         aria-controls={open ? panelId : undefined}
-        onClick={() => setOpen((value) => !value)}
+        onClick={() => {
+          const rect = wrap.current?.getBoundingClientRect();
+          if (rect !== undefined && !open) setReversed(rect.left > window.innerWidth / 2);
+          setOpen((value) => !value);
+        }}
       >
         <Icon size={16} />
+        {text !== undefined && <span className={styles.text}>{text}</span>}
+        {text !== undefined && <ChevronDown size={14} className={styles.chevron} />}
       </button>
       {open && (
-        <div className={styles.panel} id={panelId} role="menu">
+        <div
+          className={align === "end" || (align === "auto" && reversed) ? `${styles.panel} ${styles.panelEnd}` : styles.panel}
+          id={panelId}
+          role="menu"
+        >
           {rows.map(({ item, heading }) => {
             const active = activeIds.includes(item.id);
             return (

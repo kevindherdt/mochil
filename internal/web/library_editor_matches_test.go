@@ -34,7 +34,7 @@ func matchHardcover(requests *atomic.Int32) *enrichment.Hardcover {
 		case strings.Contains(body, "BookDetails") && strings.Contains(body, "8"):
 			response = `{"data":{"books":[{"id":8,"title":"Neuromancer","slug":"n","contributions":[{"author":{"name":"William Gibson"}}]},{"id":9,"title":"Neuromancer: The Graphic Novel","slug":"n2","contributions":[{"author":{"name":"William Gibson"}}]}]}}`
 		case strings.Contains(body, "BookDetails"):
-			response = `{"data":{"books":[{"id":6,"title":"Dune Messiah","description":"More spice.","release_year":1969,"slug":"dm","contributions":[{"author":{"name":"Frank Herbert"}}]}]}}`
+			response = `{"data":{"books":[{"id":6,"title":"Dune Messiah","description":"More spice.","release_year":1969,"slug":"dm","contributions":[{"author":{"name":"Frank Herbert"}}],"book_series":[{"position":2,"featured":true,"series":{"name":"Dune"}}]}]}}`
 		}
 		return &http.Response{StatusCode: http.StatusOK, Header: make(http.Header), Body: io.NopCloser(strings.NewReader(response))}, nil
 	})})
@@ -97,6 +97,11 @@ func TestMatchingFindsBooksByISBNExactlyAndByTitleOtherwiseAndAppliesNothing(t *
 	if row := byID["a2"]; row.Match == nil || row.Match.ProviderID != "6" || !row.MatchClear {
 		t.Fatalf("a2 is Dune Messiah by title: %+v", row)
 	}
+	// The row the review panel reads has to carry the series, or "Replace from the match" can fill a series but never
+	// rename one — which is the case it exists for.
+	if row := byID["a2"]; row.Match == nil || row.Match.Series != "Dune" || row.Match.SeriesIndex == nil || *row.Match.SeriesIndex != 2 {
+		t.Fatalf("a2's match must carry its series and position: %+v", row.Match)
+	}
 	if row := byID["n1"]; row.Match == nil || row.MatchClear || !strings.Contains(row.MatchNote, "Not certain") {
 		t.Fatalf("n1 has two close candidates and must not be called clear: %+v", row)
 	}
@@ -123,7 +128,8 @@ func TestMatchingLeavesBooksAlreadyLinkedAndAlreadyLookedUpAlone(t *testing.T) {
 			n1 = book
 		}
 	}
-	sentinel := bulkMatch{How: "title", Clear: true, Candidates: []matchCandidate{{Suggestion: enrichment.Suggestion{Title: "Looked up earlier", ProviderID: "77"}, Score: 1}}}
+	// A finding in the shape this version writes: complete, so there is nothing left to ask Hardcover about.
+	sentinel := bulkMatch{Version: matchFindingVersion, How: "title", Clear: true, Candidates: []matchCandidate{{Suggestion: enrichment.Suggestion{Title: "Looked up earlier", ProviderID: "77"}, Score: 1}}}
 	server.matchFound.Put("books", "n1", n1.Size, n1.Modified, sentinel) // looked up already
 	editorCall(server, http.MethodPost, "/api/metadata/editor/matches", `{"library":"books","ids":["a1","a2","n1"]}`)
 	waitForMatches(t, server)
@@ -147,6 +153,31 @@ func TestMatchingLeavesBooksAlreadyLinkedAndAlreadyLookedUpAlone(t *testing.T) {
 	}
 }
 
+// A finding stored before the editor asked Hardcover for a series cannot answer "which series is this?" — and it looks
+// exactly like a finding where Hardcover genuinely has no series. It is looked up again rather than shown as complete,
+// which is what makes the series of an already-matched library fixable at all.
+func TestMatchingRefreshesAFindingFromBeforeSeriesWereAsked(t *testing.T) {
+	server, requests := matchServer(t)
+	var n1 catalog.Book
+	for _, book := range server.libraries[0].Store.Books() {
+		if book.ID == "n1" {
+			n1 = book
+		}
+	}
+	incomplete := bulkMatch{How: "title", Clear: true, Candidates: []matchCandidate{{Suggestion: enrichment.Suggestion{Title: "Looked up earlier", ProviderID: "77"}, Score: 1}}}
+	server.matchFound.Put("books", "n1", n1.Size, n1.Modified, incomplete) // no Version: written by the build before series
+	editorCall(server, http.MethodPost, "/api/metadata/editor/matches", `{"library":"books","ids":["n1"]}`)
+	waitForMatches(t, server)
+	if requests.Load() == 0 {
+		t.Fatal("an incomplete finding was trusted and never looked up again")
+	}
+	for _, row := range listEditor(t, server, "").Items {
+		if row.ID == "n1" && (row.Match == nil || row.Match.ProviderID == "77") {
+			t.Fatalf("n1 still carries the old finding: %+v", row.Match)
+		}
+	}
+}
+
 func TestMatchingNeedsTheHardcoverModuleAndCanBeStopped(t *testing.T) {
 	server, _ := matchServer(t)
 	server.cfg.Modules = map[string]bool{"hardcover": false}
@@ -161,5 +192,44 @@ func TestMatchingNeedsTheHardcoverModuleAndCanBeStopped(t *testing.T) {
 	time.Sleep(100 * time.Millisecond)
 	if stop := editorCall(server, http.MethodDelete, "/api/metadata/editor/matches?library=books", ""); !strings.Contains(stop.Body.String(), `"stopped":true`) {
 		t.Fatalf("stop: %s", stop.Body)
+	}
+}
+
+// Applying a match is what links the book to Hardcover, and the link used to be the cue to stop showing the finding —
+// so the series disappeared at the moment it had been used, and "Replace from the match" would only ever work on the
+// first pass. The finding stays readable; only the badge that means "needs a look" stops.
+func TestAMatchedBookKeepsItsFindingOnceItIsLinked(t *testing.T) {
+	server, _ := matchServer(t)
+	books := server.libraries[0].Store.Books()
+	var a2 catalog.Book
+	for i := range books {
+		if books[i].ID == "a2" {
+			a2 = books[i]
+			books[i].Identifiers = map[string]string{"isbn": "9780593098271", "hardcover": "6"}
+		}
+	}
+	server.libraries[0].Store = server.metadataOverrides.Wrap("books", staticBackend{books: books})
+	position := 2.0
+	server.matchFound.Put("books", "a2", a2.Size, a2.Modified, bulkMatch{
+		Version: matchFindingVersion, How: "isbn", ISBN: "9780593098271", Clear: true,
+		Candidates: []matchCandidate{{Suggestion: enrichment.Suggestion{Title: "Dune Messiah", ProviderID: "6", Series: "Dune", SeriesIndex: &position}, Score: 1}},
+	})
+	seen := false
+	for _, row := range listEditor(t, server, "").Items {
+		if row.ID != "a2" {
+			continue
+		}
+		seen = true
+		if row.Match == nil || row.Match.Series != "Dune" || row.Match.SeriesIndex == nil || *row.Match.SeriesIndex != 2 {
+			t.Fatalf("a linked book lost its finding, so its series can never be replaced: %+v", row.Match)
+		}
+		for _, issue := range row.Issues {
+			if issue == "match_found" {
+				t.Fatalf("a book that is linked is not work to do: %v", row.Issues)
+			}
+		}
+	}
+	if !seen {
+		t.Fatal("a2 was not in the list")
 	}
 }

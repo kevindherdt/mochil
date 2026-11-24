@@ -29,6 +29,36 @@ func hasISBN(book catalog.Book) bool {
 	return strings.HasPrefix(strings.ToLower(book.Identifier), "isbn")
 }
 
+// bookISBN is the ISBN a book already carries in its metadata, normalised to digits (and a trailing X).
+func bookISBN(book catalog.Book) string {
+	for scheme, value := range book.Identifiers {
+		if strings.EqualFold(scheme, "isbn") {
+			return normaliseISBN(value)
+		}
+	}
+	if strings.HasPrefix(strings.ToLower(book.Identifier), "isbn") {
+		return normaliseISBN(book.Identifier)
+	}
+	return ""
+}
+
+func normaliseISBN(value string) string {
+	var b strings.Builder
+	for _, r := range strings.ToLower(value) {
+		if (r >= '0' && r <= '9') || r == 'x' {
+			b.WriteRune(r)
+		}
+	}
+	return b.String()
+}
+
+// sameISBN says whether two ISBNs are the same number, ignoring hyphens and spacing — "978-1-945054-48-8" and
+// "9781945054488" are one ISBN, and treating them as a mismatch would report a difference on every book.
+func sameISBN(a, b string) bool {
+	left, right := normaliseISBN(a), normaliseISBN(b)
+	return left != "" && left == right
+}
+
 // findBookISBN reads one book's file for its ISBN. It only reads.
 func findBookISBN(ctx context.Context, lib Library, book catalog.Book) (isbn.Result, error) {
 	acquired, err := lib.Store.Acquire(ctx, book)
@@ -47,7 +77,7 @@ var isbnJob = editorJob{
 	available:   func(m *multiServer) bool { return m.isbnFound != nil },
 	unavailable: "Looking for ISBNs is not available right now.",
 	busy:        "The ISBN search is already running for this library.",
-	run: func(ctx context.Context, m *multiServer, lib Library, books []catalog.Book, recount bool) (string, error) {
+	run: func(ctx context.Context, m *multiServer, lib Library, books []catalog.Book, opts editorJobOptions) (string, error) {
 		store := m.isbnFound
 		total := int64(len(books))
 		var searched, clear, unsure, none, unreadable, unsupported, hadISBN, before int
@@ -56,11 +86,14 @@ var isbnJob = editorJob{
 				break
 			}
 			jobs.Report(ctx, int64(index), total, "Looking for ISBNs")
-			if hasISBN(book) { // nothing to find
+			// A book that already carries an ISBN is usually "nothing to find" and is skipped, which keeps the scan
+			// cheap. With Recheck the person has asked the opposite question — is the ISBN in the metadata the one
+			// printed in the file? — so those books are read as well.
+			if hasISBN(book) && !opts.Recheck {
 				hadISBN++
 				continue
 			}
-			if _, have := store.Get(lib.ID, book.ID, book.Size, book.Modified); have && !recount {
+			if _, have := store.Get(lib.ID, book.ID, book.Size, book.Modified); have && !opts.Recount {
 				before++
 				continue
 			}

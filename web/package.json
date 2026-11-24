@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "typecheck": "tsc -b --noEmit",
-    "lint": "eslint . && stylelint \"src/**/*.css\"",
+    "lint": "eslint . && stylelint \"src/**/*.css\" && node scripts/check-tokens.mjs",
     "lint:fixtures": "node scripts/check-lint-fixtures.mjs",
     "size": "node scripts/check-bundle-budget.mjs",
     "test": "vitest run",
@@ -15,7 +15,8 @@
     "test:e2e": "playwright test --grep-invert @visual",
     "test:e2e:install": "playwright install --with-deps chromium firefox webkit",
     "test:visual": "playwright test e2e/gallery.spec.ts",
-    "test:visual:update": "playwright test e2e/gallery.spec.ts --update-snapshots"
+    "test:visual:update": "playwright test e2e/gallery.spec.ts --update-snapshots",
+    "tokens": "node scripts/check-tokens.mjs"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.3.1",

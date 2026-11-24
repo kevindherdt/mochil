@@ -3,12 +3,15 @@
 // own a CSS module); this file only knows what state to read and where "open" navigates to.
 import { useNavigate, useParams } from "@tanstack/react-router";
 import { MiniPlayerBar } from "../../ui";
+import { useShellVariant } from "../../shell/ShellVariant";
 import { usePlayer } from "./PlayerContext";
 
 export function MiniPlayer() {
   const player = usePlayer();
   const navigate = useNavigate();
   const routeParams = useParams({ strict: false }) as { libraryId?: string; itemId?: string };
+  // A desktop has room for a transport; a phone strip is chrome pinned over the screen it is playing on.
+  const desktop = useShellVariant() === "desktop";
 
   if (player.track === undefined) return null;
   const { track } = player;
@@ -26,8 +29,18 @@ export function MiniPlayer() {
       coverUrl={track.coverUrl}
       fraction={player.duration > 0 ? player.position / player.duration : 0}
       isPlaying={player.isPlaying}
+      expanded={desktop}
+      position={player.position}
+      duration={player.duration}
+      hasNext={player.hasNext}
+      hasPrevious={player.hasPrevious}
+      volume={player.volume}
       onOpen={() => void navigate({ to: "/library/audio/$libraryId/$itemId", params: { libraryId: track.libraryId, itemId: track.id } })}
       onTogglePlay={player.togglePlay}
+      onSeek={player.seekTo}
+      onNext={player.next}
+      onPrevious={player.previous}
+      onVolume={player.setVolume}
       onStop={player.stop}
     />
   );

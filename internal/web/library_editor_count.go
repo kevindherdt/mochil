@@ -46,7 +46,7 @@ var countJob = editorJob{
 	available:   func(m *multiServer) bool { return m.bookStats != nil },
 	unavailable: "Counting is not available right now.",
 	busy:        "Counting is already running for this library.",
-	run: func(ctx context.Context, m *multiServer, lib Library, books []catalog.Book, recount bool) (string, error) {
+	run: func(ctx context.Context, m *multiServer, lib Library, books []catalog.Book, opts editorJobOptions) (string, error) {
 		store := m.bookStats
 		total := int64(len(books))
 		skipped := 0
@@ -55,7 +55,7 @@ var countJob = editorJob{
 				break
 			}
 			jobs.Report(ctx, int64(index), total, "Counting words and pages")
-			if !recount {
+			if !opts.Recount {
 				if _, have := store.Get(lib.ID, book.ID, book.Size, book.Modified); have {
 					continue
 				}

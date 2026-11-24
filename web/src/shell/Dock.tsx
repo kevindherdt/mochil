@@ -10,6 +10,7 @@ export function Dock({ hermes = false }: { hermes?: boolean }) {
 
   return (
     <nav className={styles.dock} aria-label="Primary">
+      {/* No editor here: the phone's dock offers what works on a phone, and the editor is a desktop spreadsheet. */}
       {navPlaces({ hermes }).map((place) => {
         const Icon = place.icon;
         const active = pathname.startsWith(place.to);

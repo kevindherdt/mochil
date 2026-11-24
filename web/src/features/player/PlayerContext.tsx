@@ -44,6 +44,14 @@ export interface PlayerState {
   skip: (deltaSeconds: number) => void;
   /** Absolute seek, clamped the same way. An audiobook chapter is a position, not an offset from here. */
   seekTo: (seconds: number) => void;
+  /** Move within the queue. Both are no-ops without a queue, and both are honest about it through hasNext/hasPrevious. */
+  next: () => void;
+  previous: () => void;
+  hasNext: boolean;
+  hasPrevious: boolean;
+  /** 0–1. The element's own volume — there is no server-side volume, and none is needed. */
+  volume: number;
+  setVolume: (value: number) => void;
   stop: () => void;
 }
 
@@ -105,6 +113,33 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
 
   const togglePlay = useCallback(() => setIsPlaying((was) => !was), []);
 
+  const next = useCallback(() => {
+    setCursor((current) => {
+      if (current === -1 || current + 1 >= queue.length) return current;
+      setPosition(0);
+      setDuration(0);
+      setIsPlaying(true);
+      return current + 1;
+    });
+  }, [queue.length]);
+
+  const previous = useCallback(() => {
+    setCursor((current) => {
+      if (current <= 0) return current;
+      setPosition(0);
+      setDuration(0);
+      setIsPlaying(true);
+      return current - 1;
+    });
+  }, []);
+
+  const [volume, setVolumeState] = useState(1);
+  const setVolume = useCallback((value: number) => {
+    const clamped = Math.max(0, Math.min(1, value));
+    setVolumeState(clamped);
+    if (audioRef.current !== null) audioRef.current.volume = clamped;
+  }, []);
+
   const skip = useCallback((deltaSeconds: number) => {
     const element = audioRef.current;
     if (element === null) return;
@@ -135,9 +170,50 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     else element.pause();
   }, [isPlaying, track]);
 
+  const hasNext = cursor !== -1 && cursor + 1 < queue.length;
+  const hasPrevious = cursor > 0;
+
   const value = useMemo<PlayerState>(
-    () => ({ track, isPlaying, position, duration, play, playQueue, enqueue, queue, togglePlay, skip, seekTo, stop }),
-    [track, isPlaying, position, duration, play, playQueue, enqueue, queue, togglePlay, skip, seekTo, stop],
+    () => ({
+      track,
+      isPlaying,
+      position,
+      duration,
+      play,
+      playQueue,
+      enqueue,
+      queue,
+      togglePlay,
+      skip,
+      seekTo,
+      next,
+      previous,
+      hasNext,
+      hasPrevious,
+      volume,
+      setVolume,
+      stop,
+    }),
+    [
+      track,
+      isPlaying,
+      position,
+      duration,
+      play,
+      playQueue,
+      enqueue,
+      queue,
+      togglePlay,
+      skip,
+      seekTo,
+      next,
+      previous,
+      hasNext,
+      hasPrevious,
+      volume,
+      setVolume,
+      stop,
+    ],
   );
 
   return (

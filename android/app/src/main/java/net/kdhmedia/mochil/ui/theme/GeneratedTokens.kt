@@ -19,6 +19,7 @@ object GeneratedTokens {
         val wash: Long
         val error: Long
         val success: Long
+        val warning: Long
         val accentVideo: Long
         val accentMusic: Long
         val accentPodcast: Long
@@ -39,6 +40,7 @@ object GeneratedTokens {
             override val wash: Long = 0xFFA33C12
             override val error: Long = 0xFFFF8A6B
             override val success: Long = 0xFF5FD98A
+            override val warning: Long = 0xFFF2C14E
             override val accentVideo: Long = 0xFFB470F0
             override val accentMusic: Long = 0xFF70F0B8
             override val accentPodcast: Long = 0xFFF070A5
@@ -57,6 +59,7 @@ object GeneratedTokens {
             override val wash: Long = 0xFFF7D7BB
             override val error: Long = 0xFFA3260B
             override val success: Long = 0xFF1F7D45
+            override val warning: Long = 0xFF8A5A00
             override val accentVideo: Long = 0xFF62229B
             override val accentMusic: Long = 0xFF1B7E58
             override val accentPodcast: Long = 0xFF9B2266
@@ -78,6 +81,7 @@ object GeneratedTokens {
             override val wash: Long = 0xFF0D4A4A
             override val error: Long = 0xFFFF8F9E
             override val success: Long = 0xFF4CE0A0
+            override val warning: Long = 0xFFF5C451
             override val accentVideo: Long = 0xFFC084FC
             override val accentMusic: Long = 0xFFFBBF24
             override val accentPodcast: Long = 0xFFFB7185
@@ -96,6 +100,7 @@ object GeneratedTokens {
             override val wash: Long = 0xFFC9E9EA
             override val error: Long = 0xFFA3123A
             override val success: Long = 0xFF0E7A52
+            override val warning: Long = 0xFF8A6400
             override val accentVideo: Long = 0xFF6D28D9
             override val accentMusic: Long = 0xFFA16207
             override val accentPodcast: Long = 0xFF9F1239
@@ -117,6 +122,7 @@ object GeneratedTokens {
             override val wash: Long = 0xFF8C003B
             override val error: Long = 0xFFFF5F7E
             override val success: Long = 0xFF5FE0A0
+            override val warning: Long = 0xFFF6C453
             override val accentVideo: Long = 0xFF7A5CFF
             override val accentMusic: Long = 0xFF30E0A0
             override val accentPodcast: Long = 0xFFFFB020
@@ -135,6 +141,7 @@ object GeneratedTokens {
             override val wash: Long = 0xFFFFD3E4
             override val error: Long = 0xFFA3003A
             override val success: Long = 0xFF117A4E
+            override val warning: Long = 0xFF8A5A00
             override val accentVideo: Long = 0xFF5A3FC0
             override val accentMusic: Long = 0xFF0E8F5F
             override val accentPodcast: Long = 0xFFB06D00
@@ -156,6 +163,7 @@ object GeneratedTokens {
             override val wash: Long = 0xFF171717
             override val error: Long = 0xFFFFFFFF
             override val success: Long = 0xFFFFFFFF
+            override val warning: Long = 0xFFFFFFFF
             override val accentVideo: Long = 0xFFFFFFFF
             override val accentMusic: Long = 0xFFFFFFFF
             override val accentPodcast: Long = 0xFFFFFFFF
@@ -174,6 +182,7 @@ object GeneratedTokens {
             override val wash: Long = 0xFFEEEEEE
             override val error: Long = 0xFF111111
             override val success: Long = 0xFF111111
+            override val warning: Long = 0xFF111111
             override val accentVideo: Long = 0xFF111111
             override val accentMusic: Long = 0xFF111111
             override val accentPodcast: Long = 0xFF111111

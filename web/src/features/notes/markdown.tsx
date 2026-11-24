@@ -329,7 +329,11 @@ export function Markdown({ source, context }: { source: string; context: Markdow
             background: "var(--color-raised)",
             border: "1px solid var(--color-line)",
             borderRadius: "var(--radius-8)",
-            overflowX: "auto",
+            // A key or a token is one unbroken run of characters: without wrapping it pushes the whole note wide and
+            // drags a horizontal scrollbar across the page. Breaking anywhere is the honest choice for code in a note.
+            whiteSpace: "pre-wrap",
+            overflowWrap: "anywhere",
+            maxWidth: "100%",
             fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
             fontSize: "13px",
             lineHeight: 1.5,
@@ -403,13 +407,18 @@ export function Markdown({ source, context }: { source: string; context: Markdow
       i -= 1;
       blocks.push(
         <div key={`t${blocks.length}`} style={{ overflowX: "auto", marginBottom: "var(--space-12)" }}>
-          <table style={{ borderCollapse: "collapse", width: "100%" }}>
+          <table style={{ borderCollapse: "collapse", width: "100%", tableLayout: "fixed" }}>
             <thead>
               <tr>
                 {header.map((cell, column) => (
                   <th
                     key={`h${column}`}
-                    style={{ textAlign: "left", padding: "var(--space-8)", borderBottom: "1px solid var(--color-line)" }}
+                    style={{
+                      textAlign: "left",
+                      padding: "var(--space-8)",
+                      borderBottom: "1px solid var(--color-line)",
+                      overflowWrap: "anywhere",
+                    }}
                   >
                     {renderInline(cell, context, `th${column}`)}
                   </th>
@@ -422,7 +431,11 @@ export function Markdown({ source, context }: { source: string; context: Markdow
                   {row.map((cell, column) => (
                     <td
                       key={`c${column}`}
-                      style={{ padding: "var(--space-8)", borderBottom: "1px solid var(--color-line)" }}
+                      style={{
+                        padding: "var(--space-8)",
+                        borderBottom: "1px solid var(--color-line)",
+                        overflowWrap: "anywhere",
+                      }}
                     >
                       {renderInline(cell, context, `td${rowIndex}-${column}`)}
                     </td>

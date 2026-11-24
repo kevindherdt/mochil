@@ -75,7 +75,7 @@ export function ChatsSheet({
           </Button>
         </Inline>
         {problem !== "" && (
-          <div style={{ color: "var(--color-danger)", fontSize: "var(--font-size-12)" }}>{problem}</div>
+          <div style={{ color: "var(--color-error)", fontSize: "var(--font-size-12)" }}>{problem}</div>
         )}
         {chats !== null && chats.length === 0 && problem === "" && (
           <Text size="13" muted>
@@ -118,7 +118,7 @@ export function ChatsSheet({
                   >
                     {chat.title}
                   </span>
-                  <span style={{ fontSize: "var(--font-size-11)", color: "var(--color-text-muted)" }}>
+                  <span style={{ fontSize: "var(--font-size-11)", color: "var(--color-muted)" }}>
                     {[when(chat.updated), chat.count > 0 ? `${chat.count} messages` : ""].filter((part) => part !== "").join(" · ")}
                   </span>
                 </button>

@@ -165,6 +165,8 @@ func (m *multiServer) apiEditor(w http.ResponseWriter, r *http.Request) {
 		m.editorImportNames(w, r)
 	case "transfer":
 		m.editorTransfer(w, r)
+	case "metadata-files":
+		m.editorMetadataFiles(w, r)
 	default:
 		http.NotFound(w, r)
 	}
