@@ -124,7 +124,14 @@ func (m *multiServer) editorMatch(w http.ResponseWriter, r *http.Request) {
 	}
 	candidates := make([]matchCandidate, 0, len(results))
 	for _, result := range results {
-		candidates = append(candidates, matchCandidate{Suggestion: result, Score: matchScore(title, authors, result)})
+		candidates = append(candidates, matchCandidate{
+			Suggestion: result,
+			// Copied across because the field on this struct shadows the one on the suggestion: without this the blurb
+			// never leaves the server, and Replace could not fix a wrong description. The bulk path drops it on purpose
+			// (700 bytes a row); this is one book, opened because somebody is deciding about it.
+			Overview: result.Overview,
+			Score:    matchScore(title, authors, result),
+		})
 	}
 	sort.SliceStable(candidates, func(i, j int) bool { return candidates[i].Score > candidates[j].Score })
 	if len(candidates) > 8 {

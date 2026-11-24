@@ -6,21 +6,9 @@
   display: flex;
   align-items: flex-end;
   flex-wrap: wrap;
-}
 
-.toolbar button,
-.toolbar input {
-  min-height: 32px;
-  height: 32px;
-  font-size: var(--font-size-13);
-}
-
-.toolbar button {
-  padding-top: 0;
-  padding-bottom: 0;
-}
-
-.toolbar input {
-  padding-top: 0;
-  padding-bottom: 0;
+  /* The row's height is a value it publishes, not a rule it imposes: every control here reads --control-height when it
+     has one, so a menu's popover items — which live inside this row's DOM but are not part of it — keep their own
+     touch-sized rows. Styling `button` here instead reached into those items and squashed them. */
+  --control-height: var(--chrome-control-height);
 }

@@ -35,9 +35,11 @@ export interface MenuProps {
    * fix overcorrected and cut the library header's own menu at the right edge. `start`/`end` remain as overrides.
    */
   align?: "auto" | "start" | "end";
+  /** Off while the thing it would start is already running: two jobs at once lose each other's progress. */
+  disabled?: boolean;
 }
 
-export function Menu({ items, activeIds = [], onSelect, icon: Icon, label, text, align = "auto" }: MenuProps) {
+export function Menu({ items, activeIds = [], onSelect, icon: Icon, label, text, align = "auto", disabled = false }: MenuProps) {
   const [open, setOpen] = useState(false);
   // Decided from the trigger's own position when the panel opens: there is no layout to measure before that, and
   // measuring after opening would show the panel on the wrong side for a frame.
@@ -76,7 +78,9 @@ export function Menu({ items, activeIds = [], onSelect, icon: Icon, label, text,
         aria-haspopup="menu"
         aria-expanded={open}
         aria-controls={open ? panelId : undefined}
+        disabled={disabled}
         onClick={() => {
+          if (disabled) return;
           const rect = wrap.current?.getBoundingClientRect();
           if (rect !== undefined && !open) setReversed(rect.left > window.innerWidth / 2);
           setOpen((value) => !value);

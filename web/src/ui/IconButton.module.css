@@ -6,8 +6,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: var(--chrome-control-height);
+  height: var(--chrome-control-height);
   border: none;
   border-radius: var(--radius-8);
   background: none;

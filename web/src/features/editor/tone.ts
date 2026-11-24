@@ -67,6 +67,20 @@ export function isbnTone(state: "none" | "missing" | "same" | "differs"): Tone {
   }
 }
 
+/** How the Hardcover link on a row is doing: a linked book is good, a doubtful or absent one is the thing to fix. */
+export function hardcoverTone(state: string): Tone {
+  switch (state) {
+    case "synced":
+    case "linked":
+      return "good";
+    case "doubt":
+    case "nomatch":
+      return "poor";
+    default:
+      return "quiet";
+  }
+}
+
 /** The worst of a set: one red badge behind a "+3" should colour the count red too. */
 export function toneWorst(tones: Tone[]): Tone {
   const order: Tone[] = ["poor", "fair", "good", "quiet"];
@@ -78,7 +92,28 @@ export function toneWash(tone: Tone): string {
   return tone === "quiet" ? "color-mix(in srgb, var(--color-text) 10%, transparent)" : `color-mix(in srgb, ${toneColor(tone)} 20%, transparent)`;
 }
 
-/** The text colour for a tone, darkened toward the text colour so a badge stays readable on a wash. */
+/** The text colour for a tone on a wash or a raised surface.
+ *
+ *  A hue mixed with itself is the darkest pairing there is: the raw error red on its own 20% wash measured 3.36:1 in the
+ *  mochil dark palette, and warning on warning was 4.05:1 in the light one — under the 4.5:1 that 11px text needs, in
+ *  nine of the twenty-four tone/palette pairs. Mixing 40% of the text colour in keeps the hue recognisable (a red that
+ *  still reads as "wrong") and clears 4.5:1 everywhere. */
 export function toneInk(tone: Tone): string {
-  return tone === "quiet" ? "var(--color-text)" : toneColor(tone);
+  return tone === "quiet" ? "var(--color-text)" : `color-mix(in srgb, ${toneColor(tone)} 60%, var(--color-text))`;
+}
+
+// The judgement in a form that survives a palette with one ink, or an eye that cannot separate two hues: a character,
+// not an icon, so it inherits the type and prints in monochrome. E-ink maps all three tones to its single text colour,
+// which made a 16% match and a 95% match physically identical until this existed.
+const TONE_MARK: Record<Tone, string> = { poor: "×", fair: "~", good: "✓", quiet: "" };
+
+export function toneMark(tone: Tone): string {
+  return TONE_MARK[tone];
+}
+
+/** "94% ✓" — the score and its judgement as one run of text, so a screen reader hears both and e-ink shows both. */
+export function scoreLabel(score: number | undefined): string {
+  if (score === undefined || Number.isNaN(score)) return "";
+  const percent = Math.round(Math.max(0, Math.min(1, score)) * 100);
+  return `${percent}%${toneMark(scoreTone(score))}`;
 }

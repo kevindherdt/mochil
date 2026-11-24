@@ -2,6 +2,24 @@
  "entries": [
   {
    "component": "web",
+   "version": "0.1.92",
+   "date": "2026-11-24",
+   "new": [
+    "A judgement now carries a mark as well as a colour — 94% ✓, 72% ~, 31% × — so the scale still reads on an e-ink palette that has one ink, and for anyone who cannot separate two hues."
+   ],
+   "fixed": [
+    "Discarding a book during review withdraws everything staged for it, including “back to what the files say”: before, a discarded book could still be the one thing Apply wrote.",
+    "The editor's keyboard now belongs to the table. It used to listen to the whole page, so Tab could not reach the toolbar and could not leave the table at all, Space selected a book instead of scrolling, and with a dialog open the keys typed into the grid behind it. Tab at the last cell is now an exit.",
+    "Tab with a cell open moves onto the next row, as Tab between cells already did, instead of stopping at the last column.",
+    "The match dialog keeps the focus inside itself, closes on Escape, and no longer scrolls the page underneath it.",
+    "Starting “Find ISBNs” while another lookup is running is no longer possible: the second job took over the progress line and left the first one running invisibly.",
+    "The single-book search returns the book's blurb again, so replacing a wrong description works instead of silently staging nothing.",
+    "Menu rows inside the editor's toolbar have their full height back — the toolbar's height rule was reaching into the popover and squashing every row to a 32px strip.",
+    "Small red text in the editor's tool panel meets the contrast minimum in every theme, and the toolbar's 32px controls are one named size rather than a number repeated in four files."
+   ]
+  },
+  {
+   "component": "web",
    "version": "0.1.91",
    "date": "2026-11-24",
    "new": [

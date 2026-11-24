@@ -20,7 +20,7 @@
   padding: var(--space-8) var(--space-12);
   font-size: var(--font-size-14);
   font-family: inherit;
-  min-height: var(--chrome-touch-min);
+  min-height: var(--control-height, var(--chrome-touch-min));
 }
 
 .input:focus-visible {

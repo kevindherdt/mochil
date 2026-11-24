@@ -15,7 +15,8 @@
 // Nothing here writes metadata by itself. A tool that wrote directly would be a tool nobody dares run on 4 800 books.
 import { useEffect, useMemo, useState } from "react";
 import { Search } from "lucide-react";
-import { Button, FilterChips, Inline, Menu, Stack, Text } from "../../ui";
+import { toneInk } from "./tone";
+import { Button, FilterChips, Inline, Menu, Stack, Text, Toolbar } from "../../ui";
 import {
   isbnFills,
   jobState,
@@ -315,7 +316,7 @@ export function EditorTools({
             {/* One compact row: a chip per tool, the explanation on hover. Four cards with two lines of prose each ate
                 half the screen the table needed — Kevin: "declutter... so we can use a lot of free space to actually
                 show the table". */}
-            <Inline gap={8} align="center" wrap>
+            <Toolbar gap={8}>
               <Text size="11" muted>
                 Runs on the server against {scopeLabel}; nothing is written until you save.
               </Text>
@@ -330,6 +331,9 @@ export function EditorTools({
                       icon={Search}
                       text={tool.short}
                       label={`${tool.label}: ${tool.hint}`}
+                      // Every other tool stops while one runs. This one did not, and starting an ISBN job mid-matches
+                      // tore down the matches job's polling: its Stop button vanished and its results never refreshed.
+                      disabled={running !== undefined}
                       items={[
                         { id: "new", label: "Books without an ISBN" },
                         { id: "recheck", label: "Also re-read books that have one" },
@@ -360,7 +364,7 @@ export function EditorTools({
                   Write metadata…
                 </Button>
               )}
-            </Inline>
+            </Toolbar>
 
             <Inline gap={16} align="center" wrap>
               {dismissed > 0 && (
@@ -443,7 +447,7 @@ export function EditorTools({
                     )}
                   </Inline>
                   {writeProblem !== undefined && (
-                    <div style={{ fontSize: "var(--font-size-11)", color: "var(--color-error)" }}>{writeProblem}</div>
+                    <div style={{ fontSize: "var(--font-size-11)", color: toneInk("poor") }}>{writeProblem}</div>
                   )}
                   {writeOutcome?.results
                     .filter((entry) => entry.status === "failed")
@@ -457,7 +461,7 @@ export function EditorTools({
               </div>
             )}
 
-            {problem !== undefined && <div style={{ fontSize: "var(--font-size-11)", color: "var(--color-error)" }}>{problem}</div>}
+            {problem !== undefined && <div style={{ fontSize: "var(--font-size-11)", color: toneInk("poor") }}>{problem}</div>}
             {job !== undefined && job.error !== "" && <Text size="11">{job.error}</Text>}
           </Stack>
         </div>

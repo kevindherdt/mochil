@@ -8,9 +8,9 @@
 // did it — paging is the wrong mental model for a spreadsheet and breaks selection and renumber across pages. Only the
 // rows on screen are drawn; blank space stands in for the rest (see windowFor).
 //
-// Deliberately included: preview-before-write and undo, the Calibre ownership guard, and a details pane as the
-// beginner's comfort zone. Deliberately not here yet (later phases): keyboard navigation, the bulk-ops dialog, column
-// resize/reorder, the find-ISBNs / find-matches / AI-ask tools, collections and transfer.
+// Deliberately included: preview-before-write and undo, the Calibre ownership guard, a details pane as the beginner's
+// comfort zone, spreadsheet keys (see keys.ts), the bulk-ops dialog, column resize, and the find-ISBNs / find-matches /
+// AI-ask tools, collections and transfer.
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Columns3, Folders, LibraryBig, ListFilter, Moon, Search, Sun } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
@@ -21,7 +21,8 @@ import { useShellVariant } from "../../../shell/ShellVariant";
 import { BulkEditDialog } from "../BulkEditDialog";
 import { EditorTools, type HermesAbilities } from "../EditorTools";
 import { MatchDialog } from "../MatchDialog";
-import { isbnTone, issueTone, scoreTone, toneColor, toneInk, toneWash, toneWorst } from "../tone";
+import { hardcoverTone, isbnTone, issueTone, scoreLabel, scoreTone, toneColor, toneInk, toneMark, toneWash, toneWorst } from "../tone";
+import { gridKey } from "../keys";
 import { ReviewPanel } from "../ReviewPanel";
 import { CollectionsDialog } from "../CollectionsDialog";
 import { TransferDialog } from "../TransferDialog";
@@ -64,7 +65,6 @@ interface LibraryOption {
 
 const PUBLICATION_KINDS = ["books", "comics", "manga", "mixed"];
 const ROW_HEIGHT = 34;
-const clamp = (value: number, low: number, high: number) => Math.min(Math.max(value, low), Math.max(low, high));
 
 // The column layout is a preference, not server state: it lives in this browser, the way Calibre keeps its own.
 function loadLayout<T>(key: string, fallback: T): T {
@@ -130,7 +130,9 @@ const COLUMNS: Column[] = [
   { id: "words", label: "Words", defaultWidth: 90, startsHidden: true, num: true },
   { id: "pages", label: "Pages", defaultWidth: 70, startsHidden: true, num: true },
   { id: "isbn_found", label: "Found ISBN", defaultWidth: 130, startsHidden: true },
-  { id: "match", label: "Match", defaultWidth: 170, startsHidden: true },
+  // Visible from the start: this column is the one that answers "how sure is this match, and is it even the same book",
+  // and it is the way into the candidate list. Hidden by default, the whole feature had no door.
+  { id: "match", label: "Match", defaultWidth: 170 },
   { id: "hardcover", label: "Hardcover", defaultWidth: 120, startsHidden: true },
   { id: "path", label: "File", defaultWidth: 180, startsHidden: true },
 ];
@@ -423,6 +425,13 @@ export function EditorScreen() {
     const book = books.find((row) => row.id === editing.book);
     if (book !== undefined) write(book, editing.field, draft);
     setEditing(undefined);
+    // The input unmounts from under the focus and the document falls back to <body>, which loses the keyboard's place
+    // entirely — the next Tab then starts again from the top of the page. Put the focus back on the table, but only if
+    // nothing else has claimed it (clicking another cell must keep that cell).
+    requestAnimationFrame(() => {
+      const active = document.activeElement;
+      if (active === null || active === document.body) scrollRef.current?.focus();
+    });
   }
 
   const sortKeyOf = (column: Column) => (column.field !== undefined ? sortKeyFor(column.field) : column.id);
@@ -529,6 +538,9 @@ export function EditorScreen() {
       delete next[bookId];
       return next;
     });
+    // A book staged to be reset ("back to what the files say") is staged in `resets`, not in `changes`. Dropping only
+    // the changes left the reset behind, so a book the user had just discarded was still the one thing Apply wrote.
+    setResets((current) => current.filter((id) => id !== bookId));
     setPreview((current) => current?.filter((change) => change.book !== bookId) ?? current);
     setDismissed((current) => (current.includes(bookId) ? current : [...current, bookId]));
   }
@@ -607,106 +619,84 @@ export function EditorScreen() {
     };
   }, [columns]);
 
-  // Keyboard actions read the newest state through a ref, so the listener is attached once and never goes stale.
   const selectAll = () => setSelected(books.map((book) => book.id));
-  const handlers = useRef({ books, columns, cursor, editing, editable, preview, dialogOpen: bulkOpen, startEditing, toggleSelected, selectAll });
-  // Written after every render, never during one: the listener below always sees the latest values.
-  useEffect(() => {
-    handlers.current = { books, columns, cursor, editing, editable, preview, dialogOpen: bulkOpen, startEditing, toggleSelected, selectAll };
-  });
 
-  useEffect(() => {
-    function onKeyDown(event: KeyboardEvent) {
-      const state = handlers.current;
-      if (state.editing !== undefined || state.preview !== undefined || state.dialogOpen) return;
-      const target = event.target;
-      if (target instanceof Element) {
-        // A field being typed into owns its keys, and so does the chrome around the table. A cell is a button only so
-        // it can be clicked, and treating it as chrome is why the whole keyboard went dead after one click on a row:
-        // every keydown then had a <button> as its target and was thrown away.
-        if (target.closest("input, textarea, select")) return;
-        if (target.closest("button:not([data-editor-cell])")) return;
-      }
-      const lastRow = state.books.length - 1;
-      const lastCol = state.columns.length - 1;
-      const moves: Record<string, [number, number]> = { ArrowDown: [1, 0], ArrowUp: [-1, 0], ArrowLeft: [0, -1], ArrowRight: [0, 1] };
-      const move = moves[event.key];
-      const book = state.books[state.cursor.row];
-      const column = state.columns[state.cursor.col];
-      // Read-only columns have no field, so Enter and type-to-edit have nothing to open on them.
-      const field = column?.field;
-      if (move !== undefined) {
-        event.preventDefault();
-        const row = clamp(state.cursor.row + move[0], 0, lastRow);
-        const col = clamp(state.cursor.col + move[1], 0, lastCol);
-        // Shift carries the selection, the way Calibre's book list does: put the cursor somewhere and hold Shift to
-        // take the rows in between.
-        if (event.shiftKey && row !== state.cursor.row) {
-          const reached = state.books[row];
-          if (reached !== undefined) state.toggleSelected(reached, true);
-        }
-        setCursor({ row, col });
-        return;
-      }
-      // Tab is "next field" in a spreadsheet — and the cells are not in the browser's tab order at all, so without
-      // this it did nothing useful here.
-      if (event.key === "Tab") {
-        event.preventDefault();
-        let row = state.cursor.row;
-        let col = state.cursor.col + (event.shiftKey ? -1 : 1);
-        if (col > lastCol) {
-          col = 0;
-          row = clamp(row + 1, 0, lastRow);
-        } else if (col < 0) {
-          col = lastCol;
-          row = clamp(row - 1, 0, lastRow);
-        }
-        setCursor({ row, col });
-        return;
-      }
-      if (event.key === "Home" || event.key === "End") {
-        event.preventDefault();
-        const edge = event.key === "Home";
-        setCursor((current) =>
-          event.ctrlKey || event.metaKey
-            ? { row: edge ? 0 : lastRow, col: edge ? 0 : lastCol }
-            : { row: current.row, col: edge ? 0 : lastCol },
-        );
-        return;
-      }
-      if (event.key === "PageDown" || event.key === "PageUp") {
-        event.preventDefault();
-        const visible = Math.floor((scrollRef.current?.clientHeight ?? 400) / ROW_HEIGHT);
-        const page = Math.max(1, visible - 1);
-        const delta = event.key === "PageDown" ? page : -page;
-        setCursor((current) => ({ row: clamp(current.row + delta, 0, lastRow), col: current.col }));
-        return;
-      }
-      if ((event.key === "a" || event.key === "A") && (event.ctrlKey || event.metaKey)) {
-        event.preventDefault();
-        state.selectAll();
-        return;
-      }
-      if ((event.key === "Enter" || event.key === "F2") && book !== undefined && field !== undefined) {
-        event.preventDefault();
-        if (state.editable.includes(field)) state.startEditing(book, field);
-        return;
-      }
-      if (event.key === " " && book !== undefined) {
-        event.preventDefault();
-        state.toggleSelected(book, event.shiftKey);
-        return;
-      }
-      if (event.key.length === 1 && !event.ctrlKey && !event.metaKey && !event.altKey && book !== undefined && field !== undefined) {
-        if (state.editable.includes(field)) {
-          event.preventDefault();
-          state.startEditing(book, field, event.key);
-        }
-      }
+  /**
+   * Every key the table answers, on the table itself.
+   *
+   * A window listener read through a ref was how this started, and it made the editor's keyboard page-wide: Tab could
+   * not reach the toolbar or leave the table at all, Space selected a book instead of scrolling, and with a dialog open
+   * the keys typed into the table behind it. A grid's keys belong to the grid. The transitions live in keys.ts, so Tab
+   * leaving at the edges and Tab wrapping onto the next row are testable without a DOM.
+   */
+  function onGridKeyDown(event: React.KeyboardEvent<HTMLDivElement>) {
+    // An open cell editor owns every key except the ones its input handles itself.
+    if (editing !== undefined || preview !== undefined) return;
+    const target = event.target instanceof Element ? event.target : null;
+    if (target?.closest("input, textarea, select")) return;
+    // A cell is a button only so it can be clicked; anything else that is a button is chrome and owns its own keys.
+    if (target?.closest("button:not([data-editor-cell])")) return;
+
+    const visible = Math.floor((scrollRef.current?.clientHeight ?? 400) / ROW_HEIGHT);
+    const intent = gridKey(
+      event.key,
+      cursor,
+      { rows: books.length, columns: columns.length, page: Math.max(1, visible - 1) },
+      { shift: event.shiftKey, ctrl: event.ctrlKey, meta: event.metaKey },
+    );
+
+    // The edge of the table is an exit, not a wall: preventDefault here would trap the keyboard in a 5000-row grid.
+    if (intent.kind === "leave") return;
+    if (intent.kind === "select-all") {
+      event.preventDefault();
+      selectAll();
+      return;
     }
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, []);
+    if (intent.kind === "move") {
+      event.preventDefault();
+      const reached = books[intent.cursor.row];
+      // Shift carries the selection, the way Calibre's book list does: put the cursor somewhere and hold Shift to take
+      // the rows in between.
+      if (event.shiftKey && intent.cursor.row !== cursor.row && reached !== undefined) toggleSelected(reached, true);
+      setCursor(intent.cursor);
+      return;
+    }
+
+    const book = books[cursor.row];
+    const field = columns[cursor.col]?.field;
+    if ((event.key === "Enter" || event.key === "F2") && book !== undefined && field !== undefined) {
+      event.preventDefault();
+      if (editable.includes(field)) startEditing(book, field);
+      return;
+    }
+    if (event.key === " " && book !== undefined) {
+      event.preventDefault();
+      toggleSelected(book, event.shiftKey);
+      return;
+    }
+    // Typing a letter starts editing that cell with the letter, the way a spreadsheet does.
+    if (
+      event.key.length === 1 &&
+      !event.ctrlKey &&
+      !event.metaKey &&
+      !event.altKey &&
+      book !== undefined &&
+      field !== undefined &&
+      editable.includes(field)
+    ) {
+      event.preventDefault();
+      startEditing(book, field, event.key);
+    }
+  }
+
+  // The table takes the keyboard when the library arrives, the way Calibre's book list does. Moving the keys onto the
+  // grid means they only work where the grid has focus, and an editor that ignores the arrow keys until you click a row
+  // looks broken. Only when nothing else has focus: a restored tab stop must not be yanked away from under the user.
+  useEffect(() => {
+    if (books.length === 0) return;
+    const active = document.activeElement;
+    if (active === null || active === document.body) scrollRef.current?.focus();
+  }, [books.length]);
 
   // Follow the cursor: scroll the focused row into view, moving as little as possible.
   useEffect(() => {
@@ -716,7 +706,12 @@ export function EditorScreen() {
     const header = 34;
     if (top < element.scrollTop + header) element.scrollTop = Math.max(0, top - header);
     else if (top + ROW_HEIGHT > element.scrollTop + element.clientHeight) element.scrollTop = top + ROW_HEIGHT - element.clientHeight;
-  }, [cursor.row]);
+
+    // Sideways as well: the columns can be wider than the window, and a 1px ring that has scrolled out of view is not a
+    // cursor anyone can see. Read the drawn cell's box rather than doing the column arithmetic a second time.
+    const cell = element.querySelector<HTMLElement>(`[id="cell-${cursor.row}-${cursor.col}"]`);
+    if (cell !== null) cell.scrollIntoView({ block: "nearest", inline: "nearest" });
+  }, [cursor.row, cursor.col]);
 
   // A spreadsheet with resizable columns and a keyboard cursor is not a phone screen. Say so rather than render a
   // table six hundred pixels wide that nobody can drag.
@@ -856,7 +851,9 @@ export function EditorScreen() {
               // mode, so what gets staged is exactly what the review panel would show for any other match.
               const fields = matchReplace({ ...matchFor, match: candidate, matchClear: true }, editable);
               const count = Object.keys(fields).length;
-              setChanges((current) => mergeChanges(current, { [matchFor.id]: fields }));
+              // Nothing to stage means no entry: an empty object here counted as "staged" for Discard all, which then
+              // set the book aside as though the user had reviewed and rejected it.
+              if (count > 0) setChanges((current) => mergeChanges(current, { [matchFor.id]: fields }));
               setMatchFor(undefined);
               setMessage(
                 count === 0
@@ -917,14 +914,16 @@ export function EditorScreen() {
         )}
 
         {message !== undefined && (
-          <Inline gap={12} align="center">
+          // A live region: applying, discarding and failing are all silent to anyone using a screen reader otherwise,
+          // and "Saved 12 changes" is the one thing this screen must not whisper.
+          <div role="status" style={{ display: "flex", alignItems: "center", gap: "var(--space-12)", flexWrap: "wrap" }}>
             <Text size="13">{message}</Text>
             {undoToken !== undefined && (
               <Button variant="secondary" onClick={() => void undo()} disabled={busy}>
                 Undo
               </Button>
             )}
-          </Inline>
+          </div>
         )}
 
         {selected.length > 0 && (
@@ -953,11 +952,18 @@ export function EditorScreen() {
               <Stack gap={12}>
                 <div
                   ref={scrollRef}
-                  // Focusable so the arrow keys have somewhere to belong: clicking a row focuses the table, and the
-                  // keyboard listener then acts on it instead of on whichever cell was clicked.
+                  // Focusable so the arrow keys have somewhere to belong, and the only place they are answered: keys
+                  // typed here drive the grid, keys typed anywhere else on the page stay with the page.
                   tabIndex={0}
                   role="grid"
                   aria-label="Books"
+                  aria-rowcount={books.length + 1}
+                  aria-colcount={columns.length + 1}
+                  aria-multiselectable="true"
+                  // The cursor is a value in state, not DOM focus, so assistive tech is told where it is the way the
+                  // APG prescribes: one stable focus target and a pointer at the cell it is on.
+                  aria-activedescendant={`cell-${cursor.row}-${cursor.col}`}
+                  onKeyDown={onGridKeyDown}
                   onScroll={(event) => setScrollTop(event.currentTarget.scrollTop)}
                   onMouseDown={(event) => {
                     // Clicking the table's own background takes focus, so the keys land here without having to click a
@@ -966,14 +972,16 @@ export function EditorScreen() {
                   }}
                   style={{ height: "clamp(340px, 70vh, 800px)", overflow: "auto", border: "1px solid var(--color-line)", borderRadius: "var(--radius-12)", position: "relative" }}
                 >
-                  <div style={{ position: "sticky", top: 0, zIndex: 2, background: "var(--color-bg)", minWidth: 760 }}>
-                    <div style={{ display: "grid", gridTemplateColumns: template, gap: "var(--space-8)", padding: "6px 8px", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 18%, transparent)", background: "var(--color-raised)", fontSize: "var(--font-size-12)", fontWeight: 600 }}>
-                      <input
-                        type="checkbox"
-                        aria-label="Select every book in the library"
-                        checked={books.length > 0 && selected.length >= books.length}
-                        onChange={() => setSelected(selected.length >= books.length ? [] : books.map((book) => book.id))}
-                      />
+                  <div style={{ position: "sticky", top: 0, zIndex: 2, background: "var(--color-bg)", minWidth: 760 }} role="rowgroup">
+                    <div role="row" aria-rowindex={1} style={{ display: "grid", gridTemplateColumns: template, gap: "var(--space-8)", padding: "6px 8px", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 18%, transparent)", background: "var(--color-raised)", fontSize: "var(--font-size-12)", fontWeight: 600 }}>
+                      <div role="columnheader" aria-colindex={1}>
+                        <input
+                          type="checkbox"
+                          aria-label="Select every book in the library"
+                          checked={books.length > 0 && selected.length >= books.length}
+                          onChange={() => setSelected(selected.length >= books.length ? [] : books.map((book) => book.id))}
+                        />
+                      </div>
                       {columns.map((column) => (
                         <HeaderCell
                           key={column.id}
@@ -1025,7 +1033,12 @@ export function EditorScreen() {
                           book={book}
                           rowIndex={windowed.start + index}
                           cursorCol={cursor.row === windowed.start + index ? cursor.col : -1}
-                          onTab={(delta) => setCursor((current) => ({ row: current.row, col: Math.min(Math.max(current.col + delta, 0), columns.length - 1) }))}
+                          // The same transition the grid's own Tab takes, so the two cannot disagree about wrapping onto
+                          // the next row or about where the table ends.
+                          onTab={(shift) => {
+                            const intent = gridKey("Tab", cursor, { rows: books.length, columns: columns.length, page: 1 }, { shift });
+                            if (intent.kind === "move") setCursor(intent.cursor);
+                          }}
                           columns={columns}
                           template={template}
                           editing={editing}
@@ -1255,6 +1268,9 @@ function HeaderCell({
   return (
     <div
       data-column-id={column.id}
+      role="columnheader"
+      // A header in a grid says which way the table is sorted, or that it could be.
+      aria-sort={active ? (dir === "asc" ? "ascending" : "descending") : "none"}
       onPointerDown={onDragStart}
       style={{
         position: "relative",
@@ -1325,7 +1341,8 @@ function Row({
   template: string;
   rowIndex: number;
   cursorCol: number;
-  onTab: (delta: number) => void;
+  /** Tab with the editor open: commit, then move where Tab would move. */
+  onTab: (shift: boolean) => void;
   editing: { book: string; field: EditorField } | undefined;
   draft: string;
   onDraft: (value: string) => void;
@@ -1342,8 +1359,17 @@ function Row({
   focused: boolean;
 }) {
   return (
-    <div data-row-index={rowIndex} style={{ display: "grid", gridTemplateColumns: template, gap: "var(--space-8)", height: ROW_HEIGHT, alignItems: "center", padding: "0 8px", borderBottom: "1px solid color-mix(in srgb, var(--color-line) 40%, transparent)" }}>
-      <input type="checkbox" aria-label={`Select ${book.title}`} checked={selected} onChange={(event) => onSelect(event.nativeEvent instanceof MouseEvent && event.nativeEvent.shiftKey)} />
+    <div
+      data-row-index={rowIndex}
+      role="row"
+      // The header is row one in an ARIA grid, and the count is of every book, not of the rows drawn.
+      aria-rowindex={rowIndex + 2}
+      aria-selected={selected}
+      style={{ display: "grid", gridTemplateColumns: template, gap: "var(--space-8)", height: ROW_HEIGHT, alignItems: "center", padding: "0 8px", borderBottom: "1px solid color-mix(in srgb, var(--color-line) 40%, transparent)" }}
+    >
+      <div role="gridcell" aria-colindex={1}>
+        <input type="checkbox" aria-label={`Select ${book.title}`} checked={selected} onChange={(event) => onSelect(event.nativeEvent instanceof MouseEvent && event.nativeEvent.shiftKey)} />
+      </div>
       {columns.map((column, columnIndex) => {
         const isCursor = cursorCol === columnIndex;
         const field = column.field;
@@ -1353,16 +1379,16 @@ function Row({
         if (field === undefined) {
           if (column.id === "status") {
             return (
-              <div key={column.id} style={{ minWidth: 0, ...ring, display: "flex", gap: "var(--space-4)", overflow: "hidden", alignItems: "center", padding: "0 2px" }}>
+              <div key={column.id} role="gridcell" aria-colindex={columnIndex + 2} id={`cell-${rowIndex}-${columnIndex}`} style={{ minWidth: 0, ...ring, display: "flex", gap: "var(--space-4)", overflow: "hidden", alignItems: "center", padding: "0 2px" }}>
                 {/* One badge, then a count: a row with three issues used to push the last badge out of the cell, where
                     it was clipped mid-word and could not be read or hovered. */}
                 {book.issues.slice(0, 1).map((issue) => (
                   <span
                     key={issue}
                     title={issue}
-                    style={{ fontSize: "10px", padding: "1px 6px", borderRadius: "var(--radius-pill)", background: toneWash(issueTone(issue)), color: toneInk(issueTone(issue)), whiteSpace: "nowrap" }}
+                    style={{ fontSize: "var(--font-size-10)", padding: "1px 6px", borderRadius: "var(--radius-pill)", background: toneWash(issueTone(issue)), color: toneInk(issueTone(issue)), whiteSpace: "nowrap" }}
                   >
-                    {issue}
+                    {toneMark(issueTone(issue))} {issue}
                   </span>
                 ))}
                 {book.issues.length > 1 && (
@@ -1371,7 +1397,7 @@ function Row({
                     // The rest of the badges, coloured by the worst one behind the count: a cell reading "+3" is worth
                     // the same glance as the badge it hides.
                     style={{
-                      fontSize: "10px",
+                      fontSize: "var(--font-size-10)",
                       padding: "1px 6px",
                       borderRadius: "var(--radius-pill)",
                       background: toneWash(toneWorst(book.issues.slice(1).map(issueTone))),
@@ -1383,12 +1409,12 @@ function Row({
                   </span>
                 )}
                 {book.edited && (
-                  <span title="Mochil holds edits for this book" style={{ fontSize: "10px", padding: "1px 6px", borderRadius: "var(--radius-pill)", background: "color-mix(in srgb, var(--color-text) 10%, transparent)", color: "var(--color-text)", whiteSpace: "nowrap" }}>
+                  <span title="Mochil holds edits for this book" style={{ fontSize: "var(--font-size-10)", padding: "1px 6px", borderRadius: "var(--radius-pill)", background: "color-mix(in srgb, var(--color-text) 10%, transparent)", color: "var(--color-text)", whiteSpace: "nowrap" }}>
                     Edited
                   </span>
                 )}
                 {book.issues.length === 0 && !book.edited && (
-                  <span style={{ fontSize: "11px", opacity: 0.45 }}>ok</span>
+                  <span style={{ fontSize: "var(--font-size-11)", opacity: 0.45 }}>ok</span>
                 )}
               </div>
             );
@@ -1402,11 +1428,14 @@ function Row({
               : column.id === "isbn_found"
                 ? isbnTone(isbnState(book))
                 : column.id === "hardcover"
-                  ? (book.hardcover === "doubt" || book.hardcover === "nomatch" ? "poor" : book.hardcover === "synced" || book.hardcover === "linked" ? "good" : "quiet")
+                  ? hardcoverTone(book.hardcover)
                   : "quiet";
+          // The match score carries its judgement as a character as well as a colour, because e-ink maps all three tones
+          // to one ink and because a fifth of readers cannot separate the hues.
+          const text = column.id === "match" ? scoreLabel(book.match?.score) || cell.text : cell.text;
           const clickable = column.id === "match" && onMatch !== undefined;
           return (
-            <div key={column.id} style={{ minWidth: 0, ...ring }}>
+            <div key={column.id} role="gridcell" aria-colindex={columnIndex + 2} id={`cell-${rowIndex}-${columnIndex}`} style={{ minWidth: 0, ...ring }}>
               <div
                 onClick={clickable ? () => onMatch(book) : undefined}
                 title={clickable ? `${cell.title}\n\nClick to see every candidate and search with better words.` : cell.title}
@@ -1423,7 +1452,7 @@ function Row({
                   cursor: clickable ? "pointer" : undefined,
                 }}
               >
-                {cell.text}
+                {text}
               </div>
             </div>
           );
@@ -1434,10 +1463,11 @@ function Row({
         const locked = !editable.includes(field);
         const shown = value(book, field);
         return (
-          <div key={column.id} style={{ minWidth: 0 }}>
+          <div key={column.id} role="gridcell" aria-colindex={columnIndex + 2} id={`cell-${rowIndex}-${columnIndex}`} style={{ minWidth: 0 }}>
             {isEditing ? (
               <input
                 autoFocus
+                aria-label={`${column.label} for ${book.title}`}
                 value={draft}
                 onChange={(event) => onDraft(event.target.value)}
                 onBlur={onCommit}
@@ -1447,7 +1477,7 @@ function Row({
                   if (event.key === "Tab") {
                     event.preventDefault();
                     onCommit();
-                    onTab(event.shiftKey ? -1 : 1);
+                    onTab(event.shiftKey);
                   }
                 }}
                 style={{

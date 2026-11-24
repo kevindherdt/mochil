@@ -8,11 +8,12 @@
 // thrown away before they reached the screen. This dialog is where they live: the ranked list, their scores coloured on
 // the same scale as the table, and the two words that decide whether the search works at all — the title and author,
 // editable, because "‑EIGHTY‑SIX - Volume 07" is not a title anyone would search for.
+import * as Dialog from "@radix-ui/react-dialog";
 import { useEffect, useState } from "react";
 import { Search } from "lucide-react";
 import { Button, Heading, Inline, Stack, Text, TextField } from "../../ui";
 import { searchMatches, type EditorBook, type EditorMatch } from "./api/editor";
-import { scoreTone, toneColor } from "./tone";
+import { scoreLabel, scoreTone, toneInk } from "./tone";
 
 export function MatchDialog({
   libraryId,
@@ -70,24 +71,18 @@ export function MatchDialog({
     };
   }, [libraryId, book.id, book.title, book.authors]);
 
-  useEffect(() => {
-    function onKey(event: KeyboardEvent) {
-      if (event.key === "Escape") onClose();
-    }
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
-
   const best = candidates[0]?.score;
 
+  // Radix, not a fixed div: an overlay has to keep focus inside itself, close on Escape and stop the page scrolling
+  // underneath, and a hand-rolled one gets two of those three wrong (this one did — Tab walked out into the table and
+  // the editor's keys kept driving it while the dialog was open). Same shell as the three sibling dialogs.
   return (
-    <div style={{ position: "fixed", inset: 0, background: "color-mix(in srgb, var(--color-bg) 70%, transparent)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 40 }} onClick={onClose}>
-      <div
-        role="dialog"
-        aria-label={`Matches for ${book.title}`}
-        onClick={(event) => event.stopPropagation()}
-        style={{ width: "min(680px, 92vw)", maxHeight: "84vh", overflow: "auto", background: "var(--color-surface)", border: "1px solid var(--color-line)", borderRadius: "var(--radius-12)", padding: "var(--space-16)" }}
-      >
+    <Dialog.Root open onOpenChange={(next) => (next ? undefined : onClose())}>
+      <Dialog.Overlay style={{ position: "fixed", inset: 0, padding: "var(--space-16)", background: "color-mix(in srgb, #000 55%, transparent)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 40 }}>
+        <Dialog.Content
+          aria-label={`Matches for ${book.title}`}
+          style={{ width: "min(680px, 92vw)", maxHeight: "84vh", overflow: "auto", background: "var(--color-bg)", border: "1px solid var(--color-line)", borderRadius: "var(--radius-16)", padding: "var(--space-24)", boxShadow: "0 24px 60px color-mix(in srgb, #000 35%, transparent)" }}
+        >
         <Stack gap={12}>
           <Stack gap={4}>
             <Heading size="16">Matches for {book.title}</Heading>
@@ -125,8 +120,8 @@ export function MatchDialog({
                 style={{ border: "1px solid var(--color-line)", borderRadius: "var(--radius-8)", padding: "var(--space-8)" }}
               >
                 <Inline gap={8} align="center" wrap>
-                  <span style={{ fontSize: "var(--font-size-11)", fontWeight: 700, color: toneColor(scoreTone(candidate.score)), minWidth: 36 }}>
-                    {Math.round(Math.max(0, Math.min(1, candidate.score)) * 100)}%
+                  <span style={{ fontSize: "var(--font-size-11)", fontWeight: 700, color: toneInk(scoreTone(candidate.score)), minWidth: 44 }}>
+                    {scoreLabel(candidate.score)}
                   </span>
                   <Stack gap={4}>
                     <Text size="13">{candidate.title}</Text>
@@ -135,6 +130,13 @@ export function MatchDialog({
                       {candidate.year > 0 ? ` · ${candidate.year}` : ""}
                       {candidate.series !== "" ? ` · ${candidate.series}${candidate.seriesIndex !== undefined ? ` #${candidate.seriesIndex}` : ""}` : ""}
                     </Text>
+                    {/* The blurb is why the search is per book: two editions of the same title are told apart by what
+                        they are about, not by their names. Clamped, because this is a list and not a reading pane. */}
+                    {candidate.overview !== undefined && candidate.overview !== "" && (
+                      <Text size="11" muted>
+                        {candidate.overview.length > 180 ? `${candidate.overview.slice(0, 177)}…` : candidate.overview}
+                      </Text>
+                    )}
                   </Stack>
                   <div style={{ flex: 1 }} />
                   <Button variant="secondary" onClick={() => onUse(candidate)} title="Stage this choice as pending changes: the fields it disagrees with, reviewed before anything is written.">
@@ -159,7 +161,8 @@ export function MatchDialog({
             </Button>
           </Inline>
         </Stack>
-      </div>
-    </div>
+        </Dialog.Content>
+      </Dialog.Overlay>
+    </Dialog.Root>
   );
 }

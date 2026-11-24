@@ -11,7 +11,7 @@
   font-family: inherit;
   cursor: pointer;
   transition: background-color var(--duration-fast) var(--ease);
-  min-height: var(--chrome-touch-min);
+  min-height: var(--control-height, var(--chrome-touch-min));
 }
 
 .button:disabled {
