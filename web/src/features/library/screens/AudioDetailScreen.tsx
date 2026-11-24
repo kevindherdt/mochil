@@ -19,6 +19,8 @@ import { useParams, useRouter } from "@tanstack/react-router";
 import { ArrowLeft, Music2 } from "lucide-react";
 import { Async, CoverImage, Heading, IconButton, Inline, PlaybackControls, Page, Stack, Text } from "../../../ui";
 import { useAudioDetail } from "../useMediaDetail";
+import { useLibraries } from "../useLibraries";
+import { AddToPlaylistMenu } from "../PlaylistsView";
 import { usePlayer } from "../../player/PlayerContext";
 import { useSwipeDownToDismiss } from "../../player/useSwipeDownToDismiss";
 
@@ -36,6 +38,10 @@ export function AudioDetailScreen() {
   const { libraryId, itemId } = useParams({ strict: false }) as { libraryId?: string; itemId?: string };
   const router = useRouter();
   const query = useAudioDetail(libraryId, itemId);
+  const libraries = useLibraries();
+  // The detail JSON has no library_kind, and the shelf's own kind is the only thing that says whether this track can
+  // go into a playlist at all — audiobook and podcast items are rejected by the server (validMusicEntry).
+  const libraryKind = libraries.data?.find((library) => library.id === libraryId)?.kind ?? "";
   const player = usePlayer();
   const isThisTrack = player.track?.id === itemId;
   const swipe = useSwipeDownToDismiss(() => router.history.back());
@@ -112,6 +118,12 @@ export function AudioDetailScreen() {
                       onSkip={player.skip}
                     />
                   </div>
+                )}
+                {/* Saving a track to a playlist belongs here rather than on every card in the grid: this is the
+                    screen where a track is actually heard, and the album grid has no menu affordance to hang it on.
+                    Music only — the server's playlist entries reject audiobook and podcast items with 400. */}
+                {libraryKind === "music" && libraryId !== undefined && (
+                  <AddToPlaylistMenu entry={{ libraryId, itemId: item.id }} />
                 )}
                 {item.description !== undefined && item.description !== "" && <Text size="14">{item.description}</Text>}
 

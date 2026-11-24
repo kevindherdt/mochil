@@ -16,7 +16,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import { Page, Stack, Inline, Text, Button, PillRow, MediaGrid, MediaList, BookCard, GroupCard, Menu, IconButton, SearchField, FilterChips, Async } from "../../../ui";
 import { ScreenHeader } from "../../../shell/ScreenHeader";
-import { Layers, Search, Sparkles, UserRound, X } from "lucide-react";
+import { Layers, ListMusic, Search, Sparkles, UserRound, X } from "lucide-react";
 import { useLibraries } from "../useLibraries";
 import { useBooks } from "../useBooks";
 import { MediaShelf } from "../MediaShelf";
@@ -398,6 +398,12 @@ export function LibraryScreen() {
                   </div>
                   <IconButton icon={Search} label="Search" onClick={() => setSearchOpen(true)} />
                   <Menu label="Browse and layout" icon={Layers} items={viewMenuItems} activeIds={activeMenuIds} onSelect={selectBrowseOrLayout} />
+                  {/* Playlists are account-wide, but this shelf is where they are made from — the only kind whose
+                      tracks the server accepts into one. A second entry point inside an album would be a menu that
+                      is sometimes unavailable; this one is simply not drawn where it cannot work. */}
+                  {activeLibrary?.kind === "music" && (
+                    <IconButton icon={ListMusic} label="Playlists" onClick={() => void navigate({ to: "/playlists" })} />
+                  )}
                   {aiEnabled && <IconButton icon={Sparkles} label="Ask the AI about this library" onClick={() => void navigate({ to: "/lyana" })} />}
                 </>
               )}

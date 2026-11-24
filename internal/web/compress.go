@@ -23,9 +23,18 @@ func Compress(next http.Handler) http.Handler {
 			next.ServeHTTP(w, r)
 			return
 		}
-		// Compressed responses carry a weak ETag; handlers compare strong ones.
-		if match := r.Header.Get("If-None-Match"); strings.Contains(match, "W/") {
-			r.Header.Set("If-None-Match", strings.ReplaceAll(match, "W/", ""))
+		// Compressed responses carry a weak ETag (see WriteHeader), but handlers compare strong ones — and a client
+		// echoes back exactly the validator it was given. Strip the prefix on the way in, for both cache validation
+		// and preconditions.
+		//
+		// `If-Match` was missing here, and it broke every audio-playlist edit: the GET answers `ETag: W/"<revision>"`
+		// because the JSON is gzipped, the client sends that back as `If-Match`, and the handler compares it to the
+		// bare revision — so rename, reorder, remove and delete all answered 412 "changed on another device" to a
+		// client that had changed nothing. Found by reordering a playlist in the real app.
+		for _, header := range []string{"If-None-Match", "If-Match"} {
+			if match := r.Header.Get(header); match != "*" && strings.Contains(match, "W/") {
+				r.Header.Set(header, strings.ReplaceAll(match, "W/", ""))
+			}
 		}
 		cw := &compressWriter{ResponseWriter: w}
 		defer cw.close()

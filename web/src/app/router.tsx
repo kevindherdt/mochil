@@ -128,6 +128,19 @@ const playRoute = createRoute({
   component: VideoPlayerScreen,
 });
 
+/** Playlists are account-wide in the API, so their routes are not nested under a library. */
+const playlistsRoute = createRoute({
+  getParentRoute: () => shellLayoutRoute,
+  path: "/playlists",
+  component: lazyRouteComponent(() => import("../features/library/screens/PlaylistsScreen"), "PlaylistsScreen"),
+});
+
+const playlistRoute = createRoute({
+  getParentRoute: () => shellLayoutRoute,
+  path: "/playlists/$name",
+  component: lazyRouteComponent(() => import("../features/library/screens/PlaylistsScreen"), "PlaylistScreen"),
+});
+
 /** The metadata editor. Lazy: it is a heavy table opened deliberately, not a browsing surface. */
 const editorRoute = createRoute({
   getParentRoute: () => shellLayoutRoute,
@@ -290,6 +303,8 @@ const routeTree = rootRoute.addChildren([
     showDetailRoute,
     audioDetailRoute,
     playRoute,
+    playlistsRoute,
+    playlistRoute,
     editorRoute,
     discoverRoute,
     lyanaRoute,

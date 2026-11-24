@@ -2,6 +2,15 @@
  "entries": [
   {
    "component": "web",
+   "version": "0.1.99",
+   "date": "2026-11-24",
+   "new": [
+    "Playlists are back on the web: make one, add tracks to it from the Now Playing screen, reorder or remove tracks, rename it, delete it, and play the whole list in order. They are account-wide, so one playlist collects tracks from any music shelf.",
+    "Every playlist edit is guarded by the playlist's own revision, so a change made on your phone or in another window is reported as a conflict instead of being silently overwritten."
+   ]
+  },
+  {
+   "component": "web",
    "version": "0.1.98",
    "date": "2026-11-24",
    "fixed": [

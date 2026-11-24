@@ -63,6 +63,18 @@ describe("request", () => {
     expect(assignSpy).not.toHaveBeenCalled();
   });
 
+  it("treats an empty body as no data, not as broken JSON — a 201 create answers with none", async () => {
+    // Found live: POST /api/audio-playlists answers 201 Created with no body, and `.json()` on that throws
+    // "Unexpected end of JSON input", which surfaced in the app as a failed create.
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(null, { status: 201 })));
+    await expect(request("/api/audio-playlists", { method: "POST", body: { name: "Night drive" } })).resolves.toBeUndefined();
+  });
+
+  it("reports a body that is not JSON as an error naming the status, rather than letting a parse error escape", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("<html>oops</html>", { status: 200 })));
+    await expect(request("/api/whatever")).rejects.toMatchObject({ status: 200 });
+  });
+
   it("sends no CSRF header — the real server has none for /api/* (session cookie only)", async () => {
     const fetchSpy = vi.fn().mockResolvedValue(jsonResponse({ ok: true }));
     vi.stubGlobal("fetch", fetchSpy);

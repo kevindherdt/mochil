@@ -16,6 +16,10 @@ export interface RequestOptions {
   method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
   body?: unknown;
   signal?: AbortSignal;
+  /** Extra request headers. The audio-playlist endpoints are revision-guarded, so `If-Match` has to travel with the
+   *  write — without this the only way to send it would be a second fetch wrapper, which is the thing this module
+   *  exists to prevent. */
+  headers?: Record<string, string>;
 }
 
 export interface Envelope<T> {
@@ -24,6 +28,9 @@ export interface Envelope<T> {
   nextCursor: string | null;
   /** `X-Total-Count` — how many items the whole filtered view holds, not how many came back. */
   total: number | null;
+  /** `ETag` — the resource's revision. A playlist's writes must quote it back as `If-Match`, so a read that cannot
+   *  return it would make every edit a guess. */
+  etag: string | null;
 }
 
 /**
@@ -57,6 +64,7 @@ export async function requestEnvelope<T>(path: string, options: RequestOptions =
   const total = totalHeader === null ? null : Number.parseInt(totalHeader, 10);
   return {
     data: envelope.data as T,
+    etag: envelope.response.headers.get("ETag"),
     // An empty cursor header is the server saying "no more"; normalise it to null so callers test one thing.
     nextCursor: envelope.response.headers.get("X-Next-Cursor") || null,
     total: Number.isFinite(total) ? total : null,
@@ -66,7 +74,7 @@ export async function requestEnvelope<T>(path: string, options: RequestOptions =
 /** One implementation of the session-expiry/error/JSON rules, shared by both exports above. */
 async function rawRequest(path: string, options: RequestOptions = {}): Promise<{ data: unknown; response: Response }> {
   const method = options.method ?? "GET";
-  const headers: Record<string, string> = { Accept: "application/json" };
+  const headers: Record<string, string> = { Accept: "application/json", ...options.headers };
 
   const init: RequestInit = { method, headers, credentials: "same-origin" };
   if (options.body !== undefined) {
@@ -91,6 +99,15 @@ async function rawRequest(path: string, options: RequestOptions = {}): Promise<{
     throw new HttpError(response.status, path, text || response.statusText);
   }
 
+  // Empty is not an error. The playlists API answers a create with `201 Created` and no body at all, and a write
+  // with `204`; parsing either as JSON throws "Unexpected end of JSON input", which is how this was caught — by
+  // creating a playlist in the real app rather than by any test. So: no body, no data, whatever the status says.
   if (response.status === 204) return { data: undefined, response };
-  return { data: await response.json(), response };
+  const text = await response.text();
+  if (text === "") return { data: undefined, response };
+  try {
+    return { data: JSON.parse(text) as unknown, response };
+  } catch {
+    throw new HttpError(response.status, path, `expected JSON, got ${text.slice(0, 60)}`);
+  }
 }
