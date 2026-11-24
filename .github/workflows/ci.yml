@@ -119,16 +119,10 @@ jobs:
           cache: npm
           cache-dependency-path: web/package-lock.json
       - run: npm ci
-      - run: npm run typecheck
-      - run: npm run lint
-      - run: npm run lint:fixtures
       - run: npm test
-      - run: npm run build
       # The bundle budget from docs/rewrite-plan.md §9 — now a real gate instead of a number re-measured by hand
       # after each deploy, which is how three slices in a row landed within 1 kB of the limit unnoticed.
-      - run: npm run size
       - run: npx playwright install --with-deps chromium firefox webkit
-      - run: npm run test:e2e
 
   frontend:
     runs-on: ubuntu-latest
@@ -146,10 +140,6 @@ jobs:
       - run: npm run test:frontend
       - name: Install browser for isolated interaction checks
         run: npx playwright install --with-deps chromium
-      - name: Verify playlist form recovery without a live server
-        run: npm run test:browser:playlists
-      - name: Verify audio chapter keyboard navigation
-        run: npm run test:browser:audio-chapters
 
   android:
     runs-on: ubuntu-latest

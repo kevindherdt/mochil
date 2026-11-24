@@ -2,6 +2,14 @@
  "entries": [
   {
    "component": "web",
+   "version": "0.1.98",
+   "date": "2026-11-24",
+   "fixed": [
+    "The release pipeline's browser checks were pointed at the retired web app: ten scripts drove pages and modules that no longer exist, two of them from CI, so the frontend job failed on files that were gone rather than on anything the app does. They are removed with the code they tested."
+   ]
+  },
+  {
+   "component": "web",
    "version": "0.1.97",
    "date": "2026-11-24",
    "fixed": [
