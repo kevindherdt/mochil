@@ -1,6 +1,7 @@
 package web
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -68,6 +69,23 @@ func (m *multiServer) transferSteps(from, to Library, ids map[string]string, pat
 	}
 }
 
+// withinLibrary reports an error unless path, with its symlinks resolved, really is inside root. Used before the one
+// delete in the transfer that builds its path by hand instead of going through the mover.
+func withinLibrary(root, path string) error {
+	resolvedRoot, err := filepath.EvalSymlinks(root)
+	if err != nil {
+		return errors.New("the library folder could not be resolved")
+	}
+	resolved, err := filepath.EvalSymlinks(path)
+	if err != nil {
+		return errors.New("the file could not be resolved")
+	}
+	if !withinRoot(resolved, resolvedRoot) {
+		return errors.New("the file is outside the library it was recorded in")
+	}
+	return nil
+}
+
 // applyTransferFiles moves or copies the books, resuming from what an earlier
 // attempt already did. It is the only step that touches files and it refuses to
 // guess: a book already in the target library counts as done, a move whose hard
@@ -90,6 +108,13 @@ func applyTransferFiles(from, to Library, paths []string, move bool) (func() err
 		case targetErr == nil && sourceErr == nil && move && (os.SameFile(sourceInfo, targetInfo) || transfer.Same(source, target)):
 			// The move placed the new copy (a hard link, or a cross-device copy) and
 			// stopped before unlinking the source: the only thing left is the unlink.
+			//
+			// The path is joined by hand here, so it is checked before anything is deleted: a journalled relative path
+			// that escapes the library (through "..", or a symlinked component) would otherwise make this the one
+			// unlink in the transfer that never passes the mover's own containment test.
+			if err := withinLibrary(from.SourcePath, source); err != nil {
+				return nil, fmt.Errorf("%s: %w", relative, err)
+			}
 			if err := os.Remove(source); err != nil {
 				return nil, fmt.Errorf("%s: %w", relative, err)
 			}

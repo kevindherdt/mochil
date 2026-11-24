@@ -2,6 +2,24 @@
  "entries": [
   {
    "component": "web",
+   "version": "0.1.93",
+   "date": "2026-11-24",
+   "new": [
+    "The editor says so when a batch is larger than the server will save at once, instead of letting Review changes end in a refusal after two round trips."
+   ],
+   "fixed": [
+    "Applying one book from the review panel no longer resets every other book staged for “back to the files”: that batch-wide list was sent with the single book's save.",
+    "A search, filter, collection, sort or library change clears the selection, so “Move or copy” can no longer act on books that are not on the table — with 10 selected and a search showing 2, the table also read “select all” as ticked.",
+    "While the review panel is open the table's cells are closed for editing: the panel shows a snapshot, and a cell edited behind it was written by Apply without appearing in the diff.",
+    "Writing metadata into a book's folder no longer leaves a half-written metadata.opf when the write is interrupted, and the sidecar write now reaches the disk before it replaces the old file.",
+    "A Calibre backup that was cut short by a crash no longer makes every later attempt fail with “existing Calibre backup is invalid”: it is written aside and moved into place.",
+    "The list of already-copied drop-folder files can no longer lose its marks or publish a mixture of two writers.",
+    "A library whose folder cannot be resolved to a real path now refuses to be used as a transfer source, instead of treating the server's own working directory as the library.",
+    "A batch of books can no longer load for ever when the server reports a total it will not deliver, and a new search now cancels the scan it replaced."
+   ]
+  },
+  {
+   "component": "web",
    "version": "0.1.92",
    "date": "2026-11-24",
    "new": [

@@ -281,18 +281,33 @@ func BackupCalibre(ctx context.Context, runner CalibreRunner, library, id, desti
 	if err := os.MkdirAll(filepath.Dir(destination), 0o750); err != nil {
 		return err
 	}
-	file, err := os.OpenFile(destination, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
+	// Temp file → Sync → Rename, into the same directory: written straight to its final name, a crash or a full disk
+	// left a truncated OPF at the destination, and the next attempt saw the file, failed validation and returned
+	// "existing Calibre backup is invalid" for good. The O_EXCL check below still reads the final name, so an existing
+	// backup is never replaced.
+	temporary, err := os.CreateTemp(filepath.Dir(destination), ".backup-*.opf")
 	if err != nil {
 		return err
 	}
-	if _, err = file.Write(output); err == nil {
-		err = file.Sync()
-	}
-	closeErr := file.Close()
-	if err != nil {
+	defer os.Remove(temporary.Name())
+	if _, err := temporary.Write(output); err != nil {
+		temporary.Close()
 		return err
 	}
-	return closeErr
+	if err := temporary.Sync(); err != nil {
+		temporary.Close()
+		return err
+	}
+	if err := temporary.Close(); err != nil {
+		return err
+	}
+	if err := os.Chmod(temporary.Name(), 0o600); err != nil {
+		return err
+	}
+	if _, err := os.Lstat(destination); err == nil {
+		return os.ErrExist
+	}
+	return os.Rename(temporary.Name(), destination)
 }
 
 func ApplyCalibre(ctx context.Context, runner CalibreRunner, library, id string, changes map[string]string) error {

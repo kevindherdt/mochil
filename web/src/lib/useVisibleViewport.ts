@@ -58,7 +58,14 @@ export function useVisibleViewport(): VisibleViewport {
   useEffect(() => {
     const publish = () => {
       const next = measure();
-      setViewport(next);
+      // The CSS variables are the real output; the state is for callers that want the numbers. Returning the previous
+      // object when nothing moved lets React bail out — a keyboard opening fires dozens of these, and each one used to
+      // re-render the whole shell and re-style a DOM holding hundreds of cards.
+      setViewport((previous) =>
+        previous.height === next.height && previous.hiddenBottom === next.hiddenBottom && previous.offsetTop === next.offsetTop
+          ? previous
+          : next,
+      );
       const root = document.documentElement;
       root.style.setProperty("--vvh", `${next.height}px`);
       root.style.setProperty("--dock-bottom", `${next.hiddenBottom}px`);

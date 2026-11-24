@@ -54,10 +54,31 @@ func (s *ImportedStore) Mark(paths ...string) {
 	if err != nil || os.MkdirAll(filepath.Dir(s.path), 0o700) != nil {
 		return
 	}
-	temporary := s.path + ".tmp"
-	if os.WriteFile(temporary, data, 0o600) == nil {
-		_ = os.Rename(temporary, s.path)
+	// A unique temp file, synced, then renamed: the fixed ".tmp" name meant two writers could be inside the same file at
+	// once and publish a mixture of both lists, and an unsynced rename can leave an empty file that the next load
+	// silently discards — losing every "already copied" mark.
+	temporary, err := os.CreateTemp(filepath.Dir(s.path), ".imported-*.tmp")
+	if err != nil {
+		return
 	}
+	name := temporary.Name()
+	defer os.Remove(name)
+	if err := temporary.Chmod(0o600); err != nil {
+		temporary.Close()
+		return
+	}
+	if _, err := temporary.Write(data); err != nil {
+		temporary.Close()
+		return
+	}
+	if err := temporary.Sync(); err != nil {
+		temporary.Close()
+		return
+	}
+	if err := temporary.Close(); err != nil {
+		return
+	}
+	_ = os.Rename(name, s.path)
 }
 
 // Has reports whether a source path was copied.

@@ -3,6 +3,7 @@ package web
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -145,7 +146,20 @@ func (m *multiServer) editorISBN(w http.ResponseWriter, r *http.Request) {
 	m.serveEditorJob(w, r, isbnJob)
 }
 
+// How much of a book's ISBN pile the note spells out. A book can print a dozen numbers — a colophon, a spine, a footer
+// on every page — and the note is a tooltip on one cell, so listing all of them with all their reasons said the useful
+// thing once and then kept going.
+const (
+	isbnNoteExtras  = 2
+	isbnNoteMaximum = 320
+)
+
 // isbnNote words what was found for a book in a few sentences, with the reasons for the choice.
+//
+// The first two after the best are named and the rest are counted: that is the part somebody reads ("which number, why,
+// and how many others were in there") and it keeps the field small. Listed in full it was the largest field on an editor
+// row — 233 kB of a 935 kB page measured on a 5 544-book library, and up to 2 224 characters for one book whose EPUB
+// prints an ISBN on every chapter footer.
 func isbnNote(result isbn.Result) string {
 	if len(result.Candidates) == 0 {
 		return "No ISBN is printed in this book."
@@ -160,11 +174,28 @@ func isbnNote(result isbn.Result) string {
 		note = "Not certain which is this book's own. Closest: " + why(top) + "."
 	}
 	if len(rest) > 0 {
-		others := make([]string, len(rest))
-		for i, other := range rest {
+		shown := rest
+		if len(shown) > isbnNoteExtras {
+			shown = shown[:isbnNoteExtras]
+		}
+		others := make([]string, len(shown))
+		for i, other := range shown {
 			others[i] = why(other)
 		}
-		note += " Also in the book: " + strings.Join(others, "; ") + "."
+		note += " Also in the book: " + strings.Join(others, "; ")
+		if hidden := len(rest) - len(shown); hidden > 0 {
+			note += fmt.Sprintf(" and %d more", hidden)
+		}
+		note += "."
 	}
-	return note
+	return bounded(isbnNoteMaximum, note)
+}
+
+// bounded cuts s to at most limit runes, ending with an ellipsis, without splitting a multi-byte character in half.
+func bounded(limit int, s string) string {
+	runes := []rune(s)
+	if len(runes) <= limit {
+		return s
+	}
+	return string(runes[:limit-1]) + "…"
 }

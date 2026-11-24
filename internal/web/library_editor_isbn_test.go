@@ -4,6 +4,7 @@ import (
 	"archive/zip"
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"path/filepath"
 	"strings"
@@ -109,6 +110,31 @@ func TestTheNoteSaysWhyOrThatTheCallWasTooClose(t *testing.T) {
 	}
 	if note := isbnNote(isbn.Result{}); !strings.Contains(note, "No ISBN") {
 		t.Fatal(note)
+	}
+}
+
+// A book can print a dozen ISBNs — a colophon, a spine, a footer on every page — and the note is a tooltip on one
+// cell. Listing every candidate with every reason made this the largest field on an editor row: measured on a 5 544-book
+// library it was 233 kB of a 935 kB page, a quarter of everything sent, to say something nobody reads to the end.
+func TestTheNoteStaysShortWhenABookPrintsManyISBNs(t *testing.T) {
+	many := isbn.Result{}
+	for i := 0; i < 40; i++ {
+		many.Candidates = append(many.Candidates, isbn.Candidate{
+			ISBN:    fmt.Sprintf("978000000%04d", i),
+			Reasons: []string{"on the copyright page", "labelled ISBN"},
+		})
+	}
+	note := isbnNote(many)
+	if len([]rune(note)) > 320 {
+		t.Fatalf("the note is %d characters, which is not a tooltip: %q", len([]rune(note)), note)
+	}
+	// 40 candidates: the best, two named extras, and the other 37 counted.
+	if !strings.Contains(note, "and 37 more") {
+		t.Fatalf("the note drops the candidates it does not list without saying how many there are: %q", note)
+	}
+	// The first two extras are still named: the count is not a replacement for the useful part.
+	if !strings.Contains(note, "9780000000001") || !strings.Contains(note, "9780000000002") {
+		t.Fatalf("the note lost the candidates nearest the top: %q", note)
 	}
 }
 

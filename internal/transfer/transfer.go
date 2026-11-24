@@ -64,7 +64,14 @@ func resolve(path string) (string, error) {
 	if err != nil || !info.IsDir() {
 		return "", errors.New("the folder does not exist")
 	}
-	return filepath.EvalSymlinks(path)
+	// The error used to be dropped, so a folder whose symlink could not be resolved (a FUSE mount answering ENOTSUP, a
+	// dangling link swapped in between the stat and this call) became an empty root — and every path joined against ""
+	// is inside it, which put the copies in the process's working directory.
+	resolved, err := filepath.EvalSymlinks(path)
+	if err != nil || resolved == "" {
+		return "", errors.New("the folder could not be resolved to a real path")
+	}
+	return resolved, nil
 }
 
 func within(parent, child string) bool {

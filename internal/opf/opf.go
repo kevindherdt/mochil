@@ -182,6 +182,12 @@ func WriteBeside(bookPath string, meta Metadata, overwrite bool) (string, error)
 		temporary.Close()
 		return "", err
 	}
+	// Temp file → Sync → Rename, the rule the rest of the repo follows: without the sync the rename can be committed
+	// while the bytes are not, and a crash leaves a truncated metadata.opf where a good one used to be.
+	if err := temporary.Sync(); err != nil {
+		temporary.Close()
+		return "", err
+	}
 	if err := temporary.Close(); err != nil {
 		return "", err
 	}

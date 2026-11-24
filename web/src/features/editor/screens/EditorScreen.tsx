@@ -11,7 +11,7 @@
 // Deliberately included: preview-before-write and undo, the Calibre ownership guard, a details pane as the beginner's
 // comfort zone, spreadsheet keys (see keys.ts), the bulk-ops dialog, column resize, and the find-ISBNs / find-matches /
 // AI-ask tools, collections and transfer.
-import { useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Columns3, Folders, LibraryBig, ListFilter, Moon, Search, Sun } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { Page, Heading, Text, Button, TextField, Stack, Inline, Async, EmptyState, ResizeHandle, Menu, IconButton, Toolbar } from "../../../ui";
@@ -64,7 +64,13 @@ interface LibraryOption {
 }
 
 const PUBLICATION_KINDS = ["books", "comics", "manga", "mixed"];
+
+// One shared empty object for the rows with nothing staged. `changes[book.id] ?? {}` made a fresh object on every render,
+// and a fresh prop defeats memo on every row at once — the table re-rendered all 33 visible rows for one cursor move.
+const NO_CHANGES: Partial<Record<EditorField, string>> = {};
 const ROW_HEIGHT = 34;
+// Mirrors the server's editorMaximumEdits: one request saves at most this many books.
+const EDITOR_MAXIMUM_EDITS = 2000;
 
 // The column layout is a preference, not server state: it lives in this browser, the way Calibre keeps its own.
 function loadLayout<T>(key: string, fallback: T): T {
@@ -311,14 +317,20 @@ export function EditorScreen() {
       setAppliedSearch(search.trim());
       setScrollTop(0);
       setCursor({ row: 0, col: 0 });
+      // An id that is no longer in the table must not stay selected: with 10 books selected and a search showing 2,
+      // "Move or copy" acted on all ten and the select-all box read as checked because 10 >= 2.
+      setSelected([]);
+      setAnchor(undefined);
     }, 300);
     return () => clearTimeout(timer);
   }, [search]);
 
   const all = useQuery({
     queryKey: ["editor", "books", libraryId, appliedSearch, filter, collection, sort, dir],
-    queryFn: () =>
-      fetchAllEditorBooks({ library: libraryId as string, q: appliedSearch, filter, collection, sort, dir }),
+    // The signal matters: typing in the search box starts a new six-request scan, and without it the previous one kept
+    // running to the end, competing with the one the user is waiting for.
+    queryFn: ({ signal }) =>
+      fetchAllEditorBooks({ library: libraryId as string, q: appliedSearch, filter, collection, sort, dir }, signal),
     enabled: libraryId !== undefined,
     staleTime: 15_000,
   });
@@ -377,7 +389,20 @@ export function EditorScreen() {
   const editable = editableFieldsFor(chosen?.sourceType ?? "filesystem");
   const calibreOwned = chosen?.sourceType === "calibre";
   const pending = changeCount(changes) + resets.length;
+  // The server's own limit (editorMaximumEdits): a control that is going to be refused is worse than one that says why.
+  const overCap = pending > EDITOR_MAXIMUM_EDITS;
   const selectedBooks = useMemo(() => books.filter((book) => selected.includes(book.id)), [books, selected]);
+  // The row asks "am I selected" once per render; `selected.includes(id)` is a scan of every selected id, so with a whole
+  // library selected (5 000+) that was 33 scans of 5 000 per keystroke.
+  const selectedSet = useMemo(() => new Set(selected), [selected]);
+
+  // What the tools may stage into. A new array identity here made EditorTools recompute three full-library
+  // match fill/replace scans (each normalising every title through NFKD) on every arrow key and every keystroke.
+  const browsable = useMemo(() => {
+    if (dismissed.length === 0) return books;
+    const skip = new Set(dismissed);
+    return books.filter((book) => !skip.has(book.id));
+  }, [books, dismissed]);
 
   const windowed = windowFor({ scrollTop, viewport, rowHeight: ROW_HEIGHT, count: books.length });
   const visible = books.slice(windowed.start, windowed.end);
@@ -396,11 +421,14 @@ export function EditorScreen() {
     spareRaw > 0 && GROWABLE.includes(column.id) ? spareRaw : 0;
   const template = `24px ${columns.map((column) => `${widthOf(column) + spareFor(column)}px`).join(" ")}`;
 
-  function currentValue(book: EditorBook, field: EditorField): string {
-    return changes[book.id]?.[field] ?? valueOf(book, field);
-  }
+  // Stable identities, so a row that did not change does not re-render. Everything a row receives is either a primitive,
+  // the book object (stable while the list does not refetch), or one of these.
+  const currentValue = useCallback(
+    (book: EditorBook, field: EditorField): string => changes[book.id]?.[field] ?? valueOf(book, field),
+    [changes],
+  );
 
-  function write(book: EditorBook, field: EditorField, next: string) {
+  const write = useCallback((book: EditorBook, field: EditorField, next: string) => {
     setChanges((current) => {
       const forBook = { ...(current[book.id] ?? {}) };
       if (valueOf(book, field) === next) delete forBook[field];
@@ -410,17 +438,40 @@ export function EditorScreen() {
       else nextChanges[book.id] = forBook;
       return nextChanges;
     });
-  }
+  }, []);
 
-  function startEditing(book: EditorBook, field: EditorField, initial?: string) {
-    const row = books.indexOf(book);
-    if (row >= 0) setCursor({ row, col: columns.findIndex((column) => column.field === field) });
-    setEditing({ book: book.id, field });
-    setDraft(initial ?? currentValue(book, field));
-  }
+  const startEditing = useCallback(
+    (book: EditorBook, field: EditorField, initial?: string) => {
+      const row = books.indexOf(book);
+      if (row >= 0) setCursor({ row, col: columns.findIndex((column) => column.field === field) });
+      setEditing({ book: book.id, field });
+      setDraft(initial ?? changes[book.id]?.[field] ?? valueOf(book, field));
+    },
+    [books, columns, changes],
+  );
+
+  const cancelEdit = useCallback(() => setEditing(undefined), []);
 
 
-  function commitCell() {
+  // The one handler that reads state changing on every keystroke, kept stable on purpose: a new identity per keystroke
+  // would re-render every visible row while somebody types in one cell. The values come from a ref written after render.
+  const fast = useRef({ editing, draft, books, cursor, columns });
+  useEffect(() => {
+    fast.current = { editing, draft, books, cursor, columns };
+  });
+
+  // Tab from inside a cell editor takes exactly the transition the grid's own Tab takes. Stable, because it is handed to
+  // every row: an identity that changed with the cursor would re-render the whole table on every arrow key.
+  const tabFromCell = useCallback((shift: boolean) => {
+    const { cursor, books, columns } = fast.current;
+    const intent = gridKey("Tab", cursor, { rows: books.length, columns: columns.length, page: 1 }, { shift });
+    if (intent.kind === "move") setCursor(intent.cursor);
+  }, []);
+
+  const openMatch = useCallback((book: EditorBook) => setMatchFor(book), []);
+
+  const commitCell = useCallback(() => {
+    const { editing, draft, books } = fast.current;
     if (editing === undefined) return;
     const book = books.find((row) => row.id === editing.book);
     if (book !== undefined) write(book, editing.field, draft);
@@ -432,7 +483,7 @@ export function EditorScreen() {
       const active = document.activeElement;
       if (active === null || active === document.body) scrollRef.current?.focus();
     });
-  }
+  }, [write]);
 
   const sortKeyOf = (column: Column) => (column.field !== undefined ? sortKeyFor(column.field) : column.id);
 
@@ -445,10 +496,12 @@ export function EditorScreen() {
     }
     setScrollTop(0);
     setCursor({ row: 0, col: 0 });
+    setSelected([]);
+    setAnchor(undefined);
   }
 
   // Click selects one row; Shift-click selects the range from the last click, the way the legacy editor and Calibre do.
-  function toggleSelected(book: EditorBook, range = false) {
+  const toggleSelected = useCallback((book: EditorBook, range = false) => {
     setSelected((current) => {
       if (range && anchor !== undefined) {
         const ids = books.map((row) => row.id);
@@ -468,7 +521,7 @@ export function EditorScreen() {
       return current.includes(book.id) ? current.filter((id) => id !== book.id) : [...current, book.id];
     });
     setAnchor(book.id);
-  }
+  }, [anchor, books]);
 
   async function review() {
     if (libraryId === undefined) return;
@@ -514,7 +567,10 @@ export function EditorScreen() {
     setBusy(true);
     setMessage(undefined);
     try {
-      const result = await applyChanges(libraryId, { [bookId]: staged }, resets);
+      // Only this book's own reset, never the batch's: `reset` means "forget every Mochil edit of these books", so
+      // passing the whole list here silently reset the other 19 books the user was still deciding about.
+      const result = await applyChanges(libraryId, { [bookId]: staged }, resets.filter((id) => id === bookId));
+      setResets((current) => current.filter((id) => id !== bookId));
       setChanges((current) => {
         const next = { ...current };
         delete next[bookId];
@@ -809,6 +865,8 @@ export function EditorScreen() {
                 setFilter(id);
                 setScrollTop(0);
                 setCursor({ row: 0, col: 0 });
+                setSelected([]);
+                setAnchor(undefined);
               }}
             />
             {(collections.data?.length ?? 0) > 0 && (
@@ -826,6 +884,8 @@ export function EditorScreen() {
                   setCollection(id);
                   setScrollTop(0);
                   setCursor({ row: 0, col: 0 });
+                  setSelected([]);
+                  setAnchor(undefined);
                 }}
               />
             )}
@@ -867,7 +927,7 @@ export function EditorScreen() {
         {libraryId !== undefined && all.data !== undefined && (
           <EditorTools
             libraryId={libraryId}
-            books={books.filter((book) => !dismissed.includes(book.id))}
+            books={browsable}
             selected={selected}
             dismissed={dismissed.length}
             onRestore={restoreDismissed}
@@ -1033,26 +1093,22 @@ export function EditorScreen() {
                           book={book}
                           rowIndex={windowed.start + index}
                           cursorCol={cursor.row === windowed.start + index ? cursor.col : -1}
-                          // The same transition the grid's own Tab takes, so the two cannot disagree about wrapping onto
-                          // the next row or about where the table ends.
-                          onTab={(shift) => {
-                            const intent = gridKey("Tab", cursor, { rows: books.length, columns: columns.length, page: 1 }, { shift });
-                            if (intent.kind === "move") setCursor(intent.cursor);
-                          }}
+                          onTab={tabFromCell}
                           columns={columns}
                           template={template}
-                          editing={editing}
+                          editingField={editing?.book === book.id ? editing.field : undefined}
                           draft={draft}
                           onDraft={setDraft}
                           onStart={startEditing}
                           onCommit={commitCell}
-                          onCancel={() => setEditing(undefined)}
+                          onCancel={cancelEdit}
                           value={currentValue}
-                          pendingFor={changes[book.id] ?? {}}
+                          pendingFor={changes[book.id] ?? NO_CHANGES}
                           editable={editable}
-                          selected={selected.includes(book.id)}
-                          onSelect={(range) => toggleSelected(book, range)}
-                          onMatch={calibreOwned ? undefined : (target) => setMatchFor(target)}
+                          reviewing={preview !== undefined}
+                          selected={selectedSet.has(book.id)}
+                          onSelect={toggleSelected}
+                          onMatch={calibreOwned ? undefined : openMatch}
                           focused={focus?.id === book.id}
                         />
                       ))}
@@ -1074,8 +1130,14 @@ export function EditorScreen() {
                   <div style={{ flex: 1 }} />
                   <Text size="11" muted>
                     {pending === 0 ? "No pending changes" : `${pending} pending`}
+                    {overCap ? ` · ${EDITOR_MAXIMUM_EDITS} per save, stage the rest after` : ""}
                   </Text>
-                  <Button variant="primary" disabled={pending === 0 || busy} onClick={() => void review()}>
+                  <Button
+                    variant="primary"
+                    disabled={pending === 0 || busy || overCap}
+                    onClick={() => void review()}
+                    title={overCap ? `The server saves at most ${EDITOR_MAXIMUM_EDITS} books at a time. Apply this batch, then stage the rest.` : undefined}
+                  >
                     Review changes
                   </Button>
                 </Inline>
@@ -1315,14 +1377,14 @@ function HeaderCell({
   );
 }
 
-function Row({
+const Row = memo(function Row({
   book,
   columns,
   template,
   rowIndex,
   cursorCol,
   onTab,
-  editing,
+  editingField,
   draft,
   onDraft,
   onStart,
@@ -1332,6 +1394,7 @@ function Row({
   pendingFor,
   editable,
   selected,
+  reviewing,
   onSelect,
   onMatch,
   focused,
@@ -1343,7 +1406,8 @@ function Row({
   cursorCol: number;
   /** Tab with the editor open: commit, then move where Tab would move. */
   onTab: (shift: boolean) => void;
-  editing: { book: string; field: EditorField } | undefined;
+  /** The field open for editing on this row, or undefined: a per-row value, so one row's edit does not re-render the rest. */
+  editingField: EditorField | undefined;
   draft: string;
   onDraft: (value: string) => void;
   onStart: (book: EditorBook, field: EditorField) => void;
@@ -1353,7 +1417,9 @@ function Row({
   pendingFor: Partial<Record<EditorField, string>>;
   editable: readonly EditorField[];
   selected: boolean;
-  onSelect: (range: boolean) => void;
+  /** The review panel is open: its diff is a snapshot, so the table must not accept another edit behind it. */
+  reviewing: boolean;
+  onSelect: (book: EditorBook, range: boolean) => void;
   /** Open the candidates behind this book's match. Undefined on a Calibre library, where none of it could be saved. */
   onMatch?: ((book: EditorBook) => void) | undefined;
   focused: boolean;
@@ -1368,7 +1434,7 @@ function Row({
       style={{ display: "grid", gridTemplateColumns: template, gap: "var(--space-8)", height: ROW_HEIGHT, alignItems: "center", padding: "0 8px", borderBottom: "1px solid color-mix(in srgb, var(--color-line) 40%, transparent)" }}
     >
       <div role="gridcell" aria-colindex={1}>
-        <input type="checkbox" aria-label={`Select ${book.title}`} checked={selected} onChange={(event) => onSelect(event.nativeEvent instanceof MouseEvent && event.nativeEvent.shiftKey)} />
+        <input type="checkbox" aria-label={`Select ${book.title}`} checked={selected} onChange={(event) => onSelect(book, event.nativeEvent instanceof MouseEvent && event.nativeEvent.shiftKey)} />
       </div>
       {columns.map((column, columnIndex) => {
         const isCursor = cursorCol === columnIndex;
@@ -1437,7 +1503,7 @@ function Row({
           return (
             <div key={column.id} role="gridcell" aria-colindex={columnIndex + 2} id={`cell-${rowIndex}-${columnIndex}`} style={{ minWidth: 0, ...ring }}>
               <div
-                onClick={clickable ? () => onMatch(book) : undefined}
+                onClick={clickable ? () => onMatch?.(book) : undefined}
                 title={clickable ? `${cell.title}\n\nClick to see every candidate and search with better words.` : cell.title}
                 style={{
                   padding: "3px 6px",
@@ -1458,9 +1524,9 @@ function Row({
           );
         }
 
-        const isEditing = editing?.book === book.id && editing.field === field;
+        const isEditing = editingField === field;
         const pending = pendingFor[field] !== undefined;
-        const locked = !editable.includes(field);
+        const locked = reviewing || !editable.includes(field);
         const shown = value(book, field);
         return (
           <div key={column.id} role="gridcell" aria-colindex={columnIndex + 2} id={`cell-${rowIndex}-${columnIndex}`} style={{ minWidth: 0 }}>
@@ -1532,4 +1598,4 @@ function Row({
       })}
     </div>
   );
-}
+});

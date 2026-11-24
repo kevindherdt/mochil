@@ -246,7 +246,7 @@ export interface EditorQuery {
   limit: number;
 }
 
-export async function fetchEditorBooks(query: EditorQuery): Promise<EditorPage> {
+export async function fetchEditorBooks(query: EditorQuery, signal?: AbortSignal): Promise<EditorPage> {
   const params = new URLSearchParams({
     library: query.library,
     offset: String(query.offset),
@@ -257,7 +257,7 @@ export async function fetchEditorBooks(query: EditorQuery): Promise<EditorPage> 
   if (query.q !== "") params.set("q", query.q);
   if (query.filter !== "") params.set("filter", query.filter);
   if (query.collection !== "") params.set("collection", query.collection);
-  const raw = await request<unknown>(`/api/metadata/editor/books?${params}`);
+  const raw = await request<unknown>(`/api/metadata/editor/books?${params}`, signal === undefined ? {} : { signal });
   const parsed = pageSchema.parse(raw);
   return {
     total: parsed.total ?? 0,
@@ -443,15 +443,21 @@ export interface EditorAll {
 
 /** Loads every matching row in 1 000-row chunks (the server's maximum page) so the whole library is one scrollable
  *  spreadsheet instead of pages. A few requests for a few thousand books; the legacy editor did the same. */
-export async function fetchAllEditorBooks(query: Omit<EditorQuery, "offset" | "limit">): Promise<EditorAll> {
+export async function fetchAllEditorBooks(
+  query: Omit<EditorQuery, "offset" | "limit">,
+  signal?: AbortSignal,
+): Promise<EditorAll> {
   const CHUNK = 1000;
   const items: EditorBook[] = [];
   let last: Awaited<ReturnType<typeof fetchEditorBooks>> | undefined;
   for (let offset = 0; ; offset += CHUNK) {
-    const page = await fetchEditorBooks({ ...query, offset, limit: CHUNK });
+    const page = await fetchEditorBooks({ ...query, offset, limit: CHUNK }, signal);
     items.push(...page.items);
     last = page;
     if (items.length >= page.total) break;
+    // A short page is the server saying there is nothing more, whatever the total said. Without this the loop asked
+    // for the same empty window for ever when the total over-reported or was missing.
+    if (page.items.length < CHUNK) break;
   }
   // Every page carries the same totals, counts and column definitions; read them from the final one.
   const summary = last as NonNullable<typeof last>;

@@ -40,7 +40,9 @@ const defaultSkeleton = (
 export function Async<T>({ query, children, skeleton, empty, emptyMessage = "Nothing here yet.", emptyAction }: AsyncProps<T>) {
   if (query.isLoading) return <>{skeleton ?? defaultSkeleton}</>;
   if (query.isError) return <ErrorState onRetry={query.refetch} />;
-  if (query.data === undefined) return <ErrorState message="No data." onRetry={query.refetch} />;
+  // A query that has not started yet is waiting, not broken: an `enabled: false` query reports `isLoading === false`
+  // with no data, which used to paint a red "No data." and a retry button that could only refetch nothing.
+  if (query.data === undefined) return <>{skeleton ?? defaultSkeleton}</>;
   if (empty?.(query.data)) return <EmptyState message={emptyMessage} action={emptyAction} />;
   return <>{children(query.data)}</>;
 }
