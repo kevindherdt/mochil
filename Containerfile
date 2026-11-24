@@ -14,7 +14,6 @@ COPY . .
 COPY --from=webbuild /internal/web/static/next ./internal/web/static/next
 # Bundle the web shell (hashed script + stylesheet); the server falls back to
 # the plain sources when this output is absent.
-RUN CGO_ENABLED=0 go run ./cmd/assetbuild
 ARG VERSION=0.0.0-dev
 ARG COMMIT=
 RUN GOMAXPROCS=1 CGO_ENABLED=0 go build -trimpath \

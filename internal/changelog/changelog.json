@@ -2,6 +2,18 @@
  "entries": [
   {
    "component": "web",
+   "version": "0.1.95",
+   "date": "2026-11-24",
+   "new": [
+    "A stale link to the old app now lands on the new one instead of an error page: everything under /legacy/ redirects home, except the three pages that have not been ported — the spreadsheet editor, managed import and the old chat."
+   ],
+   "changes": [
+    "The retired web app is gone. Its 245 modules and 19 000 lines of JavaScript existed only to draw the library screens the new app owns, and they were still being built, served and shipped in every release. What remains under /legacy/ is the three unported pages and the reader.",
+    "The app no longer installs itself as an offline shell. The service worker that used to cache the old app stays reachable only long enough to delete its caches and unregister, so browsers that still have it stop answering with pages whose files no longer exist."
+   ]
+  },
+  {
+   "component": "web",
    "version": "0.1.94",
    "date": "2026-11-24",
    "fixed": [

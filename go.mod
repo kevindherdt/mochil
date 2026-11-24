@@ -8,9 +8,4 @@ require (
 	golang.org/x/text v0.44.0
 )
 
-require (
-	github.com/evanw/esbuild v0.25.9
-	github.com/yuin/goldmark v1.8.7
-)
-
-require golang.org/x/sys v0.50.0 // indirect
+require github.com/yuin/goldmark v1.8.7

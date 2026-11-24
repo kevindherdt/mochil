@@ -9,9 +9,9 @@ import (
 
 func TestJavaScriptAssetsAlwaysRevalidate(t *testing.T) {
 	server := &multiServer{}
-	request := httptest.NewRequest(http.MethodGet, "/assets/library-loader.js?v=1", nil)
+	request := httptest.NewRequest(http.MethodGet, "/assets/reader.js?v=1", nil)
 	response := httptest.NewRecorder()
-	server.serveStatic(response, request, "static/library-loader.js")
+	server.serveStatic(response, request, "static/reader.js")
 	if response.Code != http.StatusOK {
 		t.Fatalf("status=%d", response.Code)
 	}
@@ -24,9 +24,9 @@ func TestJavaScriptAssetsAlwaysRevalidate(t *testing.T) {
 	}
 
 	revalidated := httptest.NewRecorder()
-	conditional := httptest.NewRequest(http.MethodGet, "/assets/library-loader.js?v=1", nil)
+	conditional := httptest.NewRequest(http.MethodGet, "/assets/reader.js?v=1", nil)
 	conditional.Header.Set("If-None-Match", etag)
-	server.serveStatic(revalidated, conditional, "static/library-loader.js")
+	server.serveStatic(revalidated, conditional, "static/reader.js")
 	if revalidated.Code != http.StatusNotModified {
 		t.Fatalf("conditional status=%d", revalidated.Code)
 	}

@@ -16,7 +16,7 @@ import (
 func TestTheAppShellAllowsItsOwnInlineScript(t *testing.T) {
 	server := &multiServer{}
 	response := httptest.NewRecorder()
-	server.serveStatic(response, httptest.NewRequest(http.MethodGet, "/", nil), "static/index.html")
+	server.serveStatic(response, httptest.NewRequest(http.MethodGet, "/", nil), "static/hermes.html")
 	if response.Code != http.StatusOK {
 		t.Fatalf("status=%d", response.Code)
 	}
@@ -44,7 +44,7 @@ func TestTheAppShellAllowsItsOwnInlineScript(t *testing.T) {
 func TestTheShellStillAllowsGeneratedCovers(t *testing.T) {
 	server := &multiServer{}
 	response := httptest.NewRecorder()
-	server.serveStatic(response, httptest.NewRequest(http.MethodGet, "/", nil), "static/index.html")
+	server.serveStatic(response, httptest.NewRequest(http.MethodGet, "/", nil), "static/hermes.html")
 	policy := response.Header().Get("Content-Security-Policy")
 	// Cover placeholders and scene backgrounds are drawn as data: and blob: images.
 	for _, directive := range []string{"img-src 'self' data: blob:", "media-src 'self' data: blob:"} {

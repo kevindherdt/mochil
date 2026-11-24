@@ -2,8 +2,6 @@
 set -euo pipefail
 
 declare -A grandfathered_lines=(
-  [internal/web/static/index.html]=338
-  [internal/web/static/app.js]=345
   [internal/web/static/reader.js]=360
   [android/app/src/main/java/net/kdhmedia/mochil/reader/epub/EpubReaderActivity.kt]=508
   [android/app/src/main/java/net/kdhmedia/mochil/ui/MusicScreen.kt]=320
@@ -30,111 +28,13 @@ while IFS= read -r -d '' path; do
   fi
 done < <(find internal cmd android/app/src/main -type f \( -name '*.go' -o -name '*.js' -o -name '*.kt' -o -name '*.css' -o -name '*.html' \) -print0)
 
-if ! grep -q "from './audio-player-chrome.js" internal/web/static/audio-library.js; then
-  echo "audio-library.js must delegate presentation-only player state to audio-player-chrome.js" >&2
-  failed=1
-fi
-if ! grep -q "from './music-library-view.js" internal/web/static/audio-library.js; then
-  echo "audio-library.js must delegate bounded music presentation to music-library-view.js" >&2
-  failed=1
-fi
-if [[ ! -f internal/web/static/audio-root-catalogue.js ]] || ! grep -q "from './audio-root-catalogue.js" internal/web/static/audio-library.js || grep -q "requestJSON(\`/api/audio?" internal/web/static/audio-library.js; then
-  echo "audio-library.js must delegate root audio request construction and paging headers" >&2
-  failed=1
-fi
-if [[ ! -f internal/web/static/destination-rail.js ]] || ! grep -q "from './destination-rail.js" internal/web/static/music-destinations.js || ! grep -q "from './destination-rail.js" internal/web/static/publication-destinations.js; then
-  echo "media destination rails must share destination-rail.js" >&2
-  failed=1
-fi
-if [[ ! -f internal/web/static/publication-catalogues.js ]] || ! grep -q 'createPublicationCatalogues' internal/web/static/app.js; then
-  echo "app.js must delegate publication catalogue construction" >&2
-  failed=1
-fi
-if [[ ! -f internal/web/static/music-quality-review.js ]] || ! grep -q "from './music-quality-review.js" internal/web/static/metadata-review.js; then
-  echo "metadata-review.js must delegate music-quality reporting" >&2
-  failed=1
-fi
-if [[ ! -f internal/web/static/ingest-preview.js ]] || ! grep -q "from './ingest-preview.js" internal/web/static/metadata-review.js; then
-  echo "metadata-review.js must delegate managed-ingest preview paging" >&2
-  failed=1
-fi
-if [[ ! -f internal/web/static/publication-matcher.js ]] || ! grep -q "from './publication-matcher.js" internal/web/static/metadata-review.js; then
-  echo "metadata-review.js must delegate provider lookup and cover state" >&2
-  failed=1
-fi
 if [[ ! -f internal/web/metadata_provider_http.go ]] || grep -q 'apiMetadataSuggestions\|metadataSuggestionArtworkHTTP\|apiPublicationMetadata' internal/web/metadata_http.go; then
   echo "metadata review transactions must remain separate from provider lookup, artwork, and publication-cover HTTP" >&2
   failed=1
 fi
-if ! grep -q "createLazyAudiobookCatalogue" internal/web/static/audio-library.js || \
-   ! grep -q "import('./audiobook-catalogue.js" internal/web/static/lazy-spoken-catalogues.js; then
-  echo "audio-library.js must delegate audiobook hierarchy and paging state" >&2
-  failed=1
-fi
-if ! grep -q "createLazyPodcastCatalogue" internal/web/static/audio-library.js || \
-   ! grep -q "import('./podcast-catalogue.js" internal/web/static/lazy-spoken-catalogues.js; then
-  echo "audio-library.js must delegate podcast show and episode paging state" >&2
-  failed=1
-fi
-if [[ ! -f internal/web/static/audio-paging-policy.js ]] || ! grep -q "from './audio-paging-policy.js" internal/web/static/audio-library.js; then
-  echo "audio-library.js must delegate cross-catalogue paging policy" >&2
-  failed=1
-fi
-if [[ ! -f internal/web/static/audio-render-policy.js ]] || ! grep -q "from './audio-render-policy.js" internal/web/static/audio-library.js; then
-  echo "audio-library.js must delegate paging and bulk-action presentation policy" >&2
-  failed=1
-fi
 
-if [[ ! -f internal/web/static/deferred-audio-controller.js ]] || grep -q '^import .*audio-library\.js' internal/web/static/app.js || ! grep -q 'import("./audio-library.js' internal/web/static/deferred-audio-controller.js; then
-  echo "web Home must keep the full audio catalogue behind its deferred controller" >&2
-  exit 1
-fi
-if [[ ! -f internal/web/static/deferred-video-controller.js ]] || grep -q '^import .*video-library\.js' internal/web/static/app.js || ! grep -q 'import("./video-library.js' internal/web/static/deferred-video-controller.js; then
-  echo "web Home must keep the full video catalogue behind its deferred controller" >&2
-  exit 1
-fi
-if grep -Eq '(audio-player|video-player|document-library|vault-editor|metadata-review|music-library)\.css' internal/web/static/index.html || ! grep -q 'loadFeatureStyles' internal/web/static/deferred-audio-controller.js || ! grep -q 'loadFeatureStyles' internal/web/static/deferred-video-controller.js || ! grep -q 'loadFeatureStyles' internal/web/static/deferred-route-controllers.js; then
-  echo "route-owned styles must remain behind the same deferred boundary as their controllers" >&2
-  exit 1
-fi
-if [[ ! -f internal/web/static/lazy-spoken-media-view.js ]] || ! grep -q "from './lazy-spoken-media-view.js" internal/web/static/audio-library.js || grep -q "from './audio-media-views.js" internal/web/static/audio-library.js || ! grep -q "import('./audio-media-views.js" internal/web/static/lazy-spoken-media-view.js || ! grep -q 'export function spokenMediaSurface' internal/web/static/audio-media-views.js; then
-  echo "ordinary Music must keep podcast and audiobook presentation behind its lazy boundary" >&2
-  failed=1
-fi
-if [[ ! -f internal/web/static/lazy-audio-analysis.js ]] || ! grep -q "from './lazy-audio-analysis.js" internal/web/static/audio-library.js || grep -q "from './audio-analysis-controller.js" internal/web/static/audio-library.js || ! grep -q "import('./audio-analysis-controller.js" internal/web/static/lazy-audio-analysis.js; then
-  echo "ordinary audio browsing must keep loudness analysis behind its lazy controller" >&2
-  failed=1
-fi
-if [[ ! -f internal/web/static/lazy-music-track-info.js ]] || ! grep -q "from './lazy-music-track-info.js" internal/web/static/audio-library.js || grep -q "from './music-track-info.js" internal/web/static/audio-library.js || ! grep -q "import('./music-track-info.js" internal/web/static/lazy-music-track-info.js; then
-  echo "ordinary Music must keep the track-information dialog behind its lazy controller" >&2
-  failed=1
-fi
-if [[ ! -f internal/web/static/audio-surface-controls.js ]] || ! grep -q "from './audio-surface-controls.js" internal/web/static/audio-library.js || grep -q "podcast-manage-toggle.*hidden=kind" internal/web/static/audio-library.js; then
-  echo "audio-library.js must delegate media-family control visibility" >&2
-  failed=1
-fi
 if [[ ! -f internal/podcast/rss.go ]] || grep -Eq 'type rss struct|func parseRSS|func podcastPlainText' internal/podcast/store.go; then
   echo "podcast storage must delegate RSS parsing, sanitization, and date normalization to rss.go" >&2
-  failed=1
-fi
-if [[ ! -f internal/web/static/audio-continue-rail.js ]] || ! grep -q 'from "./audio-continue-rail.js' internal/web/static/deferred-audio-controller.js || grep -q "requestJSON('/api/audio-progress')" internal/web/static/audio-library.js; then
-  echo "the deferred audio bootstrap must delegate Home continuation fetching and dismissal to audio-continue-rail.js" >&2
-  failed=1
-fi
-if [[ ! -f internal/web/static/video-continue-rail.js ]] || ! grep -q 'from "./video-continue-rail.js' internal/web/static/deferred-video-controller.js || grep -q 'requestJSON("/api/video-progress")' internal/web/static/video-library.js; then
-  echo "the deferred video bootstrap must delegate Home continuation fetching, dismissal, and undo to video-continue-rail.js" >&2
-  failed=1
-fi
-if [[ ! -f internal/web/static/music-playlist-controller.js ]] || ! grep -q "from './music-playlist-controller.js" internal/web/static/audio-library.js || grep -q 'musicSelectedPlaylist\|data-delete-playlist.*confirm' internal/web/static/audio-library.js; then
-  echo "audio-library.js must delegate playlist selection and mutation lifecycle to music-playlist-controller.js" >&2
-  failed=1
-fi
-if [[ ! -f internal/web/static/audio-playback-session.js ]] || grep -q 'fallbackAttempted\|recoveryTimer' internal/web/static/audio-library.js; then
-  echo "audio-library.js must delegate playback recovery ownership" >&2
-  failed=1
-fi
-if [[ ! -f internal/web/static/audio-library-interactions.js ]] || ! grep -q "from './audio-library-interactions.js" internal/web/static/audio-library.js || grep -q "\$('#audio-items')\.onclick" internal/web/static/audio-library.js; then
-  echo "audio-library.js must delegate catalogue, queue, and Discovery click routing to audio-library-interactions.js" >&2
   failed=1
 fi
 if [[ ! -f android/app/src/main/java/net/kdhmedia/mochil/ui/MusicGroupBrowser.kt ]] || grep -q 'fun GroupTracks' android/app/src/main/java/net/kdhmedia/mochil/ui/MusicScreen.kt; then

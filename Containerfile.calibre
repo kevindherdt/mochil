@@ -13,7 +13,6 @@ COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
 COPY --from=webbuild /internal/web/static/next ./internal/web/static/next
-RUN CGO_ENABLED=0 go run ./cmd/assetbuild
 RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w -X mochil/internal/version.Version=${VERSION} -X mochil/internal/version.Commit=${COMMIT}" -o /out/mochil ./cmd/mochil
 
 FROM debian:bookworm-slim

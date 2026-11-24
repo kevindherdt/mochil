@@ -1,18 +1,14 @@
 package web
 
 import (
-	"bytes"
 	"crypto/sha256"
 	"embed"
-	"encoding/json"
 	"fmt"
 	"mime"
 	"net/http"
 	"path"
 	"strings"
 	"sync"
-
-	"mochil/internal/version"
 )
 
 //go:embed static
@@ -26,22 +22,20 @@ type staticAsset struct {
 
 var staticAssetCache sync.Map
 
-// legacyApp serves the retired shell under /legacy. Only the pages that have not been ported still live in it —
-// the spreadsheet editor (/legacy/editor), managed import (/legacy/editor/import) and the legacy chat
-// (/legacy/hermes) — and their own JS routes with a fragment, so the same index.html serves every path below.
+// legacyApp serves the three pages that have not been ported: the spreadsheet editor, managed import and the old
+// chat. The retired shell that used to answer /legacy itself is gone — its 245 modules and 19 000 lines existed only to
+// render a library screen the app owns now — so anything else under /legacy is a stale bookmark and goes home.
 func (m *multiServer) legacyApp(w http.ResponseWriter, r *http.Request) {
 	trimmed := strings.TrimPrefix(path.Clean(r.URL.Path), "/legacy")
-	switch {
-	case trimmed == "" || trimmed == "/":
-		m.serveStatic(w, r, "static/index.html")
-	case trimmed == "/editor":
+	switch trimmed {
+	case "/editor":
 		m.serveStatic(w, r, "static/editor.html")
-	case trimmed == "/editor/import":
+	case "/editor/import":
 		m.serveStatic(w, r, "static/import.html")
-	case trimmed == "/hermes":
+	case "/hermes":
 		m.serveStatic(w, r, "static/hermes.html")
 	default:
-		m.serveStatic(w, r, "static/index.html")
+		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
 	}
 }
 
@@ -58,30 +52,6 @@ func (m *multiServer) notFoundPage(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "no-cache")
 	w.WriteHeader(http.StatusNotFound)
 	_, _ = w.Write(b)
-}
-
-// currentBundle maps a superseded bundle name to the one this build ships. Only the content-hashed
-// files under static/dist qualify: their names change with every build, so a miss means "old build
-// asked", not "typo".
-func currentBundle(missing string, manifestJSON []byte) (string, bool) {
-	if !strings.HasPrefix(missing, "static/dist/") || missing == "static/dist/manifest.json" {
-		return "", false
-	}
-	var manifest assetManifest
-	if json.Unmarshal(manifestJSON, &manifest) != nil {
-		return "", false
-	}
-	switch path.Ext(missing) {
-	case ".css":
-		if manifest.Style != "" {
-			return "static/" + manifest.Style, true
-		}
-	case ".js", ".mjs":
-		if manifest.Script != "" {
-			return "static/" + manifest.Script, true
-		}
-	}
-	return "", false
 }
 
 func (m *multiServer) serveBundleFallback(w http.ResponseWriter, r *http.Request, name string) {
@@ -131,44 +101,20 @@ func (m *multiServer) serveStatic(w http.ResponseWriter, r *http.Request, name s
 	if !ok {
 		b, err := staticFiles.ReadFile(name)
 		if err != nil {
-			// A browser that still holds the previous shell asks for a bundle hash this build does
-			// not have. Answering 404 is what left the app unstyled and apparently broken until a
-			// hard refresh, so serve the current bundle of the same kind instead — the page is then
-			// merely the wrong build rather than no build, and the next load corrects it.
-			manifestJSON, _ := staticFiles.ReadFile("static/dist/manifest.json")
-			if current, mangled := currentBundle(name, manifestJSON); mangled {
-				m.serveBundleFallback(w, r, current)
-				return
-			}
 			http.NotFound(w, r)
 			return
-		}
-		if name == "static/index.html" {
-			if manifest, manifestErr := staticFiles.ReadFile("static/dist/manifest.json"); manifestErr == nil {
-				b = bundledIndex(b, manifest)
-			}
 		}
 		sum := sha256.Sum256(b)
 		value, _ = staticAssetCache.LoadOrStore(name, staticAsset{data: b, contentType: mime.TypeByExtension(path.Ext(name)), etag: fmt.Sprintf("\"%x\"", sum[:12])})
 	}
 	asset := value.(staticAsset)
-	if name == "static/sw.js" {
-		// The worker's shell cache is named after the build it serves, so an upgrade retires the old
-		// index.html instead of keeping it (and the script it points at) forever.
-		asset.data = bytes.ReplaceAll(asset.data,
-			[]byte(`const SHELL = "mochil-shell-v1"; // __MOCHIL_SHELL_NAME__`),
-			[]byte(`const SHELL = "mochil-shell-`+m.buildStamp()+`";`))
-		sum := sha256.Sum256(asset.data)
-		asset.etag = fmt.Sprintf("\"%x\"", sum[:12])
-	}
+	// The worker no longer keeps a shell cache, so there is nothing to name after the build: it deletes its caches and
+	// unregisters on activate. The rewrite that used to live here went with the shell.
 	if asset.contentType != "" {
 		w.Header().Set("Content-Type", asset.contentType)
 	}
 	w.Header().Set("ETag", asset.etag)
-	if strings.HasPrefix(name, "static/dist/") && name != "static/dist/manifest.json" {
-		// Bundle file names carry a content hash, so they never change.
-		w.Header().Set("Cache-Control", "private, max-age=31536000, immutable")
-	} else if strings.HasPrefix(name, "static/") && name != "static/index.html" && name != "static/reader.html" && name != "static/reader-readium.html" && name != "static/editor.html" && name != "static/import.html" && name != "static/hermes.html" {
+	if strings.HasPrefix(name, "static/") && name != "static/reader.html" && name != "static/reader-readium.html" && name != "static/editor.html" && name != "static/import.html" && name != "static/hermes.html" {
 		if path.Ext(name) == ".js" {
 			// ES modules import one another by URL. Revalidate them so a deploy
 			// cannot combine a new parent with an old, immutable dependency.
@@ -215,21 +161,4 @@ func (m *multiServer) pwaFile(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/manifest+json")
 	}
 	m.serveStatic(w, r, "static"+r.URL.Path)
-}
-
-// buildStamp names the build the service worker should cache the shell under: the entry bundle's hash
-// when the shell is bundled, otherwise the server version, which still changes every release.
-func (m *multiServer) buildStamp() string {
-	if manifestJSON, err := staticFiles.ReadFile("static/dist/manifest.json"); err == nil {
-		var manifest assetManifest
-		if json.Unmarshal(manifestJSON, &manifest) == nil && manifest.Script != "" {
-			if base := path.Base(manifest.Script); base != "." && base != "/" {
-				return strings.NewReplacer(".", "-", "/", "-").Replace(base)
-			}
-		}
-	}
-	if stamp := version.Version; stamp != "" {
-		return strings.NewReplacer(".", "-").Replace(stamp)
-	}
-	return "dev"
 }

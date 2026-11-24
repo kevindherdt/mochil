@@ -28,7 +28,10 @@ function references() {
 
 test("every versioned stylesheet is recorded, and recorded at its current contents", () => {
   const found = references();
-  assert.ok(found.size > 20, "the scan found almost no stylesheets; it is not looking where it thinks");
+  // Twelve, not twenty: the legacy shell that carried most of these references is gone, and what is left is the
+  // handful of pages that have not been ported (editor, import, chat) plus the reader. The guard is here to catch the
+  // scan looking in the wrong place, so it tracks what the tree actually holds rather than a remembered number.
+  assert.ok(found.size > 8, "the scan found almost no stylesheets; it is not looking where it thinks");
 
   if (process.env.RECORD_ASSET_VERSIONS === "1") {
     const lock = {};

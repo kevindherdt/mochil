@@ -103,20 +103,36 @@ func TestAppCachesHashedAssetsForever(t *testing.T) {
 	}
 }
 
-// The retired shell stays reachable under /legacy while the pages that still live in it are ported or dropped.
-func TestLegacyShellAnswersUnderLegacy(t *testing.T) {
+// The retired shell is gone: /legacy sends stale bookmarks home, and only the pages nobody has ported yet still answer.
+//
+// It used to serve the shell's own page at /legacy/. The shell is deleted (245 modules, 19 000 lines), so a request for
+// it is a bookmark from another year — a redirect is the honest answer, and the three unported pages must keep working
+// or the editor's import and the old chat would go with it.
+func TestLegacyPathsSendBookmarksHomeAndKeepTheUnportedPages(t *testing.T) {
 	handler := newTestHandler(t, MultiConfig{AllowOpen: true})
 
-	request := httptest.NewRequest(http.MethodGet, "/legacy/", nil)
-	recorder := httptest.NewRecorder()
-	handler.ServeHTTP(recorder, request)
-	if recorder.Code != http.StatusOK {
-		t.Fatalf("/legacy/ = %d, want 200 (the retired shell's own page)", recorder.Code)
+	for _, path := range []string{"/legacy/", "/legacy", "/legacy/library", "/legacy/settings"} {
+		request := httptest.NewRequest(http.MethodGet, path, nil)
+		recorder := httptest.NewRecorder()
+		handler.ServeHTTP(recorder, request)
+		if recorder.Code != http.StatusTemporaryRedirect || recorder.Header().Get("Location") != "/" {
+			t.Errorf("%s = %d %q, want 307 to /", path, recorder.Code, recorder.Header().Get("Location"))
+		}
 	}
-	// And the root must NOT be that page any more. Without a built app there is nothing to serve at "/" — a 404 is
-	// correct then, and the point being checked still holds: whatever "/" answers, it is not the retired shell.
-	request = httptest.NewRequest(http.MethodGet, "/", nil)
-	recorder = httptest.NewRecorder()
+
+	for _, path := range []string{"/legacy/editor", "/legacy/editor/import", "/legacy/hermes"} {
+		request := httptest.NewRequest(http.MethodGet, path, nil)
+		recorder := httptest.NewRecorder()
+		handler.ServeHTTP(recorder, request)
+		if recorder.Code != http.StatusOK {
+			t.Errorf("%s = %d, want 200: this page has not been ported", path, recorder.Code)
+		}
+	}
+
+	// The root must never be the retired shell. Without a built app there is nothing to serve at "/" — a 404 is
+	// correct then, and the point being checked still holds.
+	request := httptest.NewRequest(http.MethodGet, "/", nil)
+	recorder := httptest.NewRecorder()
 	handler.ServeHTTP(recorder, request)
 	if body := recorder.Body.String(); containsAny(body, "/assets/dist/app.", "mochil-shell-v1") {
 		t.Fatalf("/ still serves the legacy shell; the new app must own the root")

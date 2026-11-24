@@ -32,7 +32,6 @@
     "@lezer/markdown": "^1.8.1",
     "@readium/navigator": "^2.14.0",
     "@readium/shared": "^2.8.0",
-    "esbuild": "^0.25.9",
     "playwright": "^1.55.0"
   }
 }
