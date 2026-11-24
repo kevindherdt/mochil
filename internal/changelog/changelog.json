@@ -2,6 +2,15 @@
  "entries": [
   {
    "component": "web",
+   "version": "0.1.94",
+   "date": "2026-11-24",
+   "fixed": [
+    "The layout check that guards the phone's bottom bar finds it again: it was looking for a class name the shell stopped using when it was rewritten, so the check had been failing in every browser on every release since 0.1.90 while the bar itself was fine.",
+    "The public source tree ships its generated design-token reference again, so the check that verifies it matches design/tokens.json no longer reports drift on a file the tree never received."
+   ]
+  },
+  {
+   "component": "web",
    "version": "0.1.93",
    "date": "2026-11-24",
    "new": [

@@ -44,7 +44,7 @@ root_files=(
   DESIGN.md LICENSE PRODUCT.md README.md SECURITY.md THIRD_PARTY_NOTICES.md TRADEMARK.md
   compose.calibre.yaml compose.narration.yaml compose.yaml
   go.mod go.sum package.json package-lock.json mochil.example.json flake.nix android/README.md
-  docs/ARCHITECTURE_ROADMAP.md docs/NARRATION.md
+  docs/ARCHITECTURE_ROADMAP.md docs/NARRATION.md docs/design-tokens.md
 )
 
 excludes=(

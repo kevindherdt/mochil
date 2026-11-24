@@ -9,7 +9,9 @@ export function Dock({ hermes = false }: { hermes?: boolean }) {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
 
   return (
-    <nav className={styles.dock} aria-label="Primary">
+    // data-dock is the contract the layout gate uses: the class name is hashed by the CSS module, so a selector on it
+    // cannot survive a rename, and the gate silently stopped finding the dock when the shell was ported.
+    <nav className={styles.dock} data-dock="" aria-label="Primary">
       {/* No editor here: the phone's dock offers what works on a phone, and the editor is a desktop spreadsheet. */}
       {navPlaces({ hermes }).map((place) => {
         const Icon = place.icon;

@@ -73,7 +73,9 @@ async function login(page, context) {
 
 async function measureDock(page) {
   return page.evaluate(() => {
-    const dock = document.querySelector(".dock");
+    // data-dock first: the shell is a CSS module, so ".dock" only ever matches the legacy page. Keeping the old
+    // selector as a fallback means the gate still works against /legacy while it exists.
+    const dock = document.querySelector("[data-dock], .dock");
     if (!dock || dock.hidden) return null;
     const rect = dock.getBoundingClientRect();
     return {
@@ -146,7 +148,9 @@ async function runEngine(name) {
           document.querySelector("#settings-view h1"),
         ];
         const back = candidates.find(visible);
-        const dock = document.querySelector(".dock");
+        // data-dock first: the shell is a CSS module, so ".dock" only ever matches the legacy page. Keeping the old
+        // selector as a fallback means the gate still works against /legacy while it exists.
+        const dock = document.querySelector("[data-dock], .dock");
         const head = document.querySelector(".masthead");
         if (!back) return null;
         const rect = back.getBoundingClientRect();
