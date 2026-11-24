@@ -62,7 +62,7 @@ func TestReadingProgressReachesHardcoverOnceAndNotWithEveryPageTurn(t *testing.T
 	server, _ := browseTestServer(t)
 	recorder := &shelfRecorder{}
 	server.hardcover = progressHardcover(recorder)
-	if err := server.startHardcoverSync(""); err != nil {
+	if err := startSync(t, server, ""); err != nil {
 		t.Fatal(err)
 	}
 	var revision int64
@@ -85,7 +85,7 @@ func TestProgressNeverSearchesHardcoverForABookItDoesNotKnow(t *testing.T) {
 	server, _ := browseTestServer(t)
 	recorder := &shelfRecorder{}
 	server.hardcover = progressHardcover(recorder)
-	if err := server.startHardcoverSync(""); err != nil {
+	if err := startSync(t, server, ""); err != nil {
 		t.Fatal(err)
 	}
 	if sent, err := server.sendProgressToHardcover(hardcoverJob{account: "reader", library: "books", book: "a1", progress: .5, isProgress: true}); sent || err != nil {

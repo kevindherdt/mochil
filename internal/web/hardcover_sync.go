@@ -50,6 +50,7 @@ func (m *multiServer) startHardcoverSync(linksPath string) error {
 		return err
 	}
 	jobs := make(chan hardcoverJob, 64)
+	m.hardcoverStop = make(chan struct{})
 	slog.Info("Hardcover shelf sync is on")
 	// "Reading" repeats with every page turn, so each book is announced once per run (and again after a failure).
 	var mu sync.Mutex
@@ -116,7 +117,13 @@ func (m *multiServer) startHardcoverSync(linksPath string) error {
 		}
 	})
 	go func() {
-		for job := range jobs {
+		for {
+			var job hardcoverJob
+			select {
+			case <-m.hardcoverStop:
+				return
+			case job = <-jobs:
+			}
 			contained("hardcover sync", func() {
 				send := m.sendToHardcover
 				switch {
@@ -141,7 +148,12 @@ func (m *multiServer) startHardcoverSync(linksPath string) error {
 		}
 	}()
 	go contained("hardcover maintenance", func() {
-		for range time.Tick(hardcoverTimings().maintenanceEvery) {
+		for {
+			select {
+			case <-m.hardcoverStop:
+				return
+			case <-time.After(hardcoverTimings().maintenanceEvery):
+			}
 			contained("hardcover maintenance tick", func() {
 				now := time.Now()
 				var ready []hardcoverJob
@@ -165,6 +177,22 @@ func (m *multiServer) startHardcoverSync(linksPath string) error {
 		}
 	})
 	return nil
+}
+
+// stopHardcoverSync retires the worker: both goroutines return, and anything that arrives afterwards is dropped
+// instead of queued.
+//
+// Production never calls it — the worker lives as long as the process. Tests must, because a sync left running
+// keeps writing links, skips and matches into the test's own temp directory after the test has returned, and then
+// t.TempDir's cleanup fails with "directory not empty". That is not a slow test: it is a worker outliving its owner,
+// and the release workflow went red on it.
+func (m *multiServer) stopHardcoverSync() {
+	m.hardcoverStopOnce.Do(func() {
+		if m.hardcoverStop != nil {
+			close(m.hardcoverStop)
+		}
+		m.hardcoverEnqueue = nil
+	})
 }
 
 // sendToHardcover reports whether it made a request, and how that went.

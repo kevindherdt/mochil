@@ -208,6 +208,8 @@ type multiServer struct {
 	hardcoverIgnored       hardcoverIgnored
 	editorUndo             editorUndo
 	hardcoverEnqueue       func(hardcoverJob) // set only while the Hardcover module runs
+	hardcoverStop          chan struct{}      // closes when the worker is retired (tests only; production never stops it)
+	hardcoverStopOnce      sync.Once
 	metadataApplyMu        sync.Mutex
 	ingestPreviewMu        sync.Mutex
 	ingestPreviews         map[string]cachedIngestPreview

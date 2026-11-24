@@ -81,7 +81,7 @@ func TestReadingABookReachesTheHardcoverShelfInTheBackground(t *testing.T) {
 	server, _ := browseTestServer(t) // "Dune" by Frank Herbert is book a1 in library "books"
 	recorder := &shelfRecorder{}
 	server.hardcover = fakeHardcover(recorder)
-	if err := server.startHardcoverSync(""); err != nil {
+	if err := startSync(t, server, ""); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := server.reading.Put("reader", reading.Position{LibraryID: "books", BookID: "a1", Fraction: .1}, 0); err != nil {
@@ -131,7 +131,7 @@ func TestABookAlreadyInProgressIsAnnouncedOncePerRun(t *testing.T) {
 	}
 	recorder := &shelfRecorder{}
 	server.hardcover = fakeHardcover(recorder)
-	if err := server.startHardcoverSync(""); err != nil {
+	if err := startSync(t, server, ""); err != nil {
 		t.Fatal(err)
 	}
 	for base := int64(1); base <= 3; base++ {
@@ -173,9 +173,23 @@ func hardcoverRequest(server *multiServer, method, target, body string) *httptes
 	return response
 }
 
+// startSync starts the worker the way a test needs it: retired again when the test ends.
+//
+// The worker writes links, skips and matches into the directory it was given. A test that leaves it running gets
+// those writes after it returns, and then t.TempDir's cleanup fails with "directory not empty" — which is how this
+// suite failed in CI while passing locally, and why every call site goes through here.
+func startSync(t *testing.T, server *multiServer, path string) error {
+	t.Helper()
+	err := server.startHardcoverSync(path)
+	if err == nil {
+		t.Cleanup(server.stopHardcoverSync)
+	}
+	return err
+}
+
 func TestASkippedBookCanBeLinkedByHandAndThenSyncs(t *testing.T) {
 	server, _ := browseTestServer(t) // "Neuromancer" (n1) is not what the fake Hardcover knows ("Dune")
-	if err := server.startHardcoverSync(filepath.Join(t.TempDir(), "links.json")); err != nil {
+	if err := startSync(t, server, filepath.Join(t.TempDir(), "links.json")); err != nil {
 		t.Fatal(err)
 	}
 	recorder := &shelfRecorder{}
@@ -224,7 +238,7 @@ func TestHardcoverLinksSurviveARestartAndRefuseBadInput(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "links.json")
 	server, _ := browseTestServer(t)
 	server.hardcover = fakeHardcover(&shelfRecorder{})
-	if err := server.startHardcoverSync(path); err != nil {
+	if err := startSync(t, server, path); err != nil {
 		t.Fatal(err)
 	}
 	if response := hardcoverRequest(server, http.MethodPost, "/api/metadata/hardcover/link", `{"library":"books","book":"a1","provider_id":"42"}`); response.Code != http.StatusOK {
@@ -267,7 +281,7 @@ func TestHardcoverLinkingNeedsTheModule(t *testing.T) {
 func TestTheSkippedListSurvivesARestart(t *testing.T) {
 	dir := t.TempDir()
 	first, _ := browseTestServer(t)
-	if err := first.startHardcoverSync(filepath.Join(dir, "hardcover-links.json")); err != nil {
+	if err := startSync(t, first, filepath.Join(dir, "hardcover-links.json")); err != nil {
 		t.Fatal(err)
 	}
 	first.hardcoverSkipped.add(skippedBook{Library: "books", Book: "n1", Title: "Neuromancer", Authors: []string{"William Gibson"}, At: 1})
@@ -275,7 +289,7 @@ func TestTheSkippedListSurvivesARestart(t *testing.T) {
 	first.hardcoverSkipped.remove("books", "a1")
 	// saving a setting rebuilds the server: a new one starts from the same files
 	second, _ := browseTestServer(t)
-	if err := second.startHardcoverSync(filepath.Join(dir, "hardcover-links.json")); err != nil {
+	if err := startSync(t, second, filepath.Join(dir, "hardcover-links.json")); err != nil {
 		t.Fatal(err)
 	}
 	if items := second.hardcoverSkipped.list(); len(items) != 1 || items[0].Title != "Neuromancer" {
@@ -286,7 +300,7 @@ func TestTheSkippedListSurvivesARestart(t *testing.T) {
 func TestEachSyncedBookKeepsARecordOfWhatItMatchedTo(t *testing.T) {
 	dir := t.TempDir()
 	server, _ := browseTestServer(t)
-	if err := server.startHardcoverSync(filepath.Join(dir, "hardcover-links.json")); err != nil {
+	if err := startSync(t, server, filepath.Join(dir, "hardcover-links.json")); err != nil {
 		t.Fatal(err)
 	}
 	recorder := &shelfRecorder{}
@@ -312,7 +326,7 @@ func TestEachSyncedBookKeepsARecordOfWhatItMatchedTo(t *testing.T) {
 	}
 	// a restart keeps the records
 	second, _ := browseTestServer(t)
-	if err := second.startHardcoverSync(filepath.Join(dir, "hardcover-links.json")); err != nil {
+	if err := startSync(t, second, filepath.Join(dir, "hardcover-links.json")); err != nil {
 		t.Fatal(err)
 	}
 	var list struct {
@@ -326,7 +340,7 @@ func TestEachSyncedBookKeepsARecordOfWhatItMatchedTo(t *testing.T) {
 
 func TestLinkingByHandShowsWhatWasChosenAndChangesTheMatch(t *testing.T) {
 	server, _ := browseTestServer(t)
-	if err := server.startHardcoverSync(""); err != nil {
+	if err := startSync(t, server, ""); err != nil {
 		t.Fatal(err)
 	}
 	recorder := &shelfRecorder{}
@@ -358,7 +372,7 @@ func TestALinkMadeBeforeRecordsWereKeptStillShowsItsMatch(t *testing.T) {
 	}
 	server, _ := browseTestServer(t)
 	server.hardcover = fakeHardcover(&shelfRecorder{})
-	if err := server.startHardcoverSync(path); err != nil {
+	if err := startSync(t, server, path); err != nil {
 		t.Fatal(err)
 	}
 	var reply struct {

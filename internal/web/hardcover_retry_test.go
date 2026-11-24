@@ -113,7 +113,7 @@ func TestTheLastPagesOfASessionReachHardcoverOnceTheThrottleAllows(t *testing.T)
 	server, _ := browseTestServer(t)
 	recorder := &shelfRecorder{}
 	server.hardcover = progressHardcover(recorder)
-	if err := server.startHardcoverSync(""); err != nil {
+	if err := startSync(t, server, ""); err != nil {
 		t.Fatal(err)
 	}
 	var revision int64
@@ -137,7 +137,7 @@ func TestAProgressUpdateThatFailedIsSentAgain(t *testing.T) {
 	var failures atomic.Int32
 	failures.Store(2)
 	server.hardcover = failingProgressHardcover(recorder, &failures)
-	if err := server.startHardcoverSync(""); err != nil {
+	if err := startSync(t, server, ""); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := server.reading.Put("reader", reading.Position{LibraryID: "books", BookID: "a1", Fraction: .25}, 0); err != nil {

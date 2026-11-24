@@ -44,7 +44,7 @@ func ratingServer(t *testing.T) (*multiServer, *shelfRecorder) {
 	server := editorTestServer(t) // Dune (a1) and Dune Messiah (a2) in library "books"
 	recorder := &shelfRecorder{}
 	server.hardcover = ratingHardcover(recorder)
-	if err := server.startHardcoverSync(""); err != nil {
+	if err := startSync(t, server, ""); err != nil {
 		t.Fatal(err)
 	}
 	server.hardcoverMatches.put(hardcoverMatch{Library: "books", Book: "a1", HardcoverID: "5"}) // only Dune is matched

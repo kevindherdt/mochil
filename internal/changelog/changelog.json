@@ -2,6 +2,14 @@
  "entries": [
   {
    "component": "web",
+   "version": "0.1.97",
+   "date": "2026-11-24",
+   "fixed": [
+    "A test that starts the Hardcover sync worker now stops it when the test ends. Left running, the worker kept writing links and matches into the test's own temp directory after the test had returned, so the release build failed one run in several on a temp-directory cleanup error while passing locally."
+   ]
+  },
+  {
+   "component": "web",
    "version": "0.1.96",
    "date": "2026-11-24",
    "fixed": [
