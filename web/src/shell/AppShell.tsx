@@ -38,14 +38,20 @@ export function AppShell({ children, hermes, player, bare = false }: AppShellPro
   const [headerNode, setHeaderNode] = useState<HTMLDivElement | null>(null);
 
   if (bare) {
-    return <div className={styles.shellBare}>{children}</div>;
+    return (
+      <div className={styles.shellBare} data-shell="">
+        {children}
+      </div>
+    );
   }
 
   const header = <div className={styles.header} ref={setHeaderNode} />;
 
   if (variant === "desktop") {
     return (
-      <div className={styles.shell}>
+      // data-shell is the frame the layout gate measures: <body> is only as tall as the window, so measuring it said
+      // "the frame did not follow the visual viewport" whatever the shell did.
+      <div className={styles.shell} data-shell="">
         <div className={styles.sidebar}>
           <Sidebar hermes={showLyana} />
         </div>
@@ -61,7 +67,7 @@ export function AppShell({ children, hermes, player, bare = false }: AppShellPro
   }
 
   return (
-    <div className={styles.shell}>
+    <div className={styles.shell} data-shell="">
       {header}
       <HeaderSlotContext.Provider value={headerNode}>
         <main className={styles.main}>{children}</main>

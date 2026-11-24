@@ -78,11 +78,14 @@ async function measureDock(page) {
     const dock = document.querySelector("[data-dock], .dock");
     if (!dock || dock.hidden) return null;
     const rect = dock.getBoundingClientRect();
+    // The frame is the element that must follow the visual viewport: the new shell's own div, or <body> on the
+    // legacy page. Measuring <body> alone said "the frame did not follow" no matter what the shell did.
+    const frame = document.querySelector("[data-shell]") ?? document.body;
     return {
       bottomGap: Math.round(window.innerHeight - rect.bottom),
       top: Math.round(rect.top),
       bottom: Math.round(rect.bottom),
-      bodyHeight: Math.round(document.body.getBoundingClientRect().height),
+      bodyHeight: Math.round(frame.getBoundingClientRect().height),
     };
   });
 }

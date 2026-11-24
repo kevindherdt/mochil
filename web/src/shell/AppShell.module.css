@@ -53,8 +53,13 @@
 }
 
 .dock {
+  /* No `bottom: var(--dock-bottom)`: the shell is already exactly --vvh tall, so the dock's own bottom edge is the
+     visual viewport's bottom. Offsetting it again floated it a second hidden-bottom above the real edge — measured on
+     the mocked-visualViewport case the layout gate runs: shell 780 in an 844 window, dock bottom 716, a 128px gap
+     where 64 was expected. The legacy dock was `position: fixed` against the layout viewport and needed the offset;
+     this one is a flex child of a shell that already followed it. */
   position: sticky;
-  bottom: var(--dock-bottom, 0);
+  bottom: 0;
   flex: 0 0 auto;
   height: var(--chrome-dock-height-phone);
   background: var(--color-surface);

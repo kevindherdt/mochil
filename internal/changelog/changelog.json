@@ -2,6 +2,14 @@
  "entries": [
   {
    "component": "web",
+   "version": "0.1.96",
+   "date": "2026-11-24",
+   "fixed": [
+    "On a phone whose browser keeps a bar at the bottom (Firefox on Android), the navigation bar floated one browser-chrome height above the true bottom of the screen: the shell is already sized to the visible viewport, so offsetting the bar by that same gap a second time lifted it off the edge it should sit against."
+   ]
+  },
+  {
+   "component": "web",
    "version": "0.1.95",
    "date": "2026-11-24",
    "new": [
