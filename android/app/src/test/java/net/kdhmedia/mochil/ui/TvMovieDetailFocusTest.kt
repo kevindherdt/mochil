@@ -80,11 +80,11 @@ class TvMovieDetailFocusTest {
         compose.waitForIdle()
         compose.onNode(hasText("The Long Film") and hasClickAction())
             .performSemanticsAction(SemanticsActions.RequestFocus) { it() }
-        assertEquals("the rail must stay collapsed while the shelf has focus", 40.dp, railWidth())
+        assertEquals("the rail must stay collapsed while the shelf has focus", TvNavRailWidth, railWidth())
         compose.onNode(hasText("The Long Film") and hasClickAction()).performKeyInput { pressKey(Key.Enter) }
         compose.waitForIdle()
         compose.mainClock.advanceTimeBy(500)
-        assertEquals("opening a movie must not open the navigation rail", 40.dp, railWidth())
+        assertEquals("opening a movie must not open the navigation rail", TvNavRailWidth, railWidth())
     }
 
     @Test
@@ -103,6 +103,6 @@ class TvMovieDetailFocusTest {
         compose.activityRule.scenario.onActivity { it.onBackPressedDispatcher.onBackPressed() }
         compose.waitForIdle()
         compose.mainClock.advanceTimeBy(500)
-        assertEquals("going back to the shelf must not open the navigation rail", 40.dp, railWidth())
+        assertEquals("going back to the shelf must not open the navigation rail", TvNavRailWidth, railWidth())
     }
 }

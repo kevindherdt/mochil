@@ -189,6 +189,9 @@ class EpubReaderActivity : FragmentActivity() {
                     onDismiss = ::hideChrome,
                     onClose = ::finish,
                     narrationControls = { readAloud.Controls { navigator?.currentLocator?.value ?: currentLocator } },
+                    // The sheet's Narration tab carries the same settings the bar's menu offers, for a book that can be read aloud.
+                    narrationSettings = { readAloud.Settings() },
+                    narrationAvailable = readAloud.available,
                 )
             },
         )

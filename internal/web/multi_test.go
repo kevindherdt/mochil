@@ -1338,6 +1338,43 @@ func TestSeriesAPIGroupingBucketsAndOrdering(t *testing.T) {
 	}
 }
 
+// The series list files books with no series under "Standalone books", and the phone opens that group like any other
+// series. Matched as a series name it selected nothing, so the group opened on a blank page with a title over it.
+func TestStandaloneGroupOpensItsBooks(t *testing.T) {
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	store := staticBackend{books: []catalog.Book{
+		{ID: "a", Title: "Loose Book"},
+		{ID: "b", Title: "Another Loose Book", Authors: []string{"J.K. Rowling"}},
+		{ID: "c", Title: "First", Series: "The Expanse"},
+	}}
+	handler, err := NewMulti(MultiConfig{AllowOpen: true}, []Library{{ID: "books", Name: "Books", Kind: "books", Store: store}}, logger)
+	if err != nil {
+		t.Fatal(err)
+	}
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/api/books?library=books&series=Standalone+books", nil))
+	if response.Code != http.StatusOK {
+		t.Fatalf("standalone group said %d: %s", response.Code, response.Body.String())
+	}
+	var standalone []bookView
+	if err := json.Unmarshal(response.Body.Bytes(), &standalone); err != nil {
+		t.Fatal(err)
+	}
+	if len(standalone) != 2 || standalone[0].ID != "b" || standalone[1].ID != "a" {
+		t.Fatalf("standalone group listed %+v, want the two books with no series in title order", standalone)
+	}
+	// A real series must still filter by name, or the fix would trade one blank page for another.
+	response = httptest.NewRecorder()
+	handler.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/api/books?library=books&series=The+Expanse", nil))
+	var books []bookView
+	if err := json.Unmarshal(response.Body.Bytes(), &books); err != nil {
+		t.Fatal(err)
+	}
+	if len(books) != 1 || books[0].ID != "c" {
+		t.Fatalf("a real series listed %+v", books)
+	}
+}
+
 // The settings page reported the public_url it found in the config file even when MOCHIL_PUBLIC_URL had
 // replaced it, so a server announcing https://mochil.example.net in every plugin it built still showed a
 // LAN address on its own page and looked like the change had not taken.

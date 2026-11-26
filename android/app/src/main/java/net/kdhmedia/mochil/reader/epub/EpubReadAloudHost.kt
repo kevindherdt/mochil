@@ -89,6 +89,14 @@ internal class EpubReadAloudHost(
         current?.readFromSelection(selection.href.toString(), selection.locations.progression ?: 0.0)
     }
 
+    /** The narration settings as rows, for the settings sheet's Narration tab. */
+    @Composable
+    fun Settings() {
+        current?.takeIf { it.ui.available }?.let { reading ->
+            EpubNarrationSettings(ui = reading.ui, onVoice = reading::setVoice, onSpeed = reading::setSpeed, onSleep = reading::setSleep, onStop = reading::stop)
+        }
+    }
+
     /** The play button and its menu, once reading aloud is on offer. [page] is where the reader is now. */
     @Composable
     fun Controls(page: () -> Locator?) {

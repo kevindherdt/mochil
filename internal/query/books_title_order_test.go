@@ -110,3 +110,23 @@ func TestSortBooksByNameCountsNumbersAsNumbers(t *testing.T) {
 		t.Fatalf("author order = %s, want two then ten", got)
 	}
 }
+
+// The series list files books with no series under a group name of its own. Selecting that group has to mean "books
+// with no series" — as a series name it matched nothing, and the group opened on an empty shelf.
+func TestStandaloneSelectsBooksWithNoSeries(t *testing.T) {
+	backend := &testBackend{}
+	backend.replace([]catalog.Book{
+		{ID: "a", Title: "Loose Book"},
+		{ID: "b", Title: "Another Loose Book"},
+		{ID: "c", Title: "First", Series: "The Expanse"},
+	})
+	service := New([]Library{{ID: "books", Name: "Books", Store: backend}})
+	page := service.Books(BooksRequest{LibraryID: "books", Standalone: true, Limit: 60})
+	if page.Total != 2 || len(page.Items) != 2 || page.Items[0].Book.ID != "b" || page.Items[1].Book.ID != "a" {
+		t.Fatalf("standalone gave total %d, items %+v", page.Total, page.Items)
+	}
+	name := "The Expanse"
+	if page := service.Books(BooksRequest{LibraryID: "books", Series: &name, Limit: 60}); page.Total != 1 {
+		t.Fatalf("a real series gave %d books", page.Total)
+	}
+}

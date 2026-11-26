@@ -69,7 +69,7 @@ private enum class ReaderPanel(val label: String) { Contents("Contents"), Bookma
  * everything that sets the page around it (Display & theme). The web's third tab, Narration, has no settings of its own here:
  * the read-aloud controls are the bar above this sheet, always one tap away.
  */
-private enum class SettingsSection(val label: String) { Typography("Typography"), Display("Display & theme") }
+private enum class SettingsSection(val label: String) { Typography("Typography"), Narration("Narration"), Display("Display & theme") }
 
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
@@ -106,6 +106,9 @@ internal fun EpubReaderChrome(
     onDismiss: () -> Unit,
     onClose: () -> Unit,
     narrationControls: @Composable () -> Unit = {},
+    /** The narration settings for the sheet's Narration tab; shown only when [narrationAvailable]. */
+    narrationSettings: @Composable () -> Unit = {},
+    narrationAvailable: Boolean = false,
 ) {
     var settingsExpanded by remember { mutableStateOf(false) }
     var fontsExpanded by remember { mutableStateOf(false) }
@@ -182,8 +185,10 @@ internal fun EpubReaderChrome(
                 }
                 MotionVisibility(settingsExpanded) {
                     Column(Modifier.fillMaxWidth()) {
-                        PrimaryScrollableTabRow(selectedTabIndex = settingsSection.ordinal, edgePadding = 12.dp) {
-                            SettingsSection.entries.forEach { section ->
+                        // Narration only when this book can be read aloud: an empty tab is a dead one.
+                        val sections = SettingsSection.entries.filter { it != SettingsSection.Narration || narrationAvailable }
+                        PrimaryScrollableTabRow(selectedTabIndex = sections.indexOf(settingsSection).coerceAtLeast(0), edgePadding = 12.dp) {
+                            sections.forEach { section ->
                                 Tab(selected = settingsSection == section, onClick = { settingsSection = section }, text = { Text(section.label, maxLines = 1) })
                             }
                         }
@@ -209,7 +214,8 @@ internal fun EpubReaderChrome(
                                         ) { fontsExpanded = true }
                                     }
                                 }
-                                SettingsSection.Display -> {
+                                SettingsSection.Narration -> narrationSettings()
+                            SettingsSection.Display -> {
                                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                                         Text("Page turning", modifier = Modifier.weight(1f), color = chromeContent)
                                         ReaderChromeTextButton(if (preferences.scroll) "Scroll" else "Paged", chromeContent) { onPreferences { current -> current.copy(scroll = !current.scroll) } }

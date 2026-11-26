@@ -112,7 +112,7 @@ func (s *Service) Series(request SeriesRequest) SeriesPage {
 	}
 	for libraryID, count := range standaloneCounts {
 		if count > 0 {
-			out = append(out, SeriesResult{LibraryID: libraryID, LibraryName: libraryNames[libraryID], Name: "Standalone books", Count: count, Unsorted: true, Representative: standaloneRepresentatives[libraryID].book})
+			out = append(out, SeriesResult{LibraryID: libraryID, LibraryName: libraryNames[libraryID], Name: StandaloneSeriesName, Count: count, Unsorted: true, Representative: standaloneRepresentatives[libraryID].book})
 		}
 	}
 	sortSeriesResults(out)
@@ -332,7 +332,7 @@ func buildSeriesIndex(library Library, books []indexedBook) []SeriesResult {
 		groups = append(groups, SeriesResult{LibraryID: library.ID, LibraryName: library.Name, Name: name, Bucket: catalog.Bucket(name), Count: count, Representative: representatives[name].book})
 	}
 	if standaloneCount > 0 {
-		groups = append(groups, SeriesResult{LibraryID: library.ID, LibraryName: library.Name, Name: "Standalone books", Count: standaloneCount, Unsorted: true, Representative: standalone.book})
+		groups = append(groups, SeriesResult{LibraryID: library.ID, LibraryName: library.Name, Name: StandaloneSeriesName, Count: standaloneCount, Unsorted: true, Representative: standalone.book})
 	}
 	sortSeriesResults(groups)
 	return groups

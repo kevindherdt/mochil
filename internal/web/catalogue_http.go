@@ -154,7 +154,14 @@ func (m *multiServer) apiBooks(w http.ResponseWriter, r *http.Request) {
 		request.Keep = m.keepByReadingStatus(m.readingAccount(r), statusValue)
 	}
 	if hasSeries {
-		request.Series = &wantSeries[0]
+		// "Standalone books" is the group the series list invents for books with no series, so it is not a series
+		// name to match: asking for it as one finds nothing and pages an empty screen. It selects the books that
+		// have no series instead.
+		if seriesValue == catalogquery.StandaloneSeriesName {
+			request.Standalone = true
+		} else {
+			request.Series = &wantSeries[0]
+		}
 	}
 	if hasAuthor {
 		request.Author = &wantAuthor[0]

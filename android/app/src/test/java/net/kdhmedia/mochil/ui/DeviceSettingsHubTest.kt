@@ -86,6 +86,16 @@ class DeviceSettingsHubTest {
         compose.onNodeWithContentDescription("Back").assertDoesNotExist()
     }
 
+    // Reported from a phone: tapping About in Settings closed the app. The page reads three licence files out of the
+    // APK, so this drives the real route rather than calling the content directly.
+    @Test fun `About opens its page and reads every notice out of the bundle`() {
+        settings()
+        compose.onNodeWithText("About").performScrollTo().performClick()
+        compose.onNodeWithText("Notices").assertIsDisplayed()
+        compose.onNodeWithText("Lucide icons").assertIsDisplayed().performClick()
+        compose.onNodeWithText("Permission to use, copy, modify", substring = true).assertIsDisplayed()
+    }
+
     @Test fun `a category opens its page with a title and a back arrow, and Back returns to the hub`() {
         settings()
         compose.onNodeWithText("Appearance").performClick()

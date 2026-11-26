@@ -53,6 +53,7 @@ class ReaderSettingsGroupingBehaviorTest {
         // Display & theme sets the page around it. Narration has no settings of its own — its bar is above this sheet.
         compose.onNodeWithText("Typography").assertIsDisplayed()
         compose.onNodeWithText("Display & theme").assertIsDisplayed()
+        // No Narration tab when this book cannot be read aloud: an empty tab is a dead one.
         compose.onAllNodesWithText("Narration").assertCountEquals(0)
 
         // Typography opens on the font-size controls, with descriptive labels.
@@ -121,5 +122,36 @@ class ReaderSettingsGroupingBehaviorTest {
         compose.onNodeWithText("Typography").performClick()
         compose.onNodeWithText("Display & theme").performClick()
         compose.onNodeWithText("Scroll").assertIsDisplayed()
+    }
+
+    @Test
+    fun aNarratableBookGetsItsNarrationTabWithTheSameSettingsAsTheBar() {
+        compose.setContent {
+            MaterialTheme {
+                EpubReaderChrome(
+                    visible = true, title = "Book", progression = null, readingStatistics = ReadingStatistics(),
+                    preferences = ReaderPreferences(), customFonts = emptyList(), onPreferences = {},
+                    chapters = emptyList(), onChapter = {}, searchState = EpubSearchState(), onSearch = {}, onSearchResult = {},
+                    bookmarks = emptyList(), annotations = emptyList(), annotationConflicts = emptyList(), currentBookmarked = false,
+                    onToggleBookmark = {}, onBookmark = {}, onAnnotation = {}, onEditAnnotationNote = { _, _ -> },
+                    onDeleteAnnotation = {}, onKeepLocalAnnotation = {}, onUseRemoteAnnotation = {},
+                    annotationNotesAvailable = false, annotationNotesExporting = false, onExportAnnotationNotes = {},
+                    readingSyncStatus = ReaderSyncStatus(), syncMessage = null, syncMessageIsError = false,
+                    onDismiss = {}, onClose = {},
+                    narrationAvailable = true,
+                    narrationSettings = {
+                        EpubNarrationSettings(
+                            ui = net.kdhmedia.mochil.narration.NarrationUi(available = true, speeds = listOf(1f, 1.5f), speed = 1.5f, sleepText = ""),
+                            onVoice = {}, onSpeed = {}, onSleep = {}, onStop = {},
+                        )
+                    },
+                )
+            }
+        }
+        compose.onNodeWithText("Aa").performClick()
+        compose.onNodeWithText("Narration").performClick()
+        compose.onNodeWithText("Speed").assertIsDisplayed()
+        compose.onNodeWithText("1.5× speed").assertIsDisplayed()
+        compose.onNodeWithText("Sleep timer").assertIsDisplayed()
     }
 }

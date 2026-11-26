@@ -2,6 +2,29 @@
  "entries": [
   {
    "component": "android",
+   "version": "0.2.1",
+   "date": "2026-11-26",
+   "fixed": [
+    "Opening About in Settings no longer closes the app.",
+    "A group of books with no series opens on its books instead of an empty page."
+   ],
+   "new": [
+    "The reader settings sheet has the web's three tabs, with Narration appearing for a book that can be read aloud."
+   ],
+   "changes": [
+    "On Android TV the navigation rail marks the destination you are on with a tinted tile and the one the remote is on with the accent, instead of white for both."
+   ]
+  },
+  {
+   "component": "server",
+   "version": "0.2.1",
+   "date": "2026-11-26",
+   "fixed": [
+    "A series group that lists books with no series — \"Standalone books\" — now returns those books rather than an empty shelf, so a client that opens the group shows its titles."
+   ]
+  },
+  {
+   "component": "android",
    "version": "0.2.0",
    "date": "2026-11-26",
    "new": [

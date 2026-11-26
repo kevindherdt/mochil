@@ -48,27 +48,30 @@ class TvNavRailBehaviorTest {
         compose.onNodeWithText("Content").performSemanticsAction(SemanticsActions.RequestFocus)
         val collapsedBounds = compose.onNodeWithTag("rail").getUnclippedBoundsInRoot()
         val collapsed = collapsedBounds.right - collapsedBounds.left
-        assertTrue("Collapsed rail must be 40dp: $collapsed", collapsed == 40.dp)
+        // 48dp on the resting rail: the sheets put it near 44dp at ten feet, and a 20dp glyph needs the air.
+        assertTrue("Collapsed rail must be 48dp: $collapsed", collapsed == 48.dp)
         val home = compose.onNodeWithContentDescription("Home").getUnclippedBoundsInRoot()
         val settings = compose.onNodeWithContentDescription("Settings").getUnclippedBoundsInRoot()
-        val icon = compose.onNodeWithContentDescription("Home", useUnmergedTree = true).getUnclippedBoundsInRoot()
-        assertTrue("Collapsed icon must be 18dp: $icon", icon.right - icon.left == 18.dp && icon.bottom - icon.top == 18.dp)
-        assertTrue("Collapsed row must be 30dp: $home", home.bottom - home.top == 30.dp)
-        assertTrue("Collapsed destinations should form a short floating group: $home, $settings", settings.bottom - home.top <= 100.dp)
+        // The glyph is decorative now: the destination's name is the row's description, so a remote reads "Home"
+        // whether or not the rail has opened. The row is what Carries the name.
+        val named = compose.onNodeWithContentDescription("Home")
+        named.assertExists()
+        assertTrue("Collapsed row must be 36dp: $home", home.bottom - home.top == 36.dp)
+        assertTrue("Collapsed destinations should form a short floating group: $home, $settings", settings.bottom - home.top <= 110.dp)
         assertTrue("Collapsed group should float away from the top: $home", home.top >= 80.dp)
         val contentBefore = compose.onNodeWithTag("content").getUnclippedBoundsInRoot()
         compose.runOnIdle { requester.requestFocus() }
         val expandedBounds = compose.onNodeWithTag("rail").getUnclippedBoundsInRoot()
         val expanded = expandedBounds.right - expandedBounds.left
-        assertTrue("Expanded rail must remain 216dp: $expanded", expanded == 216.dp)
+        assertTrue("Expanded rail must remain 224dp: $expanded", expanded == 224.dp)
         val expandedHome = compose.onNodeWithText("Home").getUnclippedBoundsInRoot()
-        assertTrue("Expanded rows must remain 36dp: $expandedHome", expandedHome.bottom - expandedHome.top == 36.dp)
+        assertTrue("Expanded rows must be 40dp: $expandedHome", expandedHome.bottom - expandedHome.top == 40.dp)
         val contentAfter = compose.onNodeWithTag("content").getUnclippedBoundsInRoot()
         assertTrue("Content must not move when rail opens", contentBefore == contentAfter)
         assertTrue("Open rail overlays content", expandedBounds.right > contentAfter.left)
         compose.onNodeWithText("Content").performSemanticsAction(SemanticsActions.RequestFocus)
         val after = compose.onNodeWithTag("rail").getUnclippedBoundsInRoot()
-        assertTrue("Rail must collapse after focus leaves", after.right - after.left == 40.dp)
+        assertTrue("Rail must collapse after focus leaves", after.right - after.left == 48.dp)
     }
 
     @Test fun selectedLibraryRegainsFocusAfterReturningFromContent() {

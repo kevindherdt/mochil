@@ -3,11 +3,8 @@ package net.kdhmedia.mochil.ui
 import androidx.annotation.RawRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -32,8 +29,10 @@ import net.kdhmedia.mochil.ui.theme.MochilSpace
  */
 @Composable
 internal fun AboutContent(modifier: Modifier = Modifier) {
+    // No scroll of its own: the settings page already scrolls, and a second verticalScroll inside it is measured with
+    // an unbounded height and throws — which is how About closed the app the first time it was opened.
     Column(
-        modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = MochilSpace.s16),
+        modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(MochilSpace.s12),
     ) {
         Text("Mochil ${BuildConfig.VERSION_NAME}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)

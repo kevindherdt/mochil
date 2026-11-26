@@ -36,10 +36,17 @@ type BookResult struct {
 	Book        catalog.Book
 }
 
+// StandaloneSeriesName is the bucket the series list files books with no series under. It is not a series: the
+// group is marked Unsorted precisely so a caller knows it is a shelf of leftovers.
+const StandaloneSeriesName = "Standalone books"
+
 type BooksRequest struct {
-	LibraryID      string
-	Query          string
-	Series         *string
+	LibraryID string
+	Query     string
+	Series    *string
+	// Standalone asks for the books that belong to no series — what the "Standalone books" group lists. It is a
+	// separate flag rather than Series == StandaloneSeriesName because matching that name as a series finds nothing.
+	Standalone     bool
 	Author         *string
 	Bucket         string
 	Limit          int

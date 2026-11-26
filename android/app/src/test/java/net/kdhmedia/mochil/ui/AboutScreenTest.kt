@@ -22,6 +22,7 @@ class AboutScreenTest {
     @get:Rule val compose = createComposeRule()
 
     private fun about() {
+        // The settings page scrolls; About only fills the width it is given.
         compose.setContent { MochilTheme(AppThemeSelection(AppPalette.Tide, AppThemeMode.Dark), glow = false) { AboutContent() } }
     }
 

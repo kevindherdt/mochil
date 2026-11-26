@@ -30,6 +30,7 @@ func (s *Service) Books(request BooksRequest) BooksResult {
 	}
 	matches := func(libraryID string, indexed indexedBook) bool {
 		return (request.Series == nil || indexed.book.Series == *request.Series) &&
+			(!request.Standalone || indexed.book.Series == "") &&
 			(request.Author == nil || bookHasAuthor(indexed.book, *request.Author)) &&
 			(bucket == "" || indexed.bucket == bucket) &&
 			(query == "" || strings.Contains(indexed.searchKey, query)) &&
@@ -37,12 +38,12 @@ func (s *Service) Books(request BooksRequest) BooksResult {
 	}
 	// Every fast path below is only valid when nothing else filters the shelf; Keep is a filter, so a status view
 	// always takes the general scan. (A fast path that ignores Keep would count and page the whole library.)
-	if request.Keep == nil && len(selected) == 1 && request.Series == nil && request.Author == nil && request.Sort == "recent" && query == "" && bucket == "" {
+	if request.Keep == nil && len(selected) == 1 && request.Series == nil && !request.Standalone && request.Author == nil && request.Sort == "recent" && query == "" && bucket == "" {
 		return selected[0].recentPage(request)
 	}
 	// A single library without series ordering is already title-sorted by its
 	// index. Count the complete result but retain only the requested window.
-	if request.Keep == nil && len(selected) == 1 && request.Series == nil && request.Author == nil && request.Sort == "" {
+	if request.Keep == nil && len(selected) == 1 && request.Series == nil && !request.Standalone && request.Author == nil && request.Sort == "" {
 		library := selected[0]
 		if query == "" && bucket == "" {
 			indexed := library.snapshot()
@@ -115,7 +116,7 @@ func (s *Service) Books(request BooksRequest) BooksResult {
 		})
 	} else if request.Sort == "author" || request.Sort == "series" {
 		sortBooksByName(matched, request.Sort)
-	} else if request.Series != nil {
+	} else if request.Series != nil || request.Standalone {
 		sort.Stable(sortedBySeriesTitle(matched))
 	} else if len(selected) > 1 {
 		// The per-library index already sorts titles naturally; this keeps an

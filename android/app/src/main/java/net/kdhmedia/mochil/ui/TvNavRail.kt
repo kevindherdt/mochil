@@ -6,8 +6,12 @@ import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
 import net.kdhmedia.mochil.catalogue.LibraryKind
+import net.kdhmedia.mochil.ui.theme.MochilChrome
+import net.kdhmedia.mochil.ui.theme.MochilRadius
+import net.kdhmedia.mochil.ui.theme.MochilSpace
 import net.kdhmedia.mochil.ui.theme.LocalReduceMotion
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.layout.Arrangement
@@ -27,6 +31,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Album
 import androidx.compose.material.icons.filled.AutoStories
@@ -64,6 +69,7 @@ import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -77,9 +83,12 @@ import net.kdhmedia.mochil.catalogue.LibrarySummary
 import net.kdhmedia.mochil.catalogue.LibraryViewModel
 import net.kdhmedia.mochil.catalogue.shellProjection
 
-/** Width the rail always occupies; it opens over the content, never pushing it, while it has focus. */
-internal val TvNavRailWidth = 40.dp
-private val TvNavRailOpenWidth = 216.dp
+/**
+ * Width the rail always occupies; it opens over the content, never pushing it, while it has focus. The resting width
+ * follows the TV sheets: a slim icon column at ten feet, wide enough for a 20dp glyph with air around it.
+ */
+internal val TvNavRailWidth = 48.dp
+private val TvNavRailOpenWidth = 224.dp
 
 internal const val TV_RAIL_HOME = "home"
 internal const val TV_RAIL_SETTINGS = "settings"
@@ -156,10 +165,11 @@ internal fun TvNavRail(
     )
     BoxWithConstraints(modifier.fillMaxHeight().width(width)) {
         Column(
-            Modifier.align(Alignment.CenterStart).width(width).heightIn(max = (maxHeight - 24.dp).coerceAtLeast(0.dp))
-                .padding(horizontal = 4.dp)
-                .background(MaterialTheme.colorScheme.background.copy(alpha = .94f), RoundedCornerShape(18.dp))
-                .padding(horizontal = 2.dp, vertical = 4.dp)
+            Modifier.align(Alignment.CenterStart).width(width).heightIn(max = (maxHeight - MochilSpace.s24).coerceAtLeast(0.dp))
+                .padding(horizontal = MochilSpace.s4)
+                .background(MaterialTheme.colorScheme.surface.copy(alpha = .94f), RoundedCornerShape(MochilRadius.r16))
+                .border(MochilChrome.hairline, MaterialTheme.colorScheme.outlineVariant.copy(alpha = .5f), RoundedCornerShape(MochilRadius.r16))
+                .padding(horizontal = 2.dp, vertical = MochilSpace.s4)
                 .onFocusChanged { expanded = it.hasFocus }
                 .focusRequester(entry)
                 .focusProperties { enter = { if (currentIsListed) current else FocusRequester.Default } }
@@ -169,7 +179,7 @@ internal fun TvNavRail(
                     if (event.type == KeyEventType.KeyUp) onBack()
                     true
                 },
-            verticalArrangement = Arrangement.spacedBy(2.dp),
+            verticalArrangement = Arrangement.spacedBy(MochilChrome.hairline),
         ) {
             val focusManager = LocalFocusManager.current
             fun item(key: String, tap: () -> Unit): () -> Unit = {
@@ -194,40 +204,66 @@ internal fun TvNavRail(
 
 @Composable
 private fun TvNavRailHeading(label: String) {
-    Row(Modifier.fillMaxWidth().padding(start = 9.dp, top = 5.dp, bottom = 2.dp), verticalAlignment = Alignment.CenterVertically) {
-        Text(label, style = MaterialTheme.typography.labelSmall, color = androidx.compose.ui.graphics.Color.White.copy(alpha = .8f), maxLines = 1)
-        Box(Modifier.padding(start = 8.dp).weight(1f).height(1.dp).background(androidx.compose.ui.graphics.Color.White.copy(alpha = .14f)))
+    Row(
+        Modifier.fillMaxWidth().padding(start = MochilSpace.s8, top = MochilSpace.s8, bottom = MochilSpace.s4),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+        Box(Modifier.padding(start = MochilSpace.s8).weight(1f).height(MochilChrome.hairline).background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = .6f)))
     }
 }
 
 @Composable
 private fun TvNavRailItem(label: String, icon: ImageVector, expanded: Boolean, selected: Boolean, modifier: Modifier, onClick: () -> Unit) {
     var focused by remember { mutableStateOf(false) }
-    val shape = RoundedCornerShape(12.dp)
+    val shape = RoundedCornerShape(MochilRadius.r12)
     val accent = MaterialTheme.colorScheme.primary
-    // The rail and the focused chip used to be one hardcoded navy, so on a TV the whole frame
-    // stayed navy whatever theme was chosen. Both follow the palette now; the chip stays white
-    // because a white block is the clearest focus signal at ten feet on any of them.
+    // Two states, two signals, both from the palette: the destination you are on wears a tinted tile and a leading
+    // accent bar; the destination the remote is on wears the accent filled, so focus reads across a room. They used to
+    // be white on both counts, which looked the same in every theme and hid the difference between "here" and "about
+    // to go here".
+    val background = when {
+        focused -> accent
+        selected -> accent.copy(alpha = .16f)
+        else -> androidx.compose.ui.graphics.Color.Transparent
+    }
     val tint = when {
-        focused -> MaterialTheme.colorScheme.background
-        else -> androidx.compose.ui.graphics.Color.White
+        focused -> MaterialTheme.colorScheme.onPrimary
+        selected -> accent
+        else -> MaterialTheme.colorScheme.onSurface
     }
     Row(
-        modifier.fillMaxWidth().height(if (expanded) 36.dp else 30.dp)
+        modifier.fillMaxWidth().height(if (expanded) 40.dp else 36.dp)
             .onFocusChanged { focused = it.isFocused }
-            .background(if (focused) androidx.compose.ui.graphics.Color.White else if (selected) androidx.compose.ui.graphics.Color.White.copy(alpha = .08f) else androidx.compose.ui.graphics.Color.Transparent, shape)
+            .clip(shape)
+            .background(background, shape)
             .drawBehind {
-                if (selected) drawRoundRect(accent, Offset(0f, size.height * .25f), Size(3.dp.toPx(), size.height * .5f), CornerRadius(2.dp.toPx()))
+                if (selected && !focused) {
+                    drawRoundRect(accent, Offset(0f, size.height * .22f), Size(MochilChrome.ring.toPx(), size.height * .56f), CornerRadius(MochilRadius.r4.toPx()))
+                }
             }
-            .semantics { this.selected = selected }
+            // One node per destination: the label is the description whether or not the rail is open, so a remote that
+            // reads the screen names the destination rather than reading an icon; the glyph is decorative.
+            .semantics {
+                contentDescription = label
+                this.selected = selected
+            }
             .clickable(interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }, indication = null, role = Role.Tab, onClick = onClick)
-            .padding(horizontal = if (expanded) 8.dp else 5.dp),
+            // The resting rail is 48dp: 4 + 2 of rail padding either side leaves 36, so an 8dp inset fits a 20dp glyph.
+            .padding(horizontal = if (expanded) MochilSpace.s12 else MochilSpace.s8),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(icon, contentDescription = if (expanded) null else label, Modifier.size(if (expanded) 20.dp else 18.dp), tint = tint)
+        Icon(icon, contentDescription = null, Modifier.size(if (expanded) 22.dp else 20.dp), tint = tint)
         if (expanded) {
-            Spacer(Modifier.width(10.dp))
-            Text(label, color = if (focused) MaterialTheme.colorScheme.background else androidx.compose.ui.graphics.Color.White, style = MaterialTheme.typography.bodyMedium, fontWeight = if (selected || focused) FontWeight.SemiBold else FontWeight.Normal, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Spacer(Modifier.width(MochilSpace.s12))
+            Text(
+                label,
+                color = tint,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = if (selected || focused) FontWeight.SemiBold else FontWeight.Normal,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
         }
     }
 }
