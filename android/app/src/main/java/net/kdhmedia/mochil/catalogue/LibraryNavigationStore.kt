@@ -9,7 +9,9 @@ import org.json.JSONObject
 internal class LibraryNavigationStore(context: Context) {
     private val preferences = context.getSharedPreferences("library_navigation", Context.MODE_PRIVATE)
 
-    fun grouping(): PublicationGrouping = preferences.enumValue("grouping", PublicationGrouping.Series).startingView()
+    /** The saved view, or the device's own when none is saved: a phone opens on the plain list of books (where the status chips are), the television on series. */
+    fun grouping(device: ClientDeviceClass): PublicationGrouping =
+        preferences.enumValue("grouping", device.defaultGrouping()).startingView(device.defaultGrouping())
     fun sort(): String = preferences.getString("sort", "")?.takeIf { it in setOf("", "author", "series", "recent") } ?: ""
     fun setSort(sort: String) { preferences.edit().putString("sort", sort).apply() }
     private val layouts = BrowseLayoutStore(context)
@@ -64,7 +66,10 @@ private inline fun <reified T : Enum<T>> SharedPreferences.enumValue(key: String
  * The view a library opens on. "In progress" and "Collections" are short trips, not places to live: remembering them made a library
  * open on a handful of books until another view was picked, so they fall back to the series view.
  */
-internal fun PublicationGrouping.startingView(): PublicationGrouping = when (this) {
-    PublicationGrouping.Continue, PublicationGrouping.Collections -> PublicationGrouping.Series
+internal fun PublicationGrouping.startingView(fallback: PublicationGrouping = PublicationGrouping.Series): PublicationGrouping = when (this) {
+    PublicationGrouping.Continue, PublicationGrouping.Collections -> fallback
     else -> this
 }
+
+internal fun ClientDeviceClass.defaultGrouping(): PublicationGrouping =
+    if (this == ClientDeviceClass.Television) PublicationGrouping.Series else PublicationGrouping.Books

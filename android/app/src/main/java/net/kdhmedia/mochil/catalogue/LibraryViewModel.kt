@@ -25,6 +25,7 @@ class LibraryViewModel @JvmOverloads constructor(
     private val navigation = LibraryNavigationStore(application)
     internal val credential = DeviceCredentialStore(application).load()
     private val catalogue = PublicationCatalogueRepository()
+    private val collectionEdits = LibraryCollectionEdits(this, catalogue)
     internal val opener = PublicationOpener(application)
     internal val downloads = PublicationDownloadStore(application)
     private val visibility = LibraryVisibilityStore(application)
@@ -57,7 +58,7 @@ class LibraryViewModel @JvmOverloads constructor(
                     navigation.saveLibraries(libraries)
                     val visibleLibraries = visibility.filter(libraries)
                     val selected = navigation.selected(visibleLibraries)
-                    val grouping = navigation.grouping()
+                    val grouping = navigation.grouping(visibility.deviceClass)
                     val sort = navigation.sort()
                     val seriesLayout = navigation.seriesLayout()
                     val booksLayout = navigation.booksLayout()
@@ -77,11 +78,13 @@ class LibraryViewModel @JvmOverloads constructor(
                         val selected = navigation.selected(visibleLibraries)
                         val offlineBooks = downloads.list().map(DownloadedPublication::asBookSummary)
                         val hasOfflinePublications = selected?.isPublicationLibrary() == true && offlineBooks.any { it.libraryId == selected.id }
-                        if (hasOfflinePublications && offlineGrouping == null) offlineGrouping = navigation.grouping()
+                        if (hasOfflinePublications && offlineGrouping == null) offlineGrouping = navigation.grouping(visibility.deviceClass)
                         update { copy(
                             allLibraries = cached, libraries = visibleLibraries, selected = selected, initialLoading = false, error = null, offlineOnly = true, offlineDiagnostic = failure.offlineDiagnostic(),
                             downloadedBooks = offlineBooks, downloadedOnly = hasOfflinePublications,
                             grouping = if (hasOfflinePublications) PublicationGrouping.Books else grouping,
+                            // The downloaded list is local: a server-side status has nothing to say about it.
+                            status = BookStatusFilter.All, loadingMore = false,
                         ) }
                     }
                 }
@@ -151,7 +154,7 @@ class LibraryViewModel @JvmOverloads constructor(
             copy(
                 selected = library, books = emptyList(), series = emptyList(), authors = emptyList(), selectedSeries = null, selectedAuthor = null, selectedBook = null,
                 expandedSeries = null, seriesBooks = emptyList(), groupNextCursor = null, query = "", bucket = "", nextCursor = null, error = null,
-                grouping = grouping.startingView(),
+                loadingMore = false, grouping = grouping.startingView(visibility.deviceClass.defaultGrouping()), status = BookStatusFilter.All,
             )
         }
         navigation.select(library.id)
@@ -187,7 +190,7 @@ class LibraryViewModel @JvmOverloads constructor(
         val library = mutableState.value.selected ?: return
         if (mutableState.value.grouping == grouping) return
         contentRequests.advanceGroup()
-        update { copy(grouping = grouping, selectedSeries = null, selectedAuthor = null, selectedCollection = null, selectedBook = null, expandedSeries = null, seriesBooks = emptyList(), groupNextCursor = null) }
+        update { copy(grouping = grouping, status = BookStatusFilter.All, selectedSeries = null, selectedAuthor = null, selectedCollection = null, selectedBook = null, expandedSeries = null, seriesBooks = emptyList(), groupNextCursor = null) }
         navigation.setGrouping(grouping)
         loadFirstPage(library)
     }
@@ -225,32 +228,9 @@ class LibraryViewModel @JvmOverloads constructor(
         if (mutableState.value.seriesLayout == PublicationLayout.Covers) PublicationLayout.List else PublicationLayout.Covers,
     )
 
-    fun deleteCollection(collection: PublicationCollection) = changeCollection(collection) { saved -> catalogue.deleteCollection(saved, collection.id) }
+    fun deleteCollection(collection: PublicationCollection) = collectionEdits.delete(collection)
 
-    fun renameCollection(collection: PublicationCollection, name: String) {
-        val clean = name.trim().take(80)
-        if (clean.isBlank() || clean == collection.name) return
-        changeCollection(collection) { saved -> catalogue.renameCollection(saved, collection.id, clean) }
-    }
-
-    private fun changeCollection(collection: PublicationCollection, change: suspend (DeviceCredential) -> Unit) {
-        val saved = credential ?: return
-        viewModelScope.launch {
-            runCatching { change(saved); catalogue.allCollections(saved) to catalogue.collections(saved, collection.libraryId) }
-                .onSuccess { (everything, inLibrary) ->
-                    update {
-                        val sameLibrary = selected?.id == collection.libraryId
-                        copy(
-                            allCollections = everything,
-                            collections = if (sameLibrary) inLibrary else collections,
-                            selectedCollection = selectedCollection?.let { open -> inLibrary.firstOrNull { it.id == open.id } },
-                            groupError = null,
-                        )
-                    }
-                }
-                .onFailure { failure -> update { copy(allCollectionsError = failure.userMessage(), groupError = failure.userMessage()) } }
-        }
-    }
+    fun renameCollection(collection: PublicationCollection, name: String) = collectionEdits.rename(collection, name)
 
     fun openSeries(series: SeriesSummary) {
         if (mutableState.value.currentLayout() == PublicationLayout.Covers) {
@@ -270,15 +250,7 @@ class LibraryViewModel @JvmOverloads constructor(
     private var pendingCollectionOpen: String? = null
 
     /** Loads the collections of every library for the combined Collections place. */
-    fun loadAllCollections() {
-        val saved = credential ?: return
-        update { copy(allCollectionsLoading = true, allCollectionsError = null) }
-        viewModelScope.launch {
-            runCatching { catalogue.allCollections(saved) }
-                .onSuccess { items -> update { copy(allCollections = items, allCollectionsLoading = false) } }
-                .onFailure { failure -> update { copy(allCollectionsLoading = false, allCollectionsError = failure.userMessage()) } }
-        }
-    }
+    fun loadAllCollections() = collectionEdits.loadAll()
 
     /** Opens a collection from the combined place: goes into its library, to Collections, and opens it once the list is in. */
     fun openCollectionAnywhere(collection: PublicationCollection) {
@@ -385,6 +357,19 @@ class LibraryViewModel @JvmOverloads constructor(
         loadFirstPage(library)
     }
 
+    /**
+     * The status chip above the plain list of books. It is ignored where it cannot apply (a grouped view, the downloaded list,
+     * offline), so a stale tap never filters a shelf the screen is not showing a chip for.
+     */
+    fun setStatus(status: BookStatusFilter) {
+        val library = mutableState.value.selected ?: return
+        val current = mutableState.value
+        // All is always allowed: it is the way out of a filter whose chips are gone (offline, or a book open on a tablet).
+        if (current.status == status || (status != BookStatusFilter.All && !current.showsStatusChips())) return
+        update { copy(status = status, selectedBook = null, selectedSeries = null, selectedAuthor = null, expandedSeries = null) }
+        loadFirstPage(library)
+    }
+
     fun selectBucket(bucket: String) {
         val library = mutableState.value.selected ?: return
         val normalized = bucket.uppercase().takeIf { it == "#" || it.singleOrNull() in 'A'..'Z' }.orEmpty()
@@ -399,6 +384,8 @@ class LibraryViewModel @JvmOverloads constructor(
         update {
             copy(
                 downloadedOnly = enabled,
+                // The downloaded list is local, so a server-side status has nothing to say about it.
+                status = if (enabled) BookStatusFilter.All else status,
                 grouping = if (enabled) PublicationGrouping.Books else grouping,
                 selectedBook = null,
                 selectedSeries = null, selectedAuthor = null,
@@ -444,7 +431,7 @@ class LibraryViewModel @JvmOverloads constructor(
                     .onSuccess { page -> if (contentRequests.isCurrentShelf(generation)) update { copy(authors = authors + page.items, nextCursor = page.nextCursor, loadingMore = false) } }
                     .onFailure { failure -> if (contentRequests.isCurrentShelf(generation)) update { copy(loadingMore = false, error = failure.userMessage()) } }
             } else {
-                runCatching { catalogue.books(saved, library.id, cursor, current.query, current.bucket, current.bookSort()) }
+                runCatching { catalogue.books(saved, library.id, cursor, current.query, current.bucket, current.bookSort(), current.status.wire) }
                     .onSuccess { page -> if (contentRequests.isCurrentShelf(generation)) update { copy(books = books + page.items, nextCursor = page.nextCursor, loadingMore = false) } }
                     .onFailure { failure -> if (contentRequests.isCurrentShelf(generation)) update { copy(loadingMore = false, error = failure.userMessage()) } }
             }
@@ -481,7 +468,8 @@ class LibraryViewModel @JvmOverloads constructor(
         val grouping = mutableState.value.grouping
         val query = mutableState.value.query
         val bucket = mutableState.value.bucket
-        update { copy(initialLoading = true, books = emptyList(), series = emptyList(), authors = emptyList(), collections = emptyList(), selectedCollection = null, nextCursor = null, error = null) }
+        // `loadingMore` too: a page still in flight is dropped by the generation check, and nothing else would clear its flag.
+        update { copy(initialLoading = true, books = emptyList(), series = emptyList(), authors = emptyList(), collections = emptyList(), selectedCollection = null, nextCursor = null, error = null, loadingMore = false) }
         viewModelScope.launch {
             if (grouping == PublicationGrouping.Continue) {
                 runCatching { catalogue.continuing(saved, library.id, query) }
@@ -504,7 +492,7 @@ class LibraryViewModel @JvmOverloads constructor(
                     }
                     .onFailure { failure -> if (contentRequests.isCurrentShelf(generation)) update { copy(initialLoading = false, error = failure.userMessage()) } }
             } else {
-                runCatching { catalogue.books(saved, library.id, null, query, bucket, mutableState.value.bookSort()) }
+                runCatching { catalogue.books(saved, library.id, null, query, bucket, mutableState.value.bookSort(), mutableState.value.status.wire) }
                     .onSuccess { page -> if (contentRequests.isCurrentShelf(generation)) update { copy(books = page.items, nextCursor = page.nextCursor, initialLoading = false) } }
                     .onFailure { failure -> if (contentRequests.isCurrentShelf(generation)) update { copy(initialLoading = false, error = failure.userMessage()) } }
             }

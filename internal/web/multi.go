@@ -250,6 +250,12 @@ type multiServer struct {
 	transferJournalOnce sync.Once
 	transferJournal     *transferJournal
 	transferJournalErr  error
+	// What each editor tool has had discarded, per library and per tool, so one tool's discard cannot hide
+	// another tool's results for the same book.
+	taskDismissals *taskDismissals
+	// Which fields a Hardcover match may write, per library: the choice belongs to the library, not to the
+	// browser that happened to make it.
+	matchFields *matchFieldsStore
 }
 
 type managedHandler struct {

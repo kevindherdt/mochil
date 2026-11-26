@@ -233,3 +233,41 @@ func TestAMatchedBookKeepsItsFindingOnceItIsLinked(t *testing.T) {
 		t.Fatal("a2 was not in the list")
 	}
 }
+
+// Search ranks by how alike the words are, and every volume of a series has the same words: asking about volume 6 came
+// back with volume 1 first. The number is the question, so it decides the order.
+func TestTheRightVolumeComesBeforeADifferentOne(t *testing.T) {
+	one, six := 1.0, 6.0
+	candidates := []matchCandidate{
+		{Suggestion: enrichment.Suggestion{Title: "7th Time Loop: The Villainess Enjoys a Carefree Life (Light Novel), Vol. 1", SeriesIndex: &one}, Score: 48},
+		{Suggestion: enrichment.Suggestion{Title: "7th Time Loop - Tome 01"}, Score: 47},
+		{Suggestion: enrichment.Suggestion{Title: "7th Time Loop - Volume 06", SeriesIndex: &six}, Score: 41},
+	}
+	rankForBook(candidates, "7th Time Loop - Volume 06", 6)
+	if got := candidates[0].Suggestion.Title; got != "7th Time Loop - Volume 06" {
+		t.Fatalf("first candidate = %q, want volume 6 despite the lower score", got)
+	}
+	// And a book with no volume of its own keeps the plain score order.
+	plain := []matchCandidate{
+		{Suggestion: enrichment.Suggestion{Title: "Dune"}, Score: 1},
+		{Suggestion: enrichment.Suggestion{Title: "Dune Messiah"}, Score: 2},
+	}
+	rankForBook(plain, "Dune", 0)
+	if plain[0].Suggestion.Title != "Dune Messiah" {
+		t.Fatalf("first = %q, want the higher score", plain[0].Suggestion.Title)
+	}
+}
+
+func TestTheLastVolumeMarkerInATitleIsTheVolume(t *testing.T) {
+	for title, want := range map[string]float64{
+		"7th Time Loop - Volume 06":                        6,
+		"7th Time Loop - Side Stories - Volume 01.2":       1.2,
+		"Sword Art Online Vol. 16 - Alicization Exploding": 16,
+		"Book 3 of Something":                              3,
+		"Dune":                                             0,
+	} {
+		if got := editionVolume(title); got != want {
+			t.Errorf("editionVolume(%q) = %v, want %v", title, got, want)
+		}
+	}
+}

@@ -6,7 +6,7 @@ import org.junit.Test
 
 class MobileLibraryRailTest {
     @Test fun homeAndLibraryCanNeverBothBeSelected() {
-        assertFalse(isRailLibrarySelected(MobileShellDestination.Home, "books", "books"))
+        assertFalse(isRailLibrarySelected(MobileShellDestination.Discover, "books", "books"))
         assertTrue(isRailLibrarySelected(MobileShellDestination.Library, "books", "books"))
         assertFalse(isRailLibrarySelected(MobileShellDestination.Library, "books", "manga"))
         assertFalse(isRailLibrarySelected(MobileShellDestination.Settings, "books", "books"))

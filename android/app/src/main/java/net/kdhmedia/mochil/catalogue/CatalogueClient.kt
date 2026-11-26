@@ -21,12 +21,12 @@ class CatalogueClient {
             }
         }
 
-    fun books(credential: DeviceCredential, libraryId: String, cursor: String?, query: String = "", bucket: String = "", sort: String = ""): BookPage {
-        return books(credential, libraryId, null, cursor, query, bucket, sort)
+    fun books(credential: DeviceCredential, libraryId: String, cursor: String?, query: String = "", bucket: String = "", sort: String = "", status: String = ""): BookPage {
+        return books(credential, libraryId, null, cursor, query, bucket, sort, status)
     }
 
-    fun books(credential: DeviceCredential, libraryId: String, series: String?, cursor: String?, query: String = "", bucket: String = "", sort: String = ""): BookPage {
-        val requestQuery = booksRequestQuery(libraryId, series, cursor, query, bucket, sort)
+    fun books(credential: DeviceCredential, libraryId: String, series: String?, cursor: String?, query: String = "", bucket: String = "", sort: String = "", status: String = ""): BookPage {
+        val requestQuery = booksRequestQuery(libraryId, series, cursor, query, bucket, sort, status)
         return PerformanceDiagnostics.measure("network", "load_books") { request(credential, "/api/android/v1/books$requestQuery") }.let { response ->
             val values = JSONArray(response.body).requireAtMost(500, "Book page")
             BookPage(
@@ -155,10 +155,10 @@ class CatalogueClient {
     private fun encodePath(value: String) = encode(value).replace("+", "%20")
 }
 
-internal fun booksRequestQuery(libraryId: String, series: String?, cursor: String?, query: String, bucket: String, sort: String): String =
-    groupedBooksRequestQuery(libraryId, series, null, cursor, query, bucket, sort)
+internal fun booksRequestQuery(libraryId: String, series: String?, cursor: String?, query: String, bucket: String, sort: String, status: String = ""): String =
+    groupedBooksRequestQuery(libraryId, series, null, cursor, query, bucket, sort, 60, status)
 
-private fun groupedBooksRequestQuery(libraryId: String, series: String?, author: String?, cursor: String?, query: String, bucket: String, sort: String, limit: Int = 60): String = buildString {
+private fun groupedBooksRequestQuery(libraryId: String, series: String?, author: String?, cursor: String?, query: String, bucket: String, sort: String, limit: Int = 60, status: String = ""): String = buildString {
     fun encoded(value: String) = URLEncoder.encode(value, StandardCharsets.UTF_8.toString())
     append("?library=").append(encoded(libraryId)).append("&limit=").append(limit.coerceIn(1, 500))
     if (series != null) append("&series=").append(encoded(series))
@@ -166,6 +166,8 @@ private fun groupedBooksRequestQuery(libraryId: String, series: String?, author:
     if (query.isNotBlank()) append("&q=").append(encoded(query.trim()))
     if (bucket.isNotBlank()) append("&bucket=").append(encoded(bucket))
     if (sort.isNotBlank()) append("&sort=").append(encoded(sort))
+    // Only a value the server knows is sent; the filter is part of the shelf's identity, so it goes before the cursor that pages through it.
+    BookStatusFilter.fromWire(status).wire.takeIf(String::isNotEmpty)?.let { append("&status=").append(it) }
     if (!cursor.isNullOrBlank()) append("&cursor=").append(encoded(cursor))
 }
 

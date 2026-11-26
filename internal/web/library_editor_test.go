@@ -82,6 +82,35 @@ func TestEditorListsBooksWithWhatNeedsAttention(t *testing.T) {
 	}
 }
 
+func TestEditorIssuesBelongToTheirOwnBook(t *testing.T) {
+	// The issues are decided per book and then carried through the sort by the row itself, so a row that moves must
+	// take its own issues with it. Sorted by author, newest letter first, which moves every one of these five rows.
+	// Quality findings (no description, no ISBN) ride along on most of them and are not what this pins.
+	server := editorTestServer(t)
+	want := map[string][]string{"duplicate": {"a1", "a2"}, "no_author": {"n1"}, "side_story": {"s1"}, "no_number": {"u1"}}
+	carriers := map[string][]string{}
+	for _, row := range listEditor(t, server, "&sort=author&dir=desc").Items {
+		for _, issue := range row.Issues {
+			carriers[issue] = append(carriers[issue], row.ID)
+		}
+	}
+	for issue, ids := range want {
+		got := carriers[issue]
+		if len(got) != len(ids) {
+			t.Fatalf("%s is on %v, want %v", issue, got, ids)
+		}
+		for _, id := range ids {
+			found := false
+			for _, carried := range got {
+				found = found || carried == id
+			}
+			if !found {
+				t.Fatalf("%s is on %v, want %v", issue, got, ids)
+			}
+		}
+	}
+}
+
 func TestEditorPreviewChangesNothingAndApplyAndResetWork(t *testing.T) {
 	server := editorTestServer(t)
 	body := `{"library":"books","changes":{"a2":{"series_index":"2"},"n1":{"authors":"William Gibson","series":"Sprawl"}},"preview":true}`

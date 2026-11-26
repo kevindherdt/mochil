@@ -29,9 +29,10 @@ func inferFilesystemMetadata(books []Book, options FilesystemOptions) {
 	for i, book := range books {
 		base := strings.TrimSuffix(filepath.Base(filepath.FromSlash(book.Path)), filepath.Ext(book.Path))
 		parsed[i] = parseNumberedFilename(base)
-		if parsed[i].ok {
-			counts[filepath.ToSlash(filepath.Dir(filepath.FromSlash(book.Path)))]++
-		}
+		// Every book counts towards its folder, parsed or not. Counting only the parsed ones meant that tightening the
+		// bare-number rule (see bareNumberIsAPosition) also quietly stopped "86--EIGHTY-SIX/" from being a series
+		// folder at all — the series vanished along with the bad title split.
+		counts[filepath.ToSlash(filepath.Dir(filepath.FromSlash(book.Path)))]++
 	}
 	for i := range books {
 		book := &books[i]
@@ -43,6 +44,13 @@ func inferFilesystemMetadata(books []Book, options FilesystemOptions) {
 		if options.FolderLayout == "series" && dir != "." && book.Series == "" && folderNamesSeries(dir, book.Title) {
 			book.Series = displayFilename(filepath.Base(filepath.FromSlash(dir)))
 		}
+		// A folder holding a single book whose name is the book's own name is a per-book folder, not a series:
+		// sandbox layouts store every book in "Author/Title (id)/". Calling that a series gave 1984 a series
+		// named "1984" and a position of Book 1.
+		seriesFolder := dir != "." && (counts[dir] >= 2 || (options.FolderLayout == "series" && folderNamesSeries(dir, book.Title)))
+		if seriesFolder && book.Series == "" {
+			book.Series = displayFilename(filepath.Base(filepath.FromSlash(dir)))
+		}
 		if !inferred.ok {
 			if options.FilenameAuthor {
 				inferFilenameAuthor(book, strings.TrimSuffix(filepath.Base(filepath.FromSlash(book.Path)), filepath.Ext(book.Path)))
@@ -50,14 +58,7 @@ func inferFilesystemMetadata(books []Book, options FilesystemOptions) {
 			inferMarkedSeriesIndex(book)
 			continue
 		}
-		// A folder holding a single book whose name is the book's own name is a per-book folder, not a series:
-		// sandbox layouts store every book in "Author/Title (id)/". Calling that a series gave 1984 a series
-		// named "1984" and a position of Book 1.
-		seriesFolder := dir != "." && (counts[dir] >= 2 || (options.FolderLayout == "series" && folderNamesSeries(dir, book.Title)))
 		if seriesFolder && dir != "." {
-			if book.Series == "" {
-				book.Series = displayFilename(filepath.Base(filepath.FromSlash(dir)))
-			}
 			if book.SeriesIndex == nil && book.PublicationRole == "" {
 				index := inferred.index
 				if marked := markedSeriesIndex(inferred.title); marked != nil {
@@ -122,6 +123,15 @@ func parseNumberedFilename(value string) inferredName {
 		if len(matches) != 3 {
 			continue
 		}
+		// A bare leading number is the weakest evidence there is, and taking it on faith corrupts titles: "1984 - A
+		// Novel" became volume 1984 titled "A Novel", and "86--EIGHTY-SIX - Volume 01" — a series whose own name starts
+		// with a number — became volume 86 titled "-EIGHTY-SIX - Volume 01", which is the leading dash in the library.
+		// So it only counts when what follows actually reads as a title: no leading separator (a rule that leaves one
+		// has mis-split the name), something left after trimming, and a number small enough to be a position rather
+		// than a year or a title.
+		if pattern == bareNumberedFilename && !bareNumberIsAPosition(matches[1], matches[2], value) {
+			continue
+		}
 		index, err := strconv.ParseFloat(matches[1], 64)
 		if err != nil {
 			return inferredName{}
@@ -129,6 +139,32 @@ func parseNumberedFilename(value string) inferredName {
 		return inferredName{index: index, title: displayFilename(matches[2]), ok: true}
 	}
 	return inferredName{}
+}
+
+// bareNumberIsAPosition decides whether a number at the front of a filename is a volume or part of the name.
+//
+// The marked forms ("Volume 7", "#7", "Book 7") say what they mean; a bare `7 - Title` only suggests it, and the cost
+// of being wrong is a mangled title in the catalogue that someone then has to find and fix by hand.
+func bareNumberIsAPosition(number, remainder, whole string) bool {
+	if len(number) >= 4 { // a year, or a title that is a number: 1984, 2001, 11.22
+		return false
+	}
+	rest := strings.TrimLeft(remainder, " \t")
+	if rest == "" || strings.ContainsAny(rest[:1], "-–—_") {
+		return false // nothing left to call a title, or the split landed inside a separator
+	}
+	// "86--EIGHTY-SIX - Volume 01": the series itself begins with the number, so the number is part of the name.
+	name := strings.TrimSuffix(whole, filepath.Ext(whole))
+	if trimmed := strings.TrimLeft(displayFilename(name), " "); trimmed != "" {
+		first := trimmed
+		if fields := strings.Fields(trimmed); len(fields) > 0 {
+			first = fields[0]
+		}
+		if strings.HasPrefix(strings.ReplaceAll(strings.ToLower(first), "--", "-"), strings.ToLower(number)+"-") {
+			return false
+		}
+	}
+	return true
 }
 
 func displayFilename(value string) string {

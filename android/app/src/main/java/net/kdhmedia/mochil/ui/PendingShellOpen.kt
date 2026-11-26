@@ -9,7 +9,7 @@ import androidx.compose.runtime.setValue
  * when it is shown again, moves there and clears it. Process-wide on purpose: it only lives until the shell consumes it.
  */
 object PendingShellOpen {
-    const val HOME = "home"
+    const val DISCOVER = "discover"
     const val SETTINGS = "settings"
     private const val LIBRARY = "library:"
 

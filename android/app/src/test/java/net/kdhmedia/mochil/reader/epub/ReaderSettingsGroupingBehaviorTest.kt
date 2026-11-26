@@ -49,24 +49,22 @@ class ReaderSettingsGroupingBehaviorTest {
         }
         compose.onNodeWithText("Aa").performClick()
 
-        // Default section (Layout) shows the paging control immediately, but not the Text
-        // section's font-size controls.
-        compose.onNodeWithText("Paged").assertIsDisplayed()
+        // The web reader's two tabs, as far as the phone has settings for them: Typography sets the text,
+        // Display & theme sets the page around it. Narration has no settings of its own — its bar is above this sheet.
+        compose.onNodeWithText("Typography").assertIsDisplayed()
+        compose.onNodeWithText("Display & theme").assertIsDisplayed()
+        compose.onAllNodesWithText("Narration").assertCountEquals(0)
 
-        // Switching to the Text tab reveals font-size controls (with descriptive labels) that
-        // were hidden before.
-        compose.onNodeWithText("Text").performClick()
+        // Typography opens on the font-size controls, with descriptive labels.
         compose.onNodeWithContentDescription("Decrease font size").assertIsDisplayed()
         compose.onNodeWithContentDescription("Increase font size").assertIsDisplayed()
 
-        // Switching to Appearance reveals theme/sharpness/status-bar controls grouped together.
-        compose.onNodeWithText("Appearance").performClick()
+        // The page's own settings — paging, theme, sharpness, progress, status icons — share Display & theme.
+        compose.onNodeWithText("Display & theme").performClick()
+        compose.onNodeWithText("Paged").assertIsDisplayed()
         compose.onNodeWithText("Light").assertIsDisplayed()
-
-        // Reading progress and status icons live in Appearance too; there is no Display tab.
         compose.onNodeWithText("Reading progress: none").assertIsDisplayed()
         compose.onNodeWithText("Status icons: off").assertIsDisplayed()
-        compose.onAllNodesWithText("Display").assertCountEquals(0)
     }
 
     @Test fun readingProgressStepsNoneBarTimeFromTheAppearanceTab() {
@@ -87,7 +85,7 @@ class ReaderSettingsGroupingBehaviorTest {
             }
         }
         compose.onNodeWithText("Aa").performClick()
-        compose.onNodeWithText("Appearance").performClick()
+        compose.onNodeWithText("Display & theme").performClick()
         compose.onNodeWithText("Reading progress: none").performClick()
         compose.onNodeWithText("Reading progress: bar").performClick()
         compose.onNodeWithText("Reading progress: time").performClick()
@@ -115,13 +113,13 @@ class ReaderSettingsGroupingBehaviorTest {
             }
         }
         compose.onNodeWithText("Aa").performClick()
-        compose.onNodeWithText("Layout").performClick()
+        compose.onNodeWithText("Display & theme").performClick()
         compose.onNodeWithText("Paged").performClick()
         compose.onNodeWithText("Scroll").assertIsDisplayed()
 
-        // Leaving and returning to the Layout tab keeps the toggled state (scroll mode).
-        compose.onNodeWithText("Text").performClick()
-        compose.onNodeWithText("Layout").performClick()
+        // Leaving and returning keeps the toggled state (scroll mode).
+        compose.onNodeWithText("Typography").performClick()
+        compose.onNodeWithText("Display & theme").performClick()
         compose.onNodeWithText("Scroll").assertIsDisplayed()
     }
 }

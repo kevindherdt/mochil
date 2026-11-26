@@ -3,7 +3,9 @@ package web
 import (
 	"context"
 	"errors"
+	"math"
 	"net/http"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -21,7 +23,9 @@ func hardcoverMatchKey(library string) string { return "hardcover-match:" + libr
 // editor now uses — series and its position arrived in version 2 — and there is no way to tell "Hardcover does not know
 // the series" from "this was looked up before we asked". Such a finding is refreshed on the next run rather than shown
 // as if it were complete.
-const matchFindingVersion = 2
+// Bumped to 3 when the bulk recorder started keeping the blurb. Findings written by version 2 are clear and stored,
+// so without this every book looked up before would keep its empty description for ever.
+const matchFindingVersion = 3
 
 // bulkMatch is what looking a book up on Hardcover found. It is only a finding: nothing is applied to the book until
 // the person takes it, and the lookup is kept for as long as the book's file stays the same.
@@ -79,6 +83,55 @@ func pause(ctx context.Context, requests int) bool {
 	}
 }
 
+// editionVolume reads the volume a title claims: "Volume 06", "Vol. 5", "Tome 01", "Book 3", "Part 2".
+//
+// A search for "7th Time Loop - Volume 06" comes back with Tome 01 and Vol. 1 scored highest, because the words are
+// nearly identical and the number is the smallest part of the string. The number is the whole question here, so it is
+// read out and used for ordering.
+var editionVolumePattern = regexp.MustCompile(`(?i)\b(?:vol(?:ume)?|tome|book|part)\s*\.?\s*(\d+(?:\.\d+)?)`)
+
+func editionVolume(title string) float64 {
+	matches := editionVolumePattern.FindAllStringSubmatch(title, -1)
+	if len(matches) == 0 {
+		return 0
+	}
+	// The last marker wins: "7th Time Loop - Side Stories - Volume 01.2" is volume 1.2, not volume 7.
+	value, err := strconv.ParseFloat(matches[len(matches)-1][1], 64)
+	if err != nil {
+		return 0
+	}
+	return value
+}
+
+// candidateVolume is the volume a candidate says it is, from the provider's own series position when it states one and
+// from its title otherwise.
+func candidateVolume(candidate matchCandidate) float64 {
+	if position := candidate.Suggestion.SeriesIndex; position != nil && *position > 0 {
+		return *position
+	}
+	return editionVolume(candidate.Suggestion.Title)
+}
+
+// rankForBook puts the candidates that are the volume this book actually is ahead of the rest, then orders each group by
+// score. Search ranks by how alike the words are, and every volume of a series has the same words — so the top hit for
+// volume 6 was volume 1, and a person had to read the whole list to find the right one.
+func rankForBook(candidates []matchCandidate, title string, position float64) {
+	want := position
+	if want <= 0 {
+		want = editionVolume(title)
+	}
+	sort.SliceStable(candidates, func(i, j int) bool {
+		if want > 0 {
+			left := math.Abs(candidateVolume(candidates[i])-want) < 0.01
+			right := math.Abs(candidateVolume(candidates[j])-want) < 0.01
+			if left != right {
+				return left
+			}
+		}
+		return candidates[i].Score > candidates[j].Score
+	})
+}
+
 func titleMatch(ctx context.Context, h *enrichment.Hardcover, book catalog.Book) ([]matchCandidate, error) {
 	search := enrichment.Query{Title: book.Title}
 	if len(book.Authors) > 0 {
@@ -93,9 +146,13 @@ func titleMatch(ctx context.Context, h *enrichment.Hardcover, book catalog.Book)
 	}
 	candidates := make([]matchCandidate, 0, len(results))
 	for _, result := range results {
-		candidates = append(candidates, matchCandidate{Suggestion: result, Score: matchScore(book.Title, book.Authors, result)})
+		candidates = append(candidates, matchCandidate{Suggestion: result, Overview: result.Overview, Score: matchScore(book.Title, book.Authors, result)})
 	}
-	sort.SliceStable(candidates, func(i, j int) bool { return candidates[i].Score > candidates[j].Score })
+	position := 0.0
+	if book.SeriesIndex != nil {
+		position = *book.SeriesIndex
+	}
+	rankForBook(candidates, book.Title, position)
 	if len(candidates) > maximumStoredCandidates {
 		candidates = candidates[:maximumStoredCandidates]
 	}
@@ -163,7 +220,10 @@ var matchJob = editorJob{
 			}
 			for i, book := range batch {
 				if hit, ok := found[wanted[i]]; ok {
-					record(book, bulkMatch{How: "isbn", ISBN: wanted[i], Clear: true, Candidates: []matchCandidate{{Suggestion: hit, Score: 1}}})
+					// The blurb travels with the finding. matchCandidate has its own Overview field that shadows the
+					// suggestion's, so leaving it out wrote "overview":"" to disk: the provider had sent the description
+					// and every later review offered nothing for it.
+					record(book, bulkMatch{How: "isbn", ISBN: wanted[i], Clear: true, Candidates: []matchCandidate{{Suggestion: hit, Overview: hit.Overview, Score: 1}}})
 					byISBN++
 				} else {
 					byName = append(byName, book) // Hardcover does not know that edition: fall back to the title
@@ -202,6 +262,12 @@ var matchJob = editorJob{
 		}
 		if err := store.Save(); err != nil {
 			return "", errFindingsNotSaved
+		}
+		// "Looked up 0 books" for a selection that is entirely cached reads as "found nothing", which is the opposite of
+		// what happened: those books already have their match stored. Say so.
+		if done == 0 && skipped == len(books) && len(books) > 0 {
+			return "Nothing to look up: all " + strconv.Itoa(skipped) + " selected books already have their Hardcover match stored. " +
+				"Pick different books, or re-run after changing their title, authors, series or ISBN.", nil
 		}
 		message := "Looked up " + strconv.Itoa(done) + " books: " + strconv.Itoa(byISBN) + " by ISBN, " + strconv.Itoa(byTitle) + " clear by title, " + strconv.Itoa(unsure) + " unsure, " + strconv.Itoa(none) + " with no match"
 		if failed > 0 {

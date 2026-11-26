@@ -151,7 +151,7 @@ fun MochilApp(
                     onWatch = playVideo,
                 )
             },
-            library = { onOpenSettings, onOpenHome, onOpenCollections, onOpenSources ->
+            library = { onOpenCollections ->
                 val collectionViewModel: CollectionViewModel = viewModel(key = "collections:$sessionKey")
                 val wikiViewModel: WikiViewModel = viewModel(key = "wiki:$sessionKey")
                 val playlistState by musicPlaylistViewModel.state.collectAsStateWithLifecycle()
@@ -167,17 +167,13 @@ fun MochilApp(
                     playbackViewModel = playbackViewModel,
                     playlistState = playlistState,
                     showCollections = showCollections,
-                    showSources = showSources,
-                    onOpenSettings = onOpenSettings,
-                    onOpenHome = onOpenHome,
                     onOpenCollections = onOpenCollections,
-                    onOpenSources = onOpenSources,
                     onWatch = playVideo,
                 )
             },
             collections = { _, onShowLibrary -> MobileCollectionsRoute(libraryViewModel, onShowLibrary) },
             sources = { onBack -> SourceHubScreen(onBack) },
-            settings = { onBack ->
+            settings = { _ ->
                 val appUpdateViewModel: AppUpdateViewModel = viewModel(key = "updates:$sessionKey")
                 val downloadLocationViewModel: DownloadLocationViewModel = viewModel(key = "downloads:$sessionKey")
                 val crashReportViewModel: CrashReportViewModel = viewModel(key = "crashes:$sessionKey")
@@ -199,7 +195,6 @@ fun MochilApp(
                     showCollections = showCollections,
                     showSources = showSources,
                     onDestinationVisibility = setDestinationVisible,
-                    onBack = onBack,
                 )
             },
         )

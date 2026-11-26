@@ -1,0 +1,12 @@
+/* StaleNotice — a quiet strip above content that failed to refresh (tokens only, L3; no box-shadow, e-ink). */
+.notice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-8);
+  padding: var(--space-8) var(--space-12);
+  background: var(--color-raised);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-8);
+}

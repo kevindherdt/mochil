@@ -1,9 +1,9 @@
 package net.kdhmedia.mochil.ui
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import net.kdhmedia.mochil.ui.theme.swatch
 import androidx.compose.foundation.background
 import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.layout.size
@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyRow
@@ -40,6 +41,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -54,9 +56,13 @@ import net.kdhmedia.mochil.reader.epub.AnnotationPrivacyState
 import net.kdhmedia.mochil.reader.epub.AnnotationPrivacyViewModel
 import net.kdhmedia.mochil.reader.ReaderHardwareNavigationPreferences
 import net.kdhmedia.mochil.update.AppUpdateState
-import net.kdhmedia.mochil.ui.theme.AppPalette
-import net.kdhmedia.mochil.ui.theme.AppThemeMode
+import net.kdhmedia.mochil.ui.kit.LucideIcons
+import net.kdhmedia.mochil.ui.kit.MochilCard
+import net.kdhmedia.mochil.ui.kit.PageHeader
+import net.kdhmedia.mochil.ui.kit.SettingsEntry
 import net.kdhmedia.mochil.ui.theme.AppThemeSelection
+import net.kdhmedia.mochil.ui.theme.MochilChrome
+import net.kdhmedia.mochil.ui.theme.MochilSpace
 
 @Composable
 fun DeviceSettingsScreen(
@@ -92,68 +98,17 @@ fun DeviceSettingsScreen(
     showCollections: Boolean,
     showSources: Boolean,
     onDestinationVisibility: (OptionalDestination, Boolean) -> Unit,
-    onBack: () -> Unit,
 ) {
     var showDeletion by rememberSaveable { mutableStateOf(false) }
     var showDisconnect by rememberSaveable { mutableStateOf(false) }
     var showServerAddress by rememberSaveable { mutableStateOf(false) }
-    var addingSource by rememberSaveable { mutableStateOf(false) }
     var confirmation by rememberSaveable { mutableStateOf("") }
-    var category by rememberSaveable { mutableStateOf(SettingsCategory.General) }
+    // Which page is open, by name (null is the hub): a renamed page then reads back as the hub rather than crashing a restore.
+    var pageName by rememberSaveable { mutableStateOf<String?>(null) }
+    val page = SettingsCategory.fromName(pageName)
     val context = LocalContext.current
     val hardwarePreferences = androidx.compose.runtime.remember(context) { ReaderHardwareNavigationPreferences(context) }
     var volumePageTurn by rememberSaveable { mutableStateOf(hardwarePreferences.volumeButtonsEnabled()) }
-    if (addingSource) {
-        SourceHubScreen(onBack = { addingSource = false })
-        return
-    }
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 12.dp, vertical = 8.dp)) {
-        Row {
-            IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") }
-            Text("Settings", modifier = Modifier.padding(start = 8.dp, top = 8.dp), style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.SemiBold)
-        }
-        PillTabs(SettingsCategory.entries, category, SettingsCategory::label, { category = it }, Modifier.padding(top = 12.dp))
-        SettingsSurface { when (category) {
-            SettingsCategory.General -> {
-                SettingsCard("Server") {
-                Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Text(serverUrl, Modifier.weight(1f).padding(end = 8.dp), style = MaterialTheme.typography.bodyLarge, maxLines = 2, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
-                    StatusPill("Paired", positive = false)
-                }
-                serverAddressMessage?.let { Text(it, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp), style = MaterialTheme.typography.bodySmall, color = if (it == "Server address updated.") MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error) }
-                Row(Modifier.padding(start = 8.dp, top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                    OutlinedButton(onClick = { showServerAddress = true }, enabled = !serverAddressChanging) { Text("Change address") }
-                    TextButton(onClick = { showDisconnect = true }, colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)) { Text("Disconnect") }
-                }
-                }
-                if (BuildConfig.SELF_UPDATE_ENABLED) UpdateSettings(updateState, onCheckForUpdates, onInstallUpdate)
-            }
-            SettingsCategory.Appearance -> SettingsCard("Theme") { AppearanceSettings(themeSelection, onThemeSelection) }
-            SettingsCategory.Libraries -> {
-                SettingsCard("Libraries on this device") { LibraryVisibilitySettings(libraries, visibleLibraryIds, deviceClass, onLibraryVisibility, showCollections = showCollections, showSources = showSources, onDestinationVisibility = onDestinationVisibility)
-                }
-                SettingsCard("Other sources") {
-                OutlinedButton(onClick = { addingSource = true }, modifier = Modifier.padding(start = 8.dp, top = 6.dp)) { Text("Add a source") }
-                }
-            }
-            SettingsCategory.Downloads -> DownloadSettings(downloadLocation, onChooseDownloadFolder, onUseAppStorage)
-            SettingsCategory.Reading -> {
-                ReaderDefaultSettings()
-                ReaderHardwareSettings(volumePageTurn) { enabled -> volumePageTurn = enabled; hardwarePreferences.setVolumeButtonsEnabled(enabled) }
-                ReadAloudSettings()
-            }
-            SettingsCategory.Playback -> {
-                SettingsCard(null) { PlaybackQualitySettings() }
-                ReplayGainSettings(replayGainMode, onReplayGainMode)
-                SettingsCard("Video subtitles") { Column(Modifier.fillMaxWidth().padding(horizontal = 8.dp)) { SubtitleAppearanceSettings() } }
-            }
-            SettingsCategory.Privacy -> {
-                AnnotationSettings(annotationPrivacyState, onExportAnnotations) { confirmation = ""; showDeletion = true }
-                PerformanceSettings(diagnosticsState, onDiagnosticsEnabled, onSendDiagnostics, onClearDiagnostics)
-                CrashSettings(crashState, onSendCrashReport, onDiscardCrashReport)
-            }
-        } }
-    }
     if (showDeletion) AnnotationDeletionDialog(
         confirmation = confirmation,
         deleting = annotationPrivacyState.deleting,
@@ -172,6 +127,77 @@ fun DeviceSettingsScreen(
         onChangeServerAddress(value)
         showServerAddress = false
     }
+    // System Back closes a page before the shell sees it; from the hub it falls through to the shell (Library).
+    BackHandler(enabled = page != null) { pageName = null }
+    if (page == SettingsCategory.Sources) {
+        SourceHubScreen(onBack = { pageName = null })
+        return
+    }
+    // One scroll position per page: the hub and the pages share this column, and a page must open at its top, not where the hub was.
+    val scroll = rememberSaveable(pageName, saver = ScrollState.Saver) { ScrollState(0) }
+    Column(Modifier.fillMaxSize().verticalScroll(scroll).padding(horizontal = MOBILE_CONTENT_GUTTER, vertical = MochilSpace.s8)) {
+        if (page == null) {
+            Text("Settings", Modifier.padding(vertical = MochilSpace.s12).semantics { heading() }, style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.onSurface)
+            Column(verticalArrangement = Arrangement.spacedBy(MochilSpace.s12)) {
+                // The mock-up opens on the server: where you are connected and to what. "Paired", not "Connected": nothing here has checked.
+                MochilCard(onClick = { pageName = SettingsCategory.Server.name }) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f).padding(end = MochilSpace.s8)) {
+                            Text("Server", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
+                            Text(serverUrl, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                        }
+                        StatusPill("Paired", positive = false)
+                        Icon(LucideIcons.ChevronRight, contentDescription = null, Modifier.padding(start = MochilSpace.s8).size(MochilChrome.iconSmall), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+                SettingsCategory.entries.filterNot { it == SettingsCategory.Server }.forEach { entry ->
+                    val icon = androidx.compose.runtime.remember(entry) { LucideIcons.withStroke(entry.iconId, 2f) }
+                    SettingsEntry(icon, entry.label, entry.description, onClick = { pageName = entry.name })
+                }
+            }
+            Text("Mochil ${BuildConfig.VERSION_NAME}", Modifier.padding(vertical = MochilSpace.s16), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        } else {
+            PageHeader(page.label, onBack = { pageName = null })
+            SettingsSurface(Modifier.padding(top = MochilSpace.s8)) { when (page) {
+                SettingsCategory.Server -> {
+                    SettingsCard("Connection") {
+                        Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Text(serverUrl, Modifier.weight(1f).padding(end = 8.dp), style = MaterialTheme.typography.bodyLarge, maxLines = 2, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                            StatusPill("Paired", positive = false)
+                        }
+                        serverAddressMessage?.let { Text(it, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp), style = MaterialTheme.typography.bodySmall, color = if (it == "Server address updated.") MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error) }
+                        Row(Modifier.padding(start = 8.dp, top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                            OutlinedButton(onClick = { showServerAddress = true }, enabled = !serverAddressChanging) { Text("Change address") }
+                            TextButton(onClick = { showDisconnect = true }, colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)) { Text("Disconnect") }
+                        }
+                    }
+                    if (BuildConfig.SELF_UPDATE_ENABLED) UpdateSettings(updateState, onCheckForUpdates, onInstallUpdate)
+                }
+                SettingsCategory.Appearance -> AppearanceSettings(themeSelection, onThemeSelection)
+                SettingsCategory.Libraries -> SettingsCard("Libraries on this device") {
+                    LibraryVisibilitySettings(libraries, visibleLibraryIds, deviceClass, onLibraryVisibility, showCollections = showCollections, showSources = showSources, onDestinationVisibility = onDestinationVisibility)
+                }
+                SettingsCategory.Sources -> Unit // drawn full screen above: the source hub has its own header
+                SettingsCategory.About -> AboutContent()
+                SettingsCategory.Downloads -> DownloadSettings(downloadLocation, onChooseDownloadFolder, onUseAppStorage)
+                SettingsCategory.Reading -> {
+                    ReaderDefaultSettings()
+                    ReaderHardwareSettings(volumePageTurn) { enabled -> volumePageTurn = enabled; hardwarePreferences.setVolumeButtonsEnabled(enabled) }
+                    ReadAloudSettings()
+                }
+                SettingsCategory.Playback -> {
+                    SettingsCard(null) { PlaybackQualitySettings() }
+                    ReplayGainSettings(replayGainMode, onReplayGainMode)
+                    SettingsCard("Video subtitles") { Column(Modifier.fillMaxWidth().padding(horizontal = 8.dp)) { SubtitleAppearanceSettings() } }
+                }
+                SettingsCategory.Privacy -> {
+                    AnnotationSettings(annotationPrivacyState, onExportAnnotations) { confirmation = ""; showDeletion = true }
+                    PerformanceSettings(diagnosticsState, onDiagnosticsEnabled, onSendDiagnostics, onClearDiagnostics)
+                    CrashSettings(crashState, onSendCrashReport, onDiscardCrashReport)
+                }
+            } }
+        }
+    }
 }
 
 @Composable
@@ -187,32 +213,6 @@ private fun ChangeServerAddressDialog(current: String, changing: Boolean, onDism
         confirmButton = { TextButton(onClick = { onSave(value) }, enabled = !changing && value.trim().trimEnd('/') != current.trimEnd('/') && value.isNotBlank()) { Text(if (changing) "Checking…" else "Verify and change") } },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
     )
-}
-
-private enum class SettingsCategory(val label: String) {
-    General("General"), Appearance("Appearance"), Libraries("Libraries"), Downloads("Downloads"), Reading("Reading"), Playback("Playback"), Privacy("Privacy")
-}
-
-@Composable
-private fun AppearanceSettings(selection: AppThemeSelection, onSelection: (AppThemeSelection) -> Unit) {
-    val isDark = when (selection.mode) { AppThemeMode.System -> androidx.compose.foundation.isSystemInDarkTheme(); AppThemeMode.Dark -> true; AppThemeMode.Light -> false }
-    Text("Theme family", modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-    // Wraps by itself: a fixed three per row squeezed the last chip into a one-letter-wide column on a narrow phone.
-    androidx.compose.foundation.layout.FlowRow(Modifier.fillMaxWidth().padding(horizontal = 8.dp), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        AppPalette.entries.forEach { palette -> FilterChip(selected = selection.palette == palette, onClick = { onSelection(selection.copy(palette = palette)) }, label = { Text(palette.label, maxLines = 1) }, leadingIcon = { Box(Modifier.size(12.dp).clip(androidx.compose.foundation.shape.CircleShape).background(palette.swatch(isDark))) }) }
-    }
-    Text("Brightness", modifier = Modifier.padding(start = 8.dp, top = 12.dp), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-    Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-        AppThemeMode.entries.forEach { mode -> FilterChip(selected = selection.mode == mode, onClick = { onSelection(selection.copy(mode = mode)) }, label = { Text(mode.label) }) }
-    }
-    Text("E-ink uses maximum contrast and restrained surfaces. Material uses your device colors on Android 12 and newer.", modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-    Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-        Column(Modifier.weight(1f)) {
-            Text("Reduce animations", style = MaterialTheme.typography.bodyLarge)
-            Text("Lists, panels and search open at once instead of sliding. On by default on e-ink screens.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-        Switch(checked = selection.reduceMotion, onCheckedChange = { onSelection(selection.copy(reduceMotion = it)) })
-    }
 }
 
 @Composable

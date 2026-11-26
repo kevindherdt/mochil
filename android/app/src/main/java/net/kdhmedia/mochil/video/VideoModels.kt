@@ -23,6 +23,10 @@ data class VideoItem(
     val year: Int = 0,
     val overview: String = "",
     val backdropPath: String = "",
+    /** The tallest video stream's height, from the server's probe; null when it recorded none. */
+    val videoHeight: Int? = null,
+    /** The file plays as it is, so the card can say so instead of offering a guess. */
+    val directPlay: Boolean = false,
 ) {
     val displayTitle: String get() = episodeTitle.ifBlank { title }
     val playable: Boolean get() = streamPath.isNotBlank() || hlsPath.isNotBlank()

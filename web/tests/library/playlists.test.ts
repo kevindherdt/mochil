@@ -12,6 +12,7 @@ import {
   fetchPlaylistSummaries,
   PlaylistConflictError,
   PlaylistNameError,
+  PlaylistNameTakenError,
   renamePlaylist,
   replacePlaylist,
 } from "../../src/features/library/api/playlists";
@@ -115,12 +116,16 @@ describe("writing a playlist", () => {
     await expect(renamePlaylist("a", "b", "rev-7")).rejects.toBeInstanceOf(PlaylistNameError);
   });
 
-  it("reports a 409 on create as a name error and a 400 as one too — both mean \"pick another name\"", async () => {
+  it("distinguishes a taken name from an unusable one, so \"create and add\" can carry on past a race", async () => {
+    // Both are PlaylistNameError subclasses (a dialog reports either the same way), but only "taken" may be ignored
+    // by the add-to-playlist flow. The split used to be a search for the word "exists" in the server's message.
     stub(new Response("playlist already exists", { status: 409 }));
-    await expect(createPlaylist("Night drive")).rejects.toBeInstanceOf(PlaylistNameError);
+    await expect(createPlaylist("Night drive")).rejects.toBeInstanceOf(PlaylistNameTakenError);
 
     stub(new Response("invalid playlist name", { status: 400 }));
-    await expect(createPlaylist("")).rejects.toBeInstanceOf(PlaylistNameError);
+    const unusable = await createPlaylist("").catch((error: unknown) => error);
+    expect(unusable).toBeInstanceOf(PlaylistNameError);
+    expect(unusable).not.toBeInstanceOf(PlaylistNameTakenError);
   });
 
   it("reports a 412 on delete as a conflict, not as \"not found\"", async () => {

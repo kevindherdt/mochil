@@ -19,7 +19,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material.icons.outlined.Cloud
 import androidx.compose.material.icons.outlined.FolderOpen
-import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.outlined.Explore
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
@@ -53,7 +53,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 
-/** One compact switcher for touch devices: the current place as a coloured icon and a chevron; the menu lists Home, every library, then Collections, Sources and Settings. */
+/** One compact switcher for touch devices: the current place as a coloured icon and a chevron; the menu lists Discover, every library, then Collections, Sources and Settings. */
 @Composable
 internal fun MobileLibraryRail(
     libraries: List<LibrarySummary>,
@@ -82,7 +82,7 @@ internal fun MobileLibraryRail(
         MobileShellDestination.Sources -> Triple(Icons.Outlined.Cloud, muted, "Sources")
         MobileShellDestination.Settings -> Triple(Icons.Default.Settings, muted, "Settings")
         else -> null
-    } ?: Triple(Icons.Default.Home, muted, "Home")
+    } ?: Triple(Icons.Outlined.Explore, muted, "Discover")
     Box(Modifier.fillMaxWidth().height(MOBILE_LIBRARY_RAIL_HEIGHT), contentAlignment = Alignment.CenterStart) {
         val shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp)
         Row(
@@ -116,7 +116,7 @@ internal fun MobileLibraryRail(
                     onClick = { open = false; click() },
                 )
             }
-            entry(Icons.Default.Home, muted, "Home", null, chatName == null && destination == MobileShellDestination.Home, onOpenHome)
+            entry(Icons.Outlined.Explore, muted, "Discover", null, chatName == null && destination == MobileShellDestination.Discover, onOpenHome)
             libraries.forEach { library ->
                 val style = mediaKindStyle(
                     library.kind,

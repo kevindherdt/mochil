@@ -76,11 +76,26 @@ export interface PlaylistSummary {
   coverUrl: string;
 }
 
-/** The name is taken (409) or unusable (400). Distinct so a dialog can say which, instead of "something failed". */
+/** The name is unusable (400) — empty, too long, characters the server will not take. */
 export class PlaylistNameError extends Error {
   constructor(message: string) {
     super(message);
     this.name = "PlaylistNameError";
+  }
+}
+
+/**
+ * The name is already in use (409). A subclass because the two need different handling: an unusable name must be
+ * reported, while a taken one is a normal race when a track is added to a playlist that someone (or this same
+ * screen, a moment ago) has just created — so "create and add" may carry on with the existing playlist.
+ *
+ * It used to be told apart by matching the server's English message for the word "exists", which would silently
+ * turn a harmless race into a hard failure the day the wording changed.
+ */
+export class PlaylistNameTakenError extends PlaylistNameError {
+  constructor(message: string) {
+    super(message);
+    this.name = "PlaylistNameTakenError";
   }
 }
 
@@ -202,7 +217,10 @@ function revisionHeaders(revision: string | null): Record<string, string> {
 }
 
 function asNameError(error: unknown): unknown {
-  if (error instanceof HttpError && (error.status === 409 || error.status === 400)) {
+  if (error instanceof HttpError && error.status === 409) {
+    return new PlaylistNameTakenError(error.message || "That name is already in use.");
+  }
+  if (error instanceof HttpError && error.status === 400) {
     return new PlaylistNameError(error.message || "That name cannot be used.");
   }
   return error;

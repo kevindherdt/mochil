@@ -87,7 +87,7 @@ func (m *multiServer) editorValues(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	counts, known := editorValueNames(lib.Store.Books(), query.Get("field"))
+	counts, known := editorValueNames(publishedBooks(lib.Store), query.Get("field"))
 	if !known {
 		http.Error(w, "That field has no suggestions.", http.StatusBadRequest)
 		return

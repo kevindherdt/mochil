@@ -213,10 +213,20 @@ func (m *multiServer) configurePersistentStores(cfg MultiConfig) error {
 		}); err != nil {
 			return fmt.Errorf("open found Hardcover matches: %w", err)
 		}
+		if m.taskDismissals, err = openRecovering("editor task dismissals", filepath.Join(filepath.Dir(overridePath), "task-dismissals.json"), func() (*taskDismissals, error) {
+			return openTaskDismissals(filepath.Join(filepath.Dir(overridePath), "task-dismissals.json"))
+		}); err != nil {
+			return fmt.Errorf("open editor task dismissals: %w", err)
+		}
 		if m.customColumns, err = openRecovering("custom columns", filepath.Join(filepath.Dir(overridePath), "custom-columns.json"), func() (*customcolumns.Store, error) {
 			return customcolumns.Open(filepath.Join(filepath.Dir(overridePath), "custom-columns.json"))
 		}); err != nil {
 			return fmt.Errorf("open custom columns: %w", err)
+		}
+		if m.matchFields, err = openRecovering("editor match fields", filepath.Join(filepath.Dir(overridePath), "match-fields.json"), func() (*matchFieldsStore, error) {
+			return openMatchFields(filepath.Join(filepath.Dir(overridePath), "match-fields.json"))
+		}); err != nil {
+			return fmt.Errorf("open editor match fields: %w", err)
 		}
 		for index := range m.libraries {
 			if m.libraries[index].Store == nil {

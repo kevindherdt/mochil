@@ -25,23 +25,24 @@ import net.kdhmedia.mochil.catalogue.PublicationGrouping
 import net.kdhmedia.mochil.catalogue.PublicationLayout
 import net.kdhmedia.mochil.catalogue.currentLayout
 
-/** The ways books can be grouped; "None" is the plain list of every book, the only one with an order of its own. */
+/** The ways books can be grouped; "All books" is the plain list of every book, the only one with an order of its own. */
 internal val publicationGroupChoices = listOf(PublicationGrouping.Series, PublicationGrouping.Authors, PublicationGrouping.Books)
 internal val publicationOrderChoices = listOf("" to "Title", "author" to "Author", "recent" to "Recently added")
 
 internal fun publicationGroupLabel(grouping: PublicationGrouping) = when (grouping) {
     PublicationGrouping.Series -> "Series"
     PublicationGrouping.Authors -> "Authors"
-    else -> "None"
+    else -> "All books"
 }
 
-/** Recently added is the same list as the plain list ordered by date, so both count as "None" being on. */
+/** Recently added is the same list as the plain list ordered by date, so both count as "All books" being on. */
 internal fun publicationGroupSelected(current: PublicationGrouping, choice: PublicationGrouping) =
     current == choice || (choice == PublicationGrouping.Books && current == PublicationGrouping.Recent)
 
 /**
- * One small sheet for how a library looks: how to group the books, how to order them when they are not grouped, whether to keep only
- * the ones being read, and covers or list. Every choice is a chip, so the current state reads at a glance. Series keep their own
+ * One small sheet for how a library looks: how to group the books, how to order them when they are not grouped, and covers or
+ * list. "In progress" is a chip above the list now, as on the web, so it is not offered here too; Collections is a place of its own,
+ * one tap from the "Group by" row. Every choice is a chip, so the current state reads at a glance. Series keep their own
  * order inside a group (by number, then title) and authors theirs, so there is nothing more to order there.
  */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
@@ -51,10 +52,10 @@ internal fun PublicationViewSheet(
     onGrouping: (PublicationGrouping) -> Unit,
     onSort: (String) -> Unit,
     onLayout: (PublicationLayout) -> Unit,
+    onOpenCollections: (() -> Unit)?,
     onClose: () -> Unit,
 ) {
     val covers = state.currentLayout() == PublicationLayout.Covers
-    val inProgress = state.grouping == PublicationGrouping.Continue
     val plain = state.grouping == PublicationGrouping.Books || state.grouping == PublicationGrouping.Recent
     ModalBottomSheet(onDismissRequest = onClose) {
         Column(Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = 20.dp, vertical = 4.dp).padding(bottom = 16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -62,11 +63,12 @@ internal fun PublicationViewSheet(
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 publicationGroupChoices.forEach { choice ->
                     FilterChip(
-                        selected = !inProgress && publicationGroupSelected(state.grouping, choice),
+                        selected = publicationGroupSelected(state.grouping, choice),
                         onClick = { onGrouping(choice); if (choice != PublicationGrouping.Books) onClose() },
                         label = { Text(publicationGroupLabel(choice)) },
                     )
                 }
+                if (onOpenCollections != null) FilterChip(selected = false, onClick = { onOpenCollections(); onClose() }, label = { Text("Collections") })
             }
             if (plain) {
                 SheetLabel("Order by")
@@ -79,14 +81,6 @@ internal fun PublicationViewSheet(
                         )
                     }
                 }
-            }
-            SheetLabel("Show")
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                FilterChip(
-                    selected = inProgress,
-                    onClick = { onGrouping(if (inProgress) PublicationGrouping.Series else PublicationGrouping.Continue); onClose() },
-                    label = { Text("Only books in progress") },
-                )
             }
             SheetLabel("Layout")
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {

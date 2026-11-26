@@ -5,24 +5,23 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
+import net.kdhmedia.mochil.ui.kit.HeaderIconButton
 
 /** One icon button for the row beside the library switcher. Plain data, so the header always draws the newest copy. */
 internal data class HeaderAction(
     val icon: ImageVector,
     val description: String,
     val onClick: () -> Unit,
-    val tint: Color = Color.Unspecified,
+    /** What the button opens is on (an open search, an active filter): it is raised and in the accent. */
+    val active: Boolean = false,
     val enabled: Boolean = true,
 )
 
@@ -32,7 +31,7 @@ internal val LocalHeaderActions = staticCompositionLocalOf<((List<HeaderAction>?
 @Composable
 internal fun RowScope.HeaderActionButtons(actions: List<HeaderAction>) {
     actions.forEach { action ->
-        IconButton(onClick = action.onClick, enabled = action.enabled) { Icon(action.icon, action.description, tint = action.tint) }
+        HeaderIconButton(action.icon, action.description, action.onClick, active = action.active, enabled = action.enabled)
     }
 }
 

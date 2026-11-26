@@ -170,22 +170,8 @@ fun HermesChatScreen(viewModel: HermesChatViewModel, onClose: () -> Unit, onPlay
         Scaffold(
             topBar = {
                 TopAppBar(
-                    title = {
-                        androidx.compose.foundation.layout.Row(verticalAlignment = Alignment.CenterVertically) {
-                            // The same Home / library switcher as the rest of the app; choosing something leaves the chat and the app goes there.
-                            if (state.libraries.isNotEmpty()) Box(Modifier.width(84.dp)) {
-                                MobileLibraryRail(
-                                    state.libraries, null, MobileShellDestination.Home,
-                                    { PendingShellOpen.target = PendingShellOpen.HOME; onClose() },
-                                    false, false, {}, {},
-                                    { PendingShellOpen.target = PendingShellOpen.SETTINGS; onClose() },
-                                    { library -> PendingShellOpen.target = PendingShellOpen.library(library.id); onClose() },
-                                    chatName = state.name,
-                                )
-                            }
-                            Text(state.name, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(start = 8.dp))
-                        }
-                    },
+                    // The name only: the chat is its own screen, and the dock behind it is the switcher.
+                    title = { Text(state.name, maxLines = 1, overflow = TextOverflow.Ellipsis) },
                     navigationIcon = { IconButton({ scope.launch { drawer.open() } }) { Icon(Icons.Default.Menu, "Conversations") } },
                     actions = {
                         if (state.voice.canSpeak || state.avatar != null) IconButton({ showVoice = true }) { Icon(Icons.Default.Settings, "Chat settings") }

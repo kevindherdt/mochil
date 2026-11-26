@@ -1,5 +1,6 @@
 package net.kdhmedia.mochil.ui
 
+import androidx.compose.material3.TextButton
 import androidx.compose.foundation.border
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
@@ -24,7 +25,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.material.icons.filled.Headphones
 import androidx.compose.material.icons.filled.Check
@@ -62,6 +62,7 @@ import coil3.request.ImageRequest
 import net.kdhmedia.mochil.catalogue.BookSummary
 import net.kdhmedia.mochil.catalogue.LibraryState
 import net.kdhmedia.mochil.catalogue.catalogueItemIdentityKey
+import net.kdhmedia.mochil.ui.kit.LucideIcons
 import net.kdhmedia.mochil.ui.theme.LocalReduceMotion
 
 @Composable
@@ -117,12 +118,13 @@ private fun DetailValue(label: String, value: String) {
 }
 
 @Composable
-internal fun BookGrid(books: List<BookSummary>, coverUrl: (BookSummary) -> String?, header: String?, state: LibraryState?, onRead: (BookSummary) -> Unit, onCollect: (BookSummary) -> Unit, onMore: () -> Unit, onRetry: () -> Unit) {
+internal fun BookGrid(books: List<BookSummary>, coverUrl: (BookSummary) -> String?, header: String?, state: LibraryState?, onRead: (BookSummary) -> Unit, onCollect: (BookSummary) -> Unit, onMore: () -> Unit, onRetry: () -> Unit, kind: String = "") {
     LazyVerticalGrid(
         columns = GridCells.Adaptive(136.dp), contentPadding = PaddingValues(20.dp),
         horizontalArrangement = Arrangement.spacedBy(14.dp), verticalArrangement = Arrangement.spacedBy(22.dp),
     ) {
-        items(books, key = { catalogueItemIdentityKey(it.libraryId, it.id) }) { book -> BookCard(book, coverUrl(book), header, onRead, onCollect) }
+        val libraryKind = kind.ifEmpty { state?.selected?.kind.orEmpty() }
+        items(books, key = { catalogueItemIdentityKey(it.libraryId, it.id) }) { book -> BookCard(book, libraryKind, coverUrl(book), header, onRead, onCollect) }
         if (state != null) publicationPaging(state, onMore, onRetry)
     }
 }
@@ -137,107 +139,62 @@ internal fun BookList(books: List<BookSummary>, coverUrl: (BookSummary) -> Strin
     }
 }
 
-/**
- * What a card says under its cover, in the one or two words a reader scans for. It names the state or the
- * format, never a feature: "Narrated" is true of exactly those books that carry a recording, where the mock
- * ups this card follows had an "AI Whispersync ready" badge on everything.
- */
-internal fun bookCardTag(book: BookSummary): String = when {
-    // The foot of the cover already says where the reader is, so the pill carries the one fact it cannot.
-    book.readAlong -> "Narrated"
-    book.status == "on_hold" -> "On hold"
-    book.status == "dropped" -> "Dropped"
-    else -> ""
-}
+/** The bar is the only reading state on a card now, so it is drawn from the first sliver: a book just marked "Reading"
+ *  sits at 0.1%, and the old card said "Started" exactly there. A finished book has the tick instead. */
+internal fun bookProgressBarShown(book: BookSummary): Boolean =
+    !book.finished && (book.readingFraction ?: 0.0) > 0.0
 
-/**
- * The line printed over the artwork's foot: what fraction is read. A finished book carries no foot at all --
- * [BookFinishedBadge] is the one word the web ("Read", 0.1.83) replaced with a small corner tick, because a
- * full-width "Read" strip on every finished book read as a wall of green bars, not information.
- */
-internal fun bookProgressLabel(book: BookSummary): String? {
-    if (book.finished) return null
-    val fraction = book.readingFraction ?: 0.0
-    if (fraction <= 0.0) return null
-    // A book opened once sits at a fraction of a percent; "0% read" is a number that says nothing, and a bar
-    // drawn at that width is a 1px sliver that reads as a fault. Under one percent the foot says "Started".
-    return if ((fraction * 100).toInt() < 1) "Started" else "${(fraction * 100).toInt()}% read"
-}
-
-/** The bar under the foot, only once there is a width worth drawing. A finished book has no foot (see above). */
-internal fun bookProgressBarShown(book: BookSummary): Boolean {
-    if (book.finished) return false
-    val fraction = book.readingFraction ?: 0.0
-    return fraction > 0.0 && (fraction * 100).toInt() >= 1
-}
-
-/** Where the book sits in its series, and nothing else: "Book 3". The stored index only counts when the book
- *  actually belongs to a series (every row carries a 1 by default), otherwise a zero-padded title prefix is the
- *  only honest source. A number that is the title ("1984") is never a position. */
-internal fun bookSeriesLabel(book: BookSummary): String {
+/** Where the book sits in its series, as the web's plate: "Vol. 3". Only a stored index that is a real position counts,
+ *  and a number that is the title ("1984") is never one. */
+internal fun bookVolumePlate(book: BookSummary): String? {
     val stored = book.seriesIndex ?: 0.0
     val inSeries = book.series.trim().isNotEmpty() && !book.series.trim().equals(book.title.trim(), ignoreCase = true)
-    if (inSeries && stored > 0 && stored % 1.0 == 0.0) return "Book ${stored.toInt()}"
-    val match = Regex("""^0(\d{1,2})\s*[-–—:.]?\s+""").find(book.title) ?: return ""
-    return "Book ${match.groupValues[1].toInt()}"
+    if (inSeries && stored > 0 && stored % 1.0 == 0.0) return "Vol. ${stored.toInt()}"
+    // A zero-padded title prefix ("01 Dies the Fire") is a position too, as the web's titles.ts still reads it.
+    val match = Regex("""^0(\d{1,2})\s*[-–—:.]?\s+(?=\S)""").find(book.title) ?: return null
+    return "Vol. ${match.groupValues[1].toInt()}"
 }
 
 @Composable
-private fun BookCard(book: BookSummary, coverUrl: String?, header: String?, onRead: (BookSummary) -> Unit, onCollect: (BookSummary) -> Unit) {
+internal fun BookCard(
+    book: BookSummary, kind: String, coverUrl: String?, header: String?,
+    onRead: (BookSummary) -> Unit, onCollect: (BookSummary) -> Unit,
+    /** A synthetic cover for goldens; the shelf passes null and the real artwork is loaded. */
+    art: (@Composable (Modifier) -> Unit)? = null,
+    /** Long press removes this card from Discover; null means the long press adds it to a collection instead. */
+    onDismiss: (() -> Unit)? = null,
+) {
+    val glyph = remember(kind, book.libraryId) { libraryGlyph(kind, book.libraryId) }
     val fraction = if (book.finished) 1f else (book.readingFraction ?: 0.0).toFloat()
-    val progressLabel = bookProgressLabel(book)
     Column(
-        Modifier.gridCard().combinedClickable(onClickLabel = "Read ${book.title}", role = Role.Button, onClick = { onRead(book) }, onLongClickLabel = "Add ${book.title} to collection", onLongClick = { onCollect(book) }).padding(4.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
+        Modifier.gridCard().combinedClickable(
+            onClickLabel = "Read ${book.title}", role = Role.Button, onClick = { onRead(book) },
+            onLongClickLabel = if (onDismiss != null) "Remove ${book.title} from Discover" else "Add ${book.title} to collection",
+            onLongClick = { if (onDismiss != null) onDismiss() else onCollect(book) },
+        ).padding(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Box(Modifier.fillMaxWidth().aspectRatio(0.67f).clip(RoundedCornerShape(16.dp))) {
-            PublicationArtwork(coverUrl, header, "Cover of ${book.title}", Modifier.fillMaxSize())
-            // Top-left, opposite the read-along/collect cluster: the one fact that is binary and needs no words.
-            if (book.finished) BookFinishedBadge(Modifier.align(Alignment.TopStart).padding(6.dp))
-            Row(Modifier.align(Alignment.TopEnd).padding(6.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                if (book.readAlong) ReadAlongBadge()
+        // The poster is inset in the card at radius 8, as on the web; the marks sit on it, never on a text line below.
+        Box(Modifier.fillMaxWidth().aspectRatio(0.67f).clip(RoundedCornerShape(8.dp))) {
+            if (art != null) art(Modifier.fillMaxSize()) else PublicationArtwork(coverUrl, header, "Cover of ${book.title}", Modifier.fillMaxSize())
+            ArtworkKindBadge(glyph, modifier = Modifier.align(Alignment.TopStart).padding(8.dp))
+            // Stacked, as the web's .topRight is: a row of three would run into the kind badge from about 1.3x font.
+            Column(Modifier.align(Alignment.TopEnd).padding(8.dp), horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                bookVolumePlate(book)?.let { ArtworkPlate(it) }
+                // On the same dark plate as the kind glyph: a bare white icon disappeared on a pale cover in light themes.
+                if (book.readAlong) ArtworkKindBadge(LucideIcons.Headphones, "Has its own recording")
                 CollectButton("Add ${book.title} to a collection", { onCollect(book) })
             }
-            // The foot of the artwork carries the progress, so the grid stays a wall of covers rather than a
-            // wall of covers with a second column of text under each one.
-            if (progressLabel != null) {
-                Column(
-                    Modifier.align(Alignment.BottomCenter).fillMaxWidth()
-                        .background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(alpha = .78f))))
-                        .padding(start = 10.dp, end = 10.dp, top = 18.dp, bottom = 9.dp),
-                    verticalArrangement = Arrangement.spacedBy(5.dp),
-                ) {
-                    Text(progressLabel, style = MaterialTheme.typography.labelMedium, color = Color.White)
-                    if (bookProgressBarShown(book)) {
-                        ThinProgress(progress = { fraction }, modifier = Modifier.fillMaxWidth().height(3.dp))
-                    }
-                }
-            }
+            if (book.finished) BookFinishedBadge(Modifier.align(Alignment.BottomStart).padding(8.dp))
+            else if (bookProgressBarShown(book)) ArtworkProgressScrim({ fraction }, "${(fraction * 100).toInt()}% read", Modifier.align(Alignment.BottomCenter))
         }
-        Text(book.title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, minLines = 2, maxLines = 2, overflow = TextOverflow.Ellipsis)
-        val series = bookSeriesLabel(book)
-        if (series.isNotEmpty()) {
-            Text(series, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary, maxLines = 1)
+        // Title two lines and author one, so every author in a row lands on the same line without a fixed height;
+        // 4 between them, as the web's .textBlock gap, and 8 was the poster-to-block gap above.
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(book.title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, minLines = 2, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            Text(book.authors.joinToString().ifEmpty { " " }, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, minLines = 1, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
-        Text(book.authors.joinToString(), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        val tag = bookCardTag(book)
-        if (tag.isNotEmpty()) CardTagPill(tag)
     }
-}
-
-/** The small outlined pill under a card: state or format in one word, never a claim about the software. */
-@Composable
-private fun CardTagPill(label: String) {
-    Text(
-        label,
-        style = MaterialTheme.typography.labelSmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        maxLines = 1,
-        modifier = Modifier
-            .clip(RoundedCornerShape(50))
-            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(50))
-            .padding(horizontal = 8.dp, vertical = 3.dp),
-    )
 }
 
 /** The words "Read-along" with the headphones, for rows where there is no cover corner to mark. */
@@ -318,9 +275,13 @@ internal fun InlineError(message: String, onRetry: () -> Unit) {
 }
 
 @Composable
-internal fun PublicationEmpty(message: String) {
+internal fun PublicationEmpty(message: String, actionLabel: String? = null, onAction: () -> Unit = {}) {
     Box(Modifier.fillMaxSize().padding(32.dp), contentAlignment = Alignment.Center) {
-        Text(message, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        // One muted line, and the one thing that can be done about it.
+        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(message, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            if (actionLabel != null) TextButton(onClick = onAction) { Text(actionLabel) }
+        }
     }
 }
 

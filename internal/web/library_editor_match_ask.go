@@ -97,6 +97,11 @@ var matchAskJob = editorJob{
 			return "", errFindingsNotSaved
 		}
 		if asked == 0 {
+			// The old sentence claimed the match run had not happened, which is false whenever it has: a book whose
+			// match is certain, or that is already linked to Hardcover, is not something to ask about.
+			if len(books) > 0 {
+				return fmt.Sprintf("Nothing to ask: none of the %d selected books has an unsure match waiting. They already have a certain match stored, or are linked to Hardcover already.", len(books)), nil
+			}
 			return "Nothing to ask: no book has an unsure Hardcover match waiting. Run Find Hardcover matches first.", nil
 		}
 		message := fmt.Sprintf("Asked Hermes about %d books: %d picked, %d still unsure", asked, picked, unsure)

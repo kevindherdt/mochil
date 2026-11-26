@@ -193,6 +193,12 @@ func isbnNote(result isbn.Result) string {
 
 // bounded cuts s to at most limit runes, ending with an ellipsis, without splitting a multi-byte character in half.
 func bounded(limit int, s string) string {
+	// Bytes are never fewer than runes, so a string shorter in bytes than the limit already fits and is returned
+	// as it is. Converting to a rune slice first allocated a copy of every note — most of the cost of wording them —
+	// to find out that nearly all of them were short enough.
+	if len(s) <= limit {
+		return s
+	}
 	runes := []rune(s)
 	if len(runes) <= limit {
 		return s

@@ -1,6 +1,7 @@
 package net.kdhmedia.mochil.ui
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import net.kdhmedia.mochil.ui.theme.LocalReduceMotion
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -26,6 +27,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -67,11 +70,11 @@ internal fun ArtistAlbums(
 internal fun GroupCoverGrid(state: MusicState, artworkUrl: (AudioGroup) -> String, header: String?, onOpen: (AudioGroup) -> Unit, onMore: () -> Unit, onRetry: () -> Unit) {
     LazyVerticalGrid(columns = GridCells.Adaptive(136.dp), contentPadding = PaddingValues(20.dp), horizontalArrangement = Arrangement.spacedBy(14.dp), verticalArrangement = Arrangement.spacedBy(22.dp)) {
         items(state.groups, key = AudioGroup::stableKey) { group ->
-            Column(Modifier.gridCard().clickable(onClickLabel = "Open ${group.name}", role = Role.Button) { onOpen(group) }.padding(10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                AuthenticatedArtwork(artworkUrl(group), header, group.name, Modifier.fillMaxWidth().aspectRatio(1f))
-                Text(group.name, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Medium, minLines = 2, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                Text(groupCaption(group, state.libraryKind), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            }
+            MusicAlbumCard(
+                title = group.name, subtitle = groupCaption(group, state.libraryKind),
+                art = { AuthenticatedArtwork(artworkUrl(group), header, group.name, Modifier.fillMaxWidth().aspectRatio(1f)) },
+                onClick = { onOpen(group) },
+            )
         }
         if (state.error != null) item(key = "group-error") { PagingError(state.error, onRetry) }
         else if (state.nextOffset != null) item(key = "group-next") { LaunchedEffect(state.nextOffset) { onMore() }; PagingSpinner() }
@@ -192,6 +195,29 @@ private fun GroupActionMenu(state: MusicState, tracks: List<AudioTrack>, onDownl
                 DropdownMenuItem(text = { Text("Favorites") }, leadingIcon = { Icon(Icons.Default.Favorite, contentDescription = null) }, onClick = { expanded = false; onFavoritesOnly(true) })
                 DropdownMenuItem(text = { Text("Downloaded") }, leadingIcon = { Icon(Icons.Default.DownloadDone, contentDescription = null) }, onClick = { expanded = false; onDownloadedOnly(true) })
             }
+        }
+    }
+}
+
+/**
+ * An album or playlist: square artwork, the name, and one muted line — the web's MusicCard (web/src/ui/MusicCard.tsx). No
+ * progress, no badge: a group has no position of its own, and the format of a whole album is not one fact. Equal text
+ * heights come from two title lines and one subtitle line, not from a fixed height.
+ */
+@Composable
+internal fun MusicAlbumCard(title: String, subtitle: String, art: @Composable () -> Unit, onClick: () -> Unit, modifier: Modifier = Modifier, onDismiss: (() -> Unit)? = null) {
+    Column(
+        modifier.gridCard().combinedClickable(
+            onClickLabel = "Open $title", role = Role.Button, onClick = onClick,
+            onLongClickLabel = if (onDismiss != null) "Remove $title from Discover" else null,
+            onLongClick = onDismiss,
+        ).padding(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Box(Modifier.fillMaxWidth().aspectRatio(1f).clip(RoundedCornerShape(8.dp))) { art() }
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, minLines = 2, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            Text(subtitle.ifEmpty { " " }, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, minLines = 1, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
     }
 }

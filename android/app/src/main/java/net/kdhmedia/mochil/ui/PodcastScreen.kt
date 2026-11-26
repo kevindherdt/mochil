@@ -1,5 +1,6 @@
 package net.kdhmedia.mochil.ui
 
+import net.kdhmedia.mochil.ui.kit.LucideIcons
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -139,9 +140,9 @@ private fun PodcastBrowse(
     Column(Modifier.fillMaxSize()) {
         val covers = state.layout == PodcastLayout.Covers
         HeaderActions(listOf(
-            HeaderAction(Icons.Default.Add, "Subscribe to a podcast", onSubscribe, enabled = !state.subscriptionBusy),
-            HeaderAction(Icons.Default.Search, "Search podcast shows", onToggleSearch, if (searchExpanded || state.query.isNotBlank()) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant),
-            HeaderAction(if (covers) Icons.AutoMirrored.Filled.ViewList else Icons.Default.GridView, if (covers) "Use list view" else "Use cover view", { onLayout(if (covers) PodcastLayout.List else PodcastLayout.Covers) }),
+            HeaderAction(LucideIcons.Plus, "Subscribe to a podcast", onSubscribe, enabled = !state.subscriptionBusy),
+            HeaderAction(LucideIcons.Search, "Search podcast shows", onToggleSearch, active = searchExpanded || state.query.isNotBlank()),
+            HeaderAction(if (covers) LucideIcons.List else LucideIcons.LayoutGrid, if (covers) "Use list view" else "Use cover view", { onLayout(if (covers) PodcastLayout.List else PodcastLayout.Covers) }),
         ))
         MotionVisibility(searchExpanded) { PodcastSearch(state.query, onSearch) { if (searchExpanded) onToggleSearch() } }
         state.message?.let { Text(it, Modifier.padding(horizontal = 20.dp, vertical = 4.dp), style = MaterialTheme.typography.bodySmall, color = if (state.messageIsError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant) }

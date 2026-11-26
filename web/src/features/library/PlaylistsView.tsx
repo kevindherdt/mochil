@@ -25,6 +25,7 @@ import {
   fetchPlaylists,
   PlaylistConflictError,
   PlaylistNameError,
+  PlaylistNameTakenError,
   renamePlaylist,
   replacePlaylist,
   type Playlist,
@@ -149,6 +150,13 @@ export function PlaylistDetail({
   // between a move, a removal and an undo is only which array is sent.
   const write = useMutation({
     mutationFn: (entries: PlaylistEntry[]) => replacePlaylist(name, entries, query.data?.revision ?? null),
+    // No revision juggling here, and that is deliberate. A *slow* refetch cannot be clicked through: this handler is
+    // awaited, so the mutation stays pending and the buttons stay disabled. A *failed* one does not leave a stale list
+    // to edit either — this screen is the one <Async> consumer that passes `failOnRefetchError`, so a failed refetch
+    // swaps in the error panel and Retry is the only way forward, which brings a fresh revision with it. (Everywhere
+    // else keeps the loaded data and says it could not refresh; here a stale revision makes the next edit fail.)
+    // An earlier draft adopted the PUT's ETag into the cache for that window; a test written to
+    // exercise it showed the window does not exist, so the code is gone rather than kept "just in case".
     onSuccess: async () => {
       setProblem(null);
       await query.refetch();
@@ -235,7 +243,7 @@ export function PlaylistDetail({
         </Text>
       )}
 
-      <Async query={query} empty={(playlist) => playlist.tracks.length === 0} emptyMessage="This playlist has no tracks yet. Open an album and add one.">
+      <Async query={query} failOnRefetchError empty={(playlist) => playlist.tracks.length === 0} emptyMessage="This playlist has no tracks yet. Open an album and add one.">
         {(playlist) => (
           <Stack gap={8}>
             <Inline gap={8} align="center">
@@ -310,7 +318,9 @@ export function AddToPlaylistMenu({ entry, label = "Add to playlist" }: { entry:
         try {
           await createPlaylist(name);
         } catch (error) {
-          if (!(error instanceof PlaylistNameError) || !error.message.includes("exists")) throw error;
+          // Taken is fine here — the playlist exists, which is what this call wanted. Anything else (an unusable
+          // name, a dead session) is a real failure and belongs in front of the person, not swallowed.
+          if (!(error instanceof PlaylistNameTakenError)) throw error;
         }
       }
       await appendToPlaylist(name, entry);
@@ -332,11 +342,17 @@ export function AddToPlaylistMenu({ entry, label = "Add to playlist" }: { entry:
       {pickerOpen && (
         <Card>
           <Stack gap={4}>
-            <Async query={summaries} empty={() => false} emptyMessage="">
+            <Async query={summaries}>
               {(lists) => (
                 <Stack gap={4}>
                   {lists.map((list) => (
-                    <Button key={list.name} variant="secondary" disabled={add.isPending} onClick={() => add.mutate(list.name)}>
+                    <Button
+                      key={list.name}
+                      variant="secondary"
+                      aria-label={`Add to ${list.name}`}
+                      disabled={add.isPending}
+                      onClick={() => add.mutate(list.name)}
+                    >
                       {list.name} · {list.count === 1 ? "1 track" : `${list.count} tracks`}
                     </Button>
                   ))}

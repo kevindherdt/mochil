@@ -101,9 +101,18 @@ function ChangeRow({ change }: { change: EditorChange }) {
   const to = change.to.trim();
   return (
     <div style={{ display: "grid", gridTemplateColumns: "96px minmax(0, 1fr)", gap: "var(--space-8)", alignItems: "start" }}>
-      <Text size="11" muted>
-        {label}
-      </Text>
+      <div>
+        <Text size="11" muted>
+          {label}
+        </Text>
+        {/* Where this value came from. A library can have a 251-row title diff and a 41-row ISBN fill staged at once,
+            and a diff that does not say which tool proposed it is a diff nobody can attribute. */}
+        {change.source !== undefined && (
+          <Text size="10" muted>
+            From {change.source}
+          </Text>
+        )}
+      </div>
       <div>
         {LIST_FIELDS.has(change.field) ? (
           <ListDiff from={from} to={to} />
@@ -166,6 +175,10 @@ export function ReviewPanel({
   }
   const order = [...byBook.keys()];
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+  // One source for the whole review (a single task's changes) is worth saying once at the top; a mixed batch says it
+  // per change, which ChangeRow already does.
+  const sources = new Set(changes.map((change) => change.source).filter((source) => source !== undefined));
+  const oneSource = sources.size === 1 ? [...sources][0] : undefined;
 
   if (changes.length === 0) {
     return (
@@ -184,7 +197,7 @@ export function ReviewPanel({
               {changes.length} change{changes.length === 1 ? "" : "s"} in {order.length} book{order.length === 1 ? "" : "s"}
             </Heading>
             <Text size="11" muted>
-              Nothing is written until you press Apply.
+              {oneSource !== undefined ? `From ${oneSource} · ` : ""}Nothing is written until you press Apply.
             </Text>
           </Stack>
           <Inline gap={8}>

@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material.icons.outlined.FolderOpen
 import androidx.compose.material.icons.outlined.GridView
 import androidx.compose.material.icons.outlined.Layers
@@ -59,7 +58,9 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.unit.dp
+import net.kdhmedia.mochil.catalogue.BookStatusFilter
 import net.kdhmedia.mochil.catalogue.BookSummary
+import net.kdhmedia.mochil.ui.kit.LucideIcons
 import net.kdhmedia.mochil.catalogue.AuthorSummary
 import net.kdhmedia.mochil.catalogue.LibraryState
 import net.kdhmedia.mochil.catalogue.PublicationCollection
@@ -98,6 +99,10 @@ fun PublicationScreen(
     collectionActions: PublicationCollectionActions,
     onLoadMore: () -> Unit,
     onRetry: () -> Unit,
+    /** Clears the status chip (the empty state's one action). */
+    onShowAll: () -> Unit = {},
+    /** Opens the combined Collections place from the view menu; null when this account hides Collections. */
+    onOpenCollections: (() -> Unit)? = null,
 ) {
     var searchExpanded by rememberSaveable { mutableStateOf(false) }
     BoxWithConstraints(Modifier.fillMaxSize()) {
@@ -106,7 +111,7 @@ fun PublicationScreen(
             BackHandler(onBack = if (state.selectedBook != null) onCloseBook else if (state.selectedAuthor != null) onCloseAuthor else onCloseSeries)
             Row(Modifier.fillMaxSize()) {
                 Box(Modifier.weight(.43f)) {
-                    PublicationBrowse(state, coverUrl, seriesCoverUrl, authorCoverUrl, collectionCoverUrl, authorizationHeader, onGrouping, onSort, onLayout, searchExpanded, { searchExpanded = !searchExpanded }, onOpenSeries, onOpenAuthor, onOpenCollection, onCloseCollection, onRetrySeries, onReadBook, downloadQueue, onSearch, onBucket, onDownloadedOnly, collectionActions, onLoadMore, onRetry)
+                    PublicationBrowse(state, coverUrl, seriesCoverUrl, authorCoverUrl, collectionCoverUrl, authorizationHeader, onGrouping, onSort, onLayout, searchExpanded, { searchExpanded = !searchExpanded }, onOpenSeries, onOpenAuthor, onOpenCollection, onCloseCollection, onRetrySeries, onReadBook, downloadQueue, onSearch, onBucket, onDownloadedOnly, collectionActions, onLoadMore, onRetry, onShowAll, onOpenCollections)
                 }
                 VerticalDivider()
                 Box(Modifier.weight(.57f)) {
@@ -128,7 +133,7 @@ fun PublicationScreen(
             BackHandler(onBack = onCloseAuthor)
             AuthorDetail(requireNotNull(state.selectedAuthor), state, coverUrl, authorizationHeader, onCloseAuthor, onRetrySeries, onLoadMore, onReadBook, collectionActions)
         } else {
-            PublicationBrowse(state, coverUrl, seriesCoverUrl, authorCoverUrl, collectionCoverUrl, authorizationHeader, onGrouping, onSort, onLayout, searchExpanded, { searchExpanded = !searchExpanded }, onOpenSeries, onOpenAuthor, onOpenCollection, onCloseCollection, onRetrySeries, onReadBook, downloadQueue, onSearch, onBucket, onDownloadedOnly, collectionActions, onLoadMore, onRetry)
+            PublicationBrowse(state, coverUrl, seriesCoverUrl, authorCoverUrl, collectionCoverUrl, authorizationHeader, onGrouping, onSort, onLayout, searchExpanded, { searchExpanded = !searchExpanded }, onOpenSeries, onOpenAuthor, onOpenCollection, onCloseCollection, onRetrySeries, onReadBook, downloadQueue, onSearch, onBucket, onDownloadedOnly, collectionActions, onLoadMore, onRetry, onShowAll, onOpenCollections)
         }
     }
 }
@@ -176,10 +181,12 @@ private fun PublicationBrowse(
     collectionActions: PublicationCollectionActions,
     onLoadMore: () -> Unit,
     onRetry: () -> Unit,
+    onShowAll: () -> Unit,
+    onOpenCollections: (() -> Unit)?,
 ) {
     val books = rememberVisibleBooks(state)
     Column(Modifier.fillMaxSize()) {
-        PublicationControls(state, onGrouping, onSort, onLayout, searchExpanded, state.query.isNotBlank() || state.bucket.isNotBlank() || state.downloadedOnly) {
+        PublicationControls(state, onGrouping, onSort, onLayout, searchExpanded, state.query.isNotBlank() || state.bucket.isNotBlank() || state.downloadedOnly, onOpenCollections) {
             onToggleSearch()
         }
         MotionVisibility(searchExpanded && state.grouping != PublicationGrouping.Collections) {
@@ -202,15 +209,27 @@ private fun PublicationBrowse(
         Box(Modifier.fillMaxSize()) { when {
             state.grouping == PublicationGrouping.Series && state.series.isEmpty() -> PublicationEmpty("No series were found on this shelf.")
             state.grouping == PublicationGrouping.Authors && state.authors.isEmpty() -> PublicationEmpty("No authors were found on this shelf.")
-            publicationGroupingUsesBookEmptyState(state.grouping) && books.isEmpty() -> PublicationEmpty(if (state.downloadedOnly) "No downloaded books on this shelf." else when (state.grouping) { PublicationGrouping.Continue -> "Books you start will appear here."; PublicationGrouping.Recent -> "No recently added books were found."; else -> "This shelf has no books." })
+            publicationGroupingUsesBookEmptyState(state.grouping) && books.isEmpty() ->
+                PublicationEmpty(publicationEmptyMessage(state.grouping, state.downloadedOnly, state.status, state.query), "Show all".takeIf { state.status != BookStatusFilter.All && !state.downloadedOnly }, onShowAll)
             state.grouping == PublicationGrouping.Series && state.currentLayout() == PublicationLayout.Covers -> SeriesGrid(state, seriesCoverUrl, authorizationHeader, onOpenSeries, collectionActions.series, onLoadMore, onRetry)
             state.grouping == PublicationGrouping.Series -> SeriesList(state, coverUrl, authorizationHeader, onOpenSeries, onReadBook, collectionActions, onLoadMore, onRetry, onRetrySeries)
             state.grouping == PublicationGrouping.Authors -> AuthorBrowse(state, authorCoverUrl, authorizationHeader, onOpenAuthor, onLoadMore, onRetry)
             state.grouping == PublicationGrouping.Collections -> PublicationCollections(state, coverUrl, collectionCoverUrl, authorizationHeader, onOpenCollection, onCloseCollection, onReadBook, collectionActions.book, collectionActions.rename, collectionActions.delete)
-            state.currentLayout() == PublicationLayout.Covers -> BookGrid(books, coverUrl, authorizationHeader, if (state.downloadedOnly) null else state, onReadBook, collectionActions.book, onLoadMore, onRetry)
+            state.currentLayout() == PublicationLayout.Covers -> BookGrid(books, coverUrl, authorizationHeader, if (state.downloadedOnly) null else state, onReadBook, collectionActions.book, onLoadMore, onRetry, kind = state.selected?.kind.orEmpty())
             else -> BookList(books, coverUrl, authorizationHeader, if (state.downloadedOnly) null else state, onReadBook, collectionActions.book, onLoadMore, onRetry)
         } }
     }
+}
+
+/** What an empty list of books says: the chip first (a filter is why it is empty), then the older views' own lines. */
+internal fun publicationEmptyMessage(grouping: PublicationGrouping, downloadedOnly: Boolean, status: BookStatusFilter, query: String = ""): String = when {
+    // A search that matched nothing is the reason, whatever chip is on.
+    query.isNotBlank() -> "Nothing matches \"$query\"."
+    downloadedOnly -> "No downloaded books on this shelf."
+    status != BookStatusFilter.All -> status.emptyMessage("books")
+    grouping == PublicationGrouping.Continue -> "Books you start will appear here."
+    grouping == PublicationGrouping.Recent -> "No recently added books were found."
+    else -> "This shelf has no books."
 }
 
 internal fun publicationGroupingUsesBookEmptyState(grouping: PublicationGrouping): Boolean =
@@ -261,18 +280,17 @@ private fun AlphabetRail(selected: String, onSelect: (String) -> Unit) {
 }
 
 @Composable
-private fun PublicationControls(state: LibraryState, onGrouping: (PublicationGrouping) -> Unit, onSort: (String) -> Unit, onLayout: (PublicationLayout) -> Unit, searchExpanded: Boolean, filterActive: Boolean, onToggleSearch: () -> Unit) {
-    // One row only: the library switcher, then search and the View button. No tab row, so the covers start right below.
+private fun PublicationControls(state: LibraryState, onGrouping: (PublicationGrouping) -> Unit, onSort: (String) -> Unit, onLayout: (PublicationLayout) -> Unit, searchExpanded: Boolean, filterActive: Boolean, onOpenCollections: (() -> Unit)?, onToggleSearch: () -> Unit) {
+    // Search and the view menu go up to the header, at the right of the status chips, so the covers start right below.
     var sheet by remember { mutableStateOf(false) }
-    val quiet = MaterialTheme.colorScheme.onSurfaceVariant
     HeaderActions(listOfNotNull(
         if (state.grouping != PublicationGrouping.Collections) HeaderAction(
-            Icons.Default.Search, if (searchExpanded) "Close search and filters" else "Search and filter", onToggleSearch,
-            if (searchExpanded || filterActive) MaterialTheme.colorScheme.primary else quiet,
+            LucideIcons.Search, if (searchExpanded) "Close search and filters" else "Search and filter", onToggleSearch,
+            active = searchExpanded || filterActive,
         ) else null,
-        HeaderAction(Icons.Outlined.Tune, "View options", { sheet = true }, quiet),
+        HeaderAction(LucideIcons.Layers, "View options", { sheet = true }),
     ))
-    if (sheet) PublicationViewSheet(state, onGrouping, onSort, onLayout) { sheet = false }
+    if (sheet) PublicationViewSheet(state, onGrouping, onSort, onLayout, onOpenCollections) { sheet = false }
 }
 
 

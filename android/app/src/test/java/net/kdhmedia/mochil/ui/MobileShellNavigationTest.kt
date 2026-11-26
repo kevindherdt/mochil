@@ -1,32 +1,30 @@
 package net.kdhmedia.mochil.ui
 
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class MobileShellNavigationTest {
-    @Test fun `Home delegates system Back while every opened root is handled`() {
-        assertFalse(handlesMobileShellBack(MobileShellDestination.Home))
-        MobileShellDestination.entries.filterNot { it == MobileShellDestination.Home }.forEach {
-            assertTrue(handlesMobileShellBack(it))
+    @Test fun `the app opens on Library like the web`() {
+        assertEquals(MobileShellDestination.Library, MOBILE_SHELL_START)
+    }
+
+    @Test fun `Library delegates system Back and every other root handles it`() {
+        assertFalse(handlesMobileShellBack(MobileShellDestination.Library))
+        MobileShellDestination.entries.filterNot { it == MobileShellDestination.Library }.forEach {
+            assertTrue("$it handles Back", handlesMobileShellBack(it))
         }
     }
 
-    @Test fun `auxiliary roots return to the primary destination that opened them`() {
-        for (auxiliary in listOf(MobileShellDestination.Collections, MobileShellDestination.Sources, MobileShellDestination.Settings)) {
-            assertTrue(mobileShellBackTarget(auxiliary, MobileShellDestination.Library) == MobileShellDestination.Library)
-            assertTrue(mobileShellBackTarget(auxiliary, MobileShellDestination.Home) == MobileShellDestination.Home)
-        }
-        assertTrue(mobileShellBackTarget(MobileShellDestination.Library, MobileShellDestination.Library) == MobileShellDestination.Home)
+    @Test fun `Back is handled from Library while a vault is open`() {
+        assertTrue(handlesMobileShellBack(MobileShellDestination.Library, vaultOpen = true))
+        assertFalse(handlesMobileShellBack(MobileShellDestination.Library, vaultOpen = false))
     }
 
-    @Test fun `only Home and Library can become an auxiliary return destination`() {
-        assertTrue(mobileShellSettingsBack(MobileShellDestination.Collections, MobileShellDestination.Library) == MobileShellDestination.Collections)
-        assertTrue(mobileShellSettingsBack(MobileShellDestination.Library, MobileShellDestination.Library) == MobileShellDestination.Library)
-        assertTrue(mobileShellSettingsBack(MobileShellDestination.Home, MobileShellDestination.Home) == MobileShellDestination.Home)
-        assertTrue(mobileShellAuxiliaryReturn(MobileShellDestination.Library, MobileShellDestination.Home) == MobileShellDestination.Library)
-        assertTrue(mobileShellAuxiliaryReturn(MobileShellDestination.Home, MobileShellDestination.Library) == MobileShellDestination.Home)
-        assertTrue(mobileShellAuxiliaryReturn(MobileShellDestination.Settings, MobileShellDestination.Library) == MobileShellDestination.Library)
-        assertTrue(mobileShellAuxiliaryReturn(MobileShellDestination.Settings, MobileShellDestination.Sources) == MobileShellDestination.Home)
+    @Test fun `Back from any other root goes to Library, not to where it was opened from`() {
+        MobileShellDestination.entries.filterNot { it == MobileShellDestination.Library }.forEach {
+            assertEquals("Back from $it", MobileShellDestination.Library, mobileShellBackTarget(it))
+        }
     }
 }

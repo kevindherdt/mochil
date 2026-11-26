@@ -25,6 +25,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.flow.StateFlow
@@ -33,7 +34,9 @@ import net.kdhmedia.mochil.audio.AudioTrack
 import net.kdhmedia.mochil.audio.MusicGrouping
 import net.kdhmedia.mochil.audio.MusicLayout
 import net.kdhmedia.mochil.audio.MusicState
+import net.kdhmedia.mochil.catalogue.BookStatusFilter
 import net.kdhmedia.mochil.catalogue.BookSummary
+import net.kdhmedia.mochil.catalogue.showsStatusChips
 import net.kdhmedia.mochil.catalogue.AuthorSummary
 import net.kdhmedia.mochil.catalogue.DownloadQueueItem
 import net.kdhmedia.mochil.catalogue.LibraryState
@@ -125,19 +128,11 @@ fun LibraryScreen(
     onLoadMoreAudio: () -> Unit,
     onRetryAudio: () -> Unit,
     onPlayAudio: (AudioTrack) -> Unit,
-    onOpenSettings: () -> Unit,
-    onOpenHome: () -> Unit,
     showCollections: Boolean,
-    showSources: Boolean,
     onOpenCollections: () -> Unit,
-    onOpenSources: () -> Unit,
+    onStatusFilter: (BookStatusFilter) -> Unit,
 ) {
-    var headerActions by remember { mutableStateOf<List<HeaderAction>?>(null) }
-    val expandedNavigation = LocalExpandedMobileNavigation.current
-    val headerSlot = remember(expandedNavigation) { if (expandedNavigation) null else { content: List<HeaderAction>? -> headerActions = content } }
-    androidx.compose.runtime.CompositionLocalProvider(LocalHeaderActions provides headerSlot) {
-    Column(Modifier.fillMaxSize()) {
-            LibraryHeader(state, onSelectLibrary, onRetry, onOpenSettings, onOpenHome, showCollections, showSources, onOpenCollections, onOpenSources, headerActions)
+    LibraryHeaderFrame(state, onSelectLibrary, onRetry, onStatusFilter) {
             when {
                 state.initialLoading -> AccessibleLoadingIndicator("Loading libraries", Modifier.fillMaxSize())
                 state.error != null && state.books.isEmpty() && state.series.isEmpty() && state.authors.isEmpty() -> CenteredStatus {
@@ -205,6 +200,8 @@ fun LibraryScreen(
                     collectionActions = publicationCollections,
                     onLoadMore = onLoadMore,
                     onRetry = onRetry,
+                    onShowAll = { onStatusFilter(BookStatusFilter.All) },
+                    onOpenCollections = onOpenCollections.takeIf { showCollections },
                 )
                 state.selected != null -> CenteredStatus {
                     Text("${state.selected.name} is connected.", style = MaterialTheme.typography.titleMedium)
@@ -213,22 +210,44 @@ fun LibraryScreen(
                 else -> CenteredStatus { Text("No libraries are available.", color = MaterialTheme.colorScheme.onSurfaceVariant) }
             }
     }
+}
+
+/**
+ * The Library screen's frame: the header, and the slot through which the screen below hands its search and layout buttons up to
+ * the header's row of tools (it cannot draw them there itself, so they travel as data). Kept apart from [LibraryScreen]'s sixty
+ * bindings so the plumbing can be tested with a single button.
+ */
+@Composable
+internal fun LibraryHeaderFrame(
+    state: LibraryState,
+    onSelectLibrary: (LibrarySummary) -> Unit,
+    onRetry: () -> Unit,
+    onStatusFilter: (BookStatusFilter) -> Unit,
+    content: @Composable () -> Unit,
+) {
+    var headerActions by remember { mutableStateOf<List<HeaderAction>?>(null) }
+    val expandedNavigation = LocalExpandedMobileNavigation.current
+    // Two-pane: the list stays visible beside the open book, so its chips must stay too.
+    val twoPane = LocalConfiguration.current.screenWidthDp >= PUBLICATION_TWO_PANE_MIN_WIDTH_DP
+    val headerSlot = remember(expandedNavigation) { if (expandedNavigation) null else { content: List<HeaderAction>? -> headerActions = content } }
+    androidx.compose.runtime.CompositionLocalProvider(LocalHeaderActions provides headerSlot) {
+        Column(Modifier.fillMaxSize()) {
+            val statusChips = if (state.showsStatusChips(keepDetailFilters = twoPane)) StatusChips(state.status, onStatusFilter) else null
+            val offline = if (state.offlineOnly) listOfNotNull("Offline · local downloads only", state.offlineDiagnostic).joinToString("\n") else null
+            LibraryHeader(
+                state.libraries, state.selected, onSelectLibrary, statusChips, headerActions, offline, onRetry,
+                Modifier.padding(horizontal = MOBILE_CONTENT_GUTTER), switcher = !expandedNavigation, toolsRow = state.selected?.showsToolsInHeader() == true,
+            )
+            // The wide layout has the drawer instead of the pills, so its chips sit on a row of their own.
+            if (expandedNavigation && statusChips != null) StatusChipRow(statusChips, Modifier.padding(horizontal = MOBILE_CONTENT_GUTTER))
+            content()
+        }
     }
 }
 
-@Composable
-private fun LibraryHeader(state: LibraryState, onSelect: (LibrarySummary) -> Unit, onRetry: () -> Unit, onOpenSettings: () -> Unit, onOpenHome: () -> Unit, showCollections: Boolean, showSources: Boolean, onOpenCollections: () -> Unit, onOpenSources: () -> Unit, actions: List<HeaderAction>?) {
-    Column(Modifier.fillMaxWidth().padding(horizontal = MOBILE_CONTENT_GUTTER)) {
-        if (!LocalExpandedMobileNavigation.current) Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.weight(1f)) { MobileLibraryRail(state.libraries, state.selected, MobileShellDestination.Library, onOpenHome, showCollections, showSources, onOpenCollections, onOpenSources, onOpenSettings, onSelect) }
-            actions?.let { HeaderActionButtons(it) }
-        }
-        if (state.offlineOnly) Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(listOfNotNull("Offline · local downloads only", state.offlineDiagnostic).joinToString("\n"), Modifier.weight(1f), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
-            TextButton(onClick = onRetry) { Text("Retry") }
-        }
-    }
-}
+/** Shelves whose screen hands its search and layout buttons up to the header; the music screen keeps its own controls. */
+private fun LibrarySummary.showsToolsInHeader(): Boolean =
+    isPublicationLibrary() || kind.lowercase() in setOf("podcasts", "movies", "tv", "anime", "video", "videos")
 
 @Composable
 private fun CenteredStatus(content: @Composable ColumnScope.() -> Unit) {

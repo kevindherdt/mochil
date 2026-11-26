@@ -28,6 +28,6 @@ fun ProvideHermesChatEntry(content: @Composable () -> Unit) {
         val credential = DeviceCredentialStore(context).load() ?: return@LaunchedEffect
         status = runCatching { HermesClient().status(credential) }.getOrNull()
     }
-    val entry = status?.takeIf { it.configured }?.let { HermesChatEntry(it.name) { context.startActivity(HermesChatActivity.intent(context)) } }
+    val entry = status?.takeIf { it.configured }?.let { HermesChatEntry(it.name) { context.startActivity(HermesChatActivity.intent(context).addFlags(android.content.Intent.FLAG_ACTIVITY_SINGLE_TOP)) } }
     CompositionLocalProvider(LocalHermesChatEntry provides entry, content = content)
 }

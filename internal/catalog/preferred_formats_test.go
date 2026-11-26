@@ -2,6 +2,8 @@ package catalog
 
 import (
 	"context"
+	"sync"
+	"sync/atomic"
 	"testing"
 )
 
@@ -100,4 +102,122 @@ func TestPreferredBackendKeepsDifferentPublicationRoles(t *testing.T) {
 	if books := PreferFormats(backend, []string{"epub", "pdf"}).Books(); len(books) != 2 {
 		t.Fatalf("publication roles collapsed: %#v", books)
 	}
+}
+
+// versionedTestBackend publishes a catalogue generation the way Store does, and
+// counts how often the preferred filter had to look at it. Both counters are
+// atomic because Store reads its version through a lock while readers run.
+type versionedTestBackend struct {
+	preferredTestBackend
+	version atomic.Uint64
+	reads   atomic.Int64
+	mu      sync.Mutex
+}
+
+func (b *versionedTestBackend) Books() []Book {
+	b.reads.Add(1)
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.preferredTestBackend.Books()
+}
+
+func (b *versionedTestBackend) CatalogVersion() uint64 { return b.version.Load() }
+
+// publish moves the catalogue to its next generation.
+func (b *versionedTestBackend) publish(books []Book) {
+	b.mu.Lock()
+	b.books = books
+	b.mu.Unlock()
+	b.version.Add(1)
+}
+
+func editionPair(preferredFormat string) []Book {
+	index := 1.0
+	return []Book{
+		{ID: "epub", Title: "Book One", Authors: []string{"Writer"}, Series: "Series", SeriesIndex: &index, Format: "epub"},
+		{ID: "pdf", Title: "Book One", Authors: []string{"Writer"}, Series: "Series", SeriesIndex: &index, Format: preferredFormat},
+	}
+}
+
+func TestPreferredBackendReusesThePublishedGeneration(t *testing.T) {
+	backend := &versionedTestBackend{preferredTestBackend: preferredTestBackend{books: editionPair("pdf")}}
+	preferred := PreferFormats(backend, []string{"epub", "pdf"}).(*PreferredBackend)
+	first := preferred.Books()
+	second := preferred.Snapshot()
+	if backend.reads.Load() != 1 {
+		t.Fatalf("the same generation was filtered %d times", backend.reads.Load())
+	}
+	if len(second) != 1 || second[0].ID != "epub" || first[0].ID != second[0].ID {
+		t.Fatalf("cached snapshot = %#v, first read = %#v", second, first)
+	}
+}
+
+func TestPreferredBackendRepartitionsWhenTheGenerationChanges(t *testing.T) {
+	backend := &versionedTestBackend{preferredTestBackend: preferredTestBackend{books: editionPair("pdf")}}
+	preferred := PreferFormats(backend, []string{"epub", "pdf"}).(*PreferredBackend)
+	if books := preferred.Snapshot(); len(books) != 1 || books[0].ID != "epub" {
+		t.Fatalf("first generation = %#v", books)
+	}
+	// A rescan drops the EPUB, so the PDF becomes the only edition: serving
+	// the remembered answer here would hide the book entirely.
+	backend.publish(editionPair("pdf")[1:])
+	books := preferred.Snapshot()
+	if len(books) != 1 || books[0].ID != "pdf" {
+		t.Fatalf("stale generation served: %#v", books)
+	}
+}
+
+func TestPreferredBackendDoesNotRememberAnUnversionedCatalogue(t *testing.T) {
+	backend := &preferredTestBackend{books: editionPair("pdf")}
+	preferred := PreferFormats(backend, []string{"epub", "pdf"}).(*PreferredBackend)
+	if books := preferred.Snapshot(); len(books) != 1 || books[0].ID != "epub" {
+		t.Fatalf("first read = %#v", books)
+	}
+	backend.books = editionPair("pdf")[1:]
+	if books := preferred.Snapshot(); len(books) != 1 || books[0].ID != "pdf" {
+		t.Fatalf("unversioned catalogue served from a cache: %#v", books)
+	}
+}
+
+func TestPreferredBackendSnapshotIsSharedWhileBooksIsACopy(t *testing.T) {
+	backend := &versionedTestBackend{preferredTestBackend: preferredTestBackend{books: []Book{
+		{ID: "one", Title: "Book One", Authors: []string{"Writer"}, Tags: []string{"tag"}, Format: "epub"},
+	}}}
+	preferred := PreferFormats(backend, []string{"epub"}).(*PreferredBackend)
+	edited := preferred.Books()
+	edited[0].Title = "Renamed"
+	edited[0].Authors[0] = "Someone Else"
+	edited[0].Tags[0] = "other"
+	assertIntact := func(when string) {
+		t.Helper()
+		books := preferred.Snapshot()
+		if len(books) != 1 || books[0].Title != "Book One" || books[0].Authors[0] != "Writer" || books[0].Tags[0] != "tag" {
+			t.Fatalf("%s: edited copy reached the catalogue: %#v", when, books)
+		}
+	}
+	assertIntact("after editing Books")
+	assertIntact("on the next read")
+}
+
+func TestPreferredBackendAnswersConcurrentReadersWhileTheGenerationMoves(t *testing.T) {
+	backend := &versionedTestBackend{preferredTestBackend: preferredTestBackend{books: editionPair("pdf")}}
+	preferred := PreferFormats(backend, []string{"epub", "pdf"}).(*PreferredBackend)
+	var wait sync.WaitGroup
+	for reader := 0; reader < 8; reader++ {
+		wait.Add(1)
+		go func() {
+			defer wait.Done()
+			for pass := 0; pass < 200; pass++ {
+				if books := preferred.Books(); len(books) == 0 {
+					t.Errorf("empty generation")
+					return
+				}
+				_ = preferred.Snapshot()
+			}
+		}()
+	}
+	for scan := 0; scan < 50; scan++ {
+		backend.publish(editionPair("pdf"))
+	}
+	wait.Wait()
 }

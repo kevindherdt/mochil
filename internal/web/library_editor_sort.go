@@ -1,234 +1,330 @@
 package web
 
 import (
+	"bytes"
 	"math"
-	"sort"
+	"slices"
 	"strconv"
 	"strings"
+	"unicode/utf8"
 )
+
+// editorSortKey is one row's comparable form: the value of the column being sorted and of the series and title every
+// order falls back to, folded to lower case once per row instead of on every comparison. Sorting a 5 000-book library
+// compares about 60 000 pairs, and the comparator used to lower-case both rows on each of them — a hundred thousand
+// short-lived strings, which measured as a third of the request's CPU and drove the garbage collection that followed.
+//
+// The folded values are slices of one buffer rather than strings of their own: strings.ToLower allocated a string per
+// row per column — 10 841 of them, 470 kB and 1.5 ms on the 5 430-book library, for text nothing ever reads as a
+// string again. A comparison only needs the bytes.
+type editorSortKey struct {
+	text    []byte  // the sorted column's text, folded; for the isbn column, the isbn part of the identifiers
+	series  []byte  // folded series name, the first fallback
+	title   []byte  // folded title, the last fallback
+	custom  []byte  // a "#column" value, folded
+	number  float64 // a "#column" value that reads as a number
+	numeric bool
+}
+
+// editorSortKeyOf folds one row's sorted value and its fallback values into arena.
+func editorSortKeyOf(row editorRow, column string, arena []byte) (editorSortKey, []byte) {
+	key := editorSortKey{}
+	arena, key.series = appendFolded(arena, row.Series)
+	arena, key.title = appendFolded(arena, row.Title)
+	if strings.HasPrefix(column, "#") {
+		arena, key.custom = appendFolded(arena, row.Custom[column])
+		if number, err := strconv.ParseFloat(row.Custom[column], 64); err == nil {
+			key.number, key.numeric = number, true
+		}
+		return key, arena
+	}
+	var value string
+	switch column {
+	case "title":
+		key.text = key.title
+	case "author":
+		value = firstAuthor(row)
+	case "path":
+		value = row.Path
+	case "format":
+		value = row.Format
+	case "publisher":
+		value = row.Publisher
+	case "published":
+		value = row.Published
+	case "language":
+		value = row.Language
+	case "tags":
+		value = strings.Join(row.Tags, ", ")
+	case "isbn":
+		value = rowISBN(row)
+	case "identifiers":
+		value = row.Identifiers
+	case "title_sort":
+		value = row.TitleSort
+	case "author_sort":
+		value = row.AuthorSort
+	case "description":
+		value = row.Description
+	case "isbn_found":
+		value = row.IsbnFound
+	case "hardcover":
+		value = row.Hardcover
+	case "collections":
+		value = strings.Join(row.Collections, ", ")
+	}
+	if value != "" {
+		arena, key.text = appendFolded(arena, value)
+	}
+	return key, arena
+}
+
+// appendFolded appends the lower-case form of s to arena and returns the grown arena and the folded bytes inside it. A
+// plain ASCII value is folded a byte at a time, which is exactly what strings.ToLower does to it; a value with a byte
+// outside ASCII goes through strings.ToLower, so letters such as É keep the case rules the Unicode tables give them.
+func appendFolded(arena []byte, s string) ([]byte, []byte) {
+	start := len(arena)
+	arena = append(arena, s...)
+	for i := start; i < len(arena); i++ {
+		c := arena[i]
+		if c >= utf8.RuneSelf {
+			// Not ASCII: the Unicode path, which may fold to a different number of bytes.
+			arena = append(arena[:start], strings.ToLower(s)...)
+			return arena, arena[start:]
+		}
+		if 'A' <= c && c <= 'Z' {
+			arena[i] = c + 'a' - 'A'
+		}
+	}
+	return arena, arena[start:]
+}
+
+func firstAuthor(row editorRow) string {
+	if len(row.Authors) == 0 {
+		return ""
+	}
+	return row.Authors[0]
+}
+
+// editorRowBlank says whether a row has nothing in the column being sorted. Such a row stays below the others whichever
+// way the list is sorted.
+func editorRowBlank(row editorRow, column string) bool {
+	switch column {
+	case "author":
+		return firstAuthor(row) == ""
+	case "series":
+		return row.Series == ""
+	case "number":
+		return row.SeriesIndex == nil
+	case "publisher":
+		return row.Publisher == ""
+	case "published":
+		return row.Published == ""
+	case "language":
+		return row.Language == ""
+	case "tags":
+		return len(row.Tags) == 0
+	case "rating":
+		return row.Rating == 0
+	case "words":
+		return row.Words == 0
+	case "pages":
+		return row.Pages == 0
+	case "progress":
+		return row.Progress == 0
+	case "identifiers":
+		return row.Identifiers == ""
+	case "title_sort":
+		return row.TitleSort == ""
+	case "author_sort":
+		return row.AuthorSort == ""
+	case "description":
+		return row.Description == ""
+	case "isbn_found":
+		return row.IsbnFound == ""
+	case "match":
+		return row.Match == nil
+	case "collections":
+		return len(row.Collections) == 0
+	case "hardcover":
+		return row.Hardcover == ""
+	}
+	return strings.HasPrefix(column, "#") && row.Custom[column] == ""
+}
 
 // sortEditorRows orders the list by a column; every order falls back to series, number and title so that equal values
 // keep a steady, readable order. Books without a series or number sort last when ascending.
 func sortEditorRows(rows []editorRow, column string, descending bool) {
-	text := func(a, b string) int { return strings.Compare(strings.ToLower(a), strings.ToLower(b)) }
-	emptyLast := func(a, b string) int {
-		switch {
-		case a == "" && b != "":
-			return 1
-		case a != "" && b == "":
-			return -1
-		}
-		return text(a, b)
+	if len(rows) < 2 {
+		return
 	}
-	number := func(a, b *float64) int {
-		switch {
-		case a == nil && b != nil:
-			return 1
-		case a != nil && b == nil:
-			return -1
-		case a == nil || *a == *b:
-			return 0
-		case *a < *b:
-			return -1
+	custom := strings.HasPrefix(column, "#")
+	// One buffer for every folded value. It is sized from the series and title every order folds plus, for a custom
+	// column, that column too; the isbn, tags and collections keys fold a value that is not in the row's own fields
+	// and grow it by the few kilobytes those columns add.
+	size := 0
+	for i := range rows {
+		size += len(rows[i].Series) + len(rows[i].Title)
+		if custom {
+			size += len(rows[i].Custom[column])
 		}
-		return 1
 	}
-	author := func(r editorRow) string {
-		if len(r.Authors) == 0 {
-			return ""
-		}
-		return r.Authors[0]
+	arena := make([]byte, 0, size)
+	keys := make([]editorSortKey, len(rows))
+	blank := make([]bool, len(rows))
+	order := make([]int, len(rows))
+	for i, row := range rows {
+		keys[i], arena = editorSortKeyOf(row, column, arena)
+		blank[i], order[i] = editorRowBlank(row, column), i
 	}
-	bySeries := func(a, b editorRow) int {
-		if c := emptyLast(a.Series, b.Series); c != 0 {
+	// The fallback every column shares: series, then volume, then title.
+	bySeries := func(i, j int) int {
+		if c := emptyLastCompare(keys[i].series, keys[j].series); c != 0 {
 			return c
 		}
-		if c := number(a.SeriesIndex, b.SeriesIndex); c != 0 {
+		if c := numberCompare(rows[i].SeriesIndex, rows[j].SeriesIndex); c != 0 {
 			return c
 		}
-		return text(a.Title, b.Title)
+		return bytes.Compare(keys[i].title, keys[j].title)
 	}
-	compare := func(a, b editorRow) int {
-		if strings.HasPrefix(column, "#") {
-			x, y := a.Custom[column], b.Custom[column]
-			nx, errX := strconv.ParseFloat(x, 64)
-			ny, errY := strconv.ParseFloat(y, 64)
-			if errX == nil && errY == nil && nx != ny {
-				if nx < ny {
+	compare := func(i, j int) int {
+		left, right := keys[i], keys[j]
+		if custom {
+			if left.numeric && right.numeric && left.number != right.number {
+				if left.number < right.number {
 					return -1
 				}
 				return 1
 			}
-			if c := emptyLast(x, y); c != 0 {
+			if c := emptyLastCompare(left.custom, right.custom); c != 0 {
 				return c
 			}
-			return bySeries(a, b)
+			return bySeries(i, j)
 		}
 		switch column {
-		case "title":
-			if c := text(a.Title, b.Title); c != 0 {
+		case "title", "path", "format":
+			if c := bytes.Compare(left.text, right.text); c != 0 {
 				return c
 			}
-		case "author":
-			if c := emptyLast(author(a), author(b)); c != 0 {
-				return c
-			}
-		case "number":
-			if c := number(a.SeriesIndex, b.SeriesIndex); c != 0 {
-				return c
-			}
-		case "path":
-			if c := text(a.Path, b.Path); c != 0 {
-				return c
-			}
-		case "format":
-			if c := text(a.Format, b.Format); c != 0 {
-				return c
-			}
-		case "publisher":
-			if c := emptyLast(a.Publisher, b.Publisher); c != 0 {
-				return c
-			}
-		case "published":
-			if c := emptyLast(a.Published, b.Published); c != 0 {
-				return c
-			}
-		case "language":
-			if c := emptyLast(a.Language, b.Language); c != 0 {
-				return c
-			}
-		case "tags":
-			if c := emptyLast(strings.Join(a.Tags, ", "), strings.Join(b.Tags, ", ")); c != 0 {
+		case "author", "publisher", "published", "language", "tags", "identifiers", "title_sort", "author_sort",
+			"description", "isbn_found", "hardcover", "collections":
+			if c := emptyLastCompare(left.text, right.text); c != 0 {
 				return c
 			}
 		case "isbn":
 			// Unlike the other columns, books without one are not kept below: ascending puts the books that have an
 			// ISBN first and descending the books that lack one, so either group can be brought to the top.
-			x, y := rowISBN(a), rowISBN(b)
-			if (x == "") != (y == "") {
-				return map[bool]int{true: 1, false: -1}[x == ""]
+			if (len(left.text) == 0) != (len(right.text) == 0) {
+				return map[bool]int{true: 1, false: -1}[len(left.text) == 0]
 			}
-			if c := text(x, y); c != 0 {
+			if c := bytes.Compare(left.text, right.text); c != 0 {
 				return c
 			}
-		case "identifiers":
-			if c := emptyLast(a.Identifiers, b.Identifiers); c != 0 {
-				return c
-			}
-		case "title_sort":
-			if c := emptyLast(a.TitleSort, b.TitleSort); c != 0 {
-				return c
-			}
-		case "author_sort":
-			if c := emptyLast(a.AuthorSort, b.AuthorSort); c != 0 {
-				return c
-			}
-		case "description":
-			if c := emptyLast(a.Description, b.Description); c != 0 {
-				return c
-			}
-		case "isbn_found":
-			if c := emptyLast(a.IsbnFound, b.IsbnFound); c != 0 {
+		case "number":
+			if c := numberCompare(rows[i].SeriesIndex, rows[j].SeriesIndex); c != 0 {
 				return c
 			}
 		case "match":
-			if x, y := matchScoreOf(a), matchScoreOf(b); x != y {
+			if x, y := matchScoreOf(rows[i]), matchScoreOf(rows[j]); x != y {
 				return map[bool]int{true: -1, false: 1}[x < y]
-			}
-		case "hardcover":
-			if c := emptyLast(a.Hardcover, b.Hardcover); c != 0 {
-				return c
-			}
-		case "collections":
-			if c := emptyLast(strings.Join(a.Collections, ", "), strings.Join(b.Collections, ", ")); c != 0 {
-				return c
 			}
 		case "status":
 			// The books with the most to look at come last when ascending, first when descending.
-			if x, y := len(a.Issues), len(b.Issues); x != y {
+			if x, y := len(rows[i].Issues), len(rows[j].Issues); x != y {
 				return map[bool]int{true: -1, false: 1}[x < y]
 			}
-		case "words":
-			if a.Words != b.Words {
-				return map[bool]int{true: -1, false: 1}[a.Words < b.Words]
+		case "words", "pages":
+			x, y := rows[i].Words, rows[j].Words
+			if column == "pages" {
+				x, y = rows[i].Pages, rows[j].Pages
 			}
-		case "pages":
-			if a.Pages != b.Pages {
-				return map[bool]int{true: -1, false: 1}[a.Pages < b.Pages]
+			if x != y {
+				return map[bool]int{true: -1, false: 1}[x < y]
 			}
 		case "progress":
-			if a.Progress != b.Progress {
-				if a.Progress < b.Progress {
+			if x, y := rows[i].Progress, rows[j].Progress; x != y {
+				if x < y {
 					return -1
 				}
 				return 1
 			}
 		case "rating":
-			if a.Rating != b.Rating {
-				if a.Rating == 0 || b.Rating == 0 {
-					return map[bool]int{true: 1, false: -1}[a.Rating == 0]
+			x, y := rows[i].Rating, rows[j].Rating
+			if x != y {
+				if x == 0 || y == 0 {
+					return map[bool]int{true: 1, false: -1}[x == 0]
 				}
-				if a.Rating < b.Rating {
+				if x < y {
 					return -1
 				}
 				return 1
 			}
 		}
-		return bySeries(a, b)
+		return bySeries(i, j)
 	}
-	// A book with nothing in the chosen column stays below the others, whichever way the list is sorted.
-	empty := func(r editorRow) bool {
-		switch column {
-		case "author":
-			return author(r) == ""
-		case "series":
-			return r.Series == ""
-		case "number":
-			return r.SeriesIndex == nil
-		case "publisher":
-			return r.Publisher == ""
-		case "published":
-			return r.Published == ""
-		case "language":
-			return r.Language == ""
-		case "tags":
-			return len(r.Tags) == 0
-		case "rating":
-			return r.Rating == 0
-		case "words":
-			return r.Words == 0
-		case "pages":
-			return r.Pages == 0
-		case "progress":
-			return r.Progress == 0
-		case "identifiers":
-			return r.Identifiers == ""
-		case "title_sort":
-			return r.TitleSort == ""
-		case "author_sort":
-			return r.AuthorSort == ""
-		case "description":
-			return r.Description == ""
-		case "isbn_found":
-			return r.IsbnFound == ""
-		case "match":
-			return r.Match == nil
-		case "collections":
-			return len(r.Collections) == 0
-		case "hardcover":
-			return r.Hardcover == ""
+	slices.SortStableFunc(order, func(i, j int) int {
+		if blank[i] != blank[j] {
+			if blank[j] {
+				return -1
+			}
+			return 1
 		}
-		return strings.HasPrefix(column, "#") && r.Custom[column] == ""
-	}
-	sort.SliceStable(rows, func(i, j int) bool {
-		if ei, ej := empty(rows[i]), empty(rows[j]); ei != ej {
-			return ej
-		}
+		result := compare(i, j)
 		if descending {
-			return compare(rows[i], rows[j]) > 0
+			return -result
 		}
-		return compare(rows[i], rows[j]) < 0
+		return result
 	})
+	applyEditorOrder(rows, order)
+}
+
+// applyEditorOrder rearranges rows so that position i holds the row the sorted order names there. It moves each row
+// once, chasing one cycle at a time; the version this replaced copied the whole list into a fresh slice and back, which
+// on 5 430 books measured 2.5 ms and 2.4 MB of row moves per chunk — as much as everything else the sort does. The
+// order is consumed: every position it visits is rewritten to point at itself.
+func applyEditorOrder(rows []editorRow, order []int) {
+	for start := range rows {
+		if order[start] == start {
+			continue
+		}
+		held, position := rows[start], start
+		for {
+			next := order[position]
+			order[position] = position // this position now holds its row; no cycle reaches it again
+			if next == start {
+				rows[position] = held
+				break
+			}
+			rows[position] = rows[next]
+			position = next
+		}
+	}
+}
+
+// emptyLastCompare puts a value that is not there below the ones that are, then compares folded text.
+func emptyLastCompare(a, b []byte) int {
+	switch {
+	case len(a) == 0 && len(b) != 0:
+		return 1
+	case len(a) != 0 && len(b) == 0:
+		return -1
+	}
+	return bytes.Compare(a, b)
+}
+
+// numberCompare puts a book without a volume number below the ones with one.
+func numberCompare(a, b *float64) int {
+	switch {
+	case a == nil && b != nil:
+		return 1
+	case a != nil && b == nil:
+		return -1
+	case a == nil || *a == *b:
+		return 0
+	case *a < *b:
+		return -1
+	}
+	return 1
 }
 
 // matchScoreOf is how good the best Hardcover match found for a book is; 0 if none was found.

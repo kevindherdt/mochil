@@ -44,11 +44,18 @@ val mochilVersion: String = rootProject.file("../VERSION").let { file ->
     require(file.isFile) { "VERSION is missing at ${file.absolutePath}" }
     file.readText().trim().ifEmpty { error("VERSION is empty") }
 }
+// A preview build for trying a change on a phone before it is a release: -PmochilPreview=N (1..99) adds N to the code
+// and "-previewN" to the name. The code has two spare digits (a release is (M*10000+m*100+p)*100), so a preview installs
+// over everything older and the next release, which must come from a higher VERSION, installs over it. A preview can
+// never be published: the release workflow refuses an APK whose versionName is not VERSION.
+val mochilPreview: Int = providers.gradleProperty("mochilPreview").orNull?.let { raw ->
+    raw.toIntOrNull()?.takeIf { it in 1..99 } ?: error("-PmochilPreview must be 1..99, got '$raw'")
+} ?: 0
 val mochilVersionCode: Int = mochilVersion.split(".").let { parts ->
     require(parts.size == 3) { "VERSION must be MAJOR.MINOR.PATCH, got '$mochilVersion'" }
     val numbers = parts.map { part -> part.toIntOrNull() ?: error("VERSION part '$part' is not a number") }
     require(numbers.all { it in 0..99 }) { "VERSION parts must be 0-99, got '$mochilVersion'" }
-    (numbers[0] * 10000 + numbers[1] * 100 + numbers[2]) * 100
+    (numbers[0] * 10000 + numbers[1] * 100 + numbers[2]) * 100 + mochilPreview
 }
 
 val releaseSigningReady = listOf(releaseStoreFile, releaseStorePassword, releaseKeyAlias, releaseKeyPassword).all { !it.isNullOrBlank() }
@@ -72,6 +79,7 @@ android {
         // disagree with the release is a version that will.
         versionName = mochilVersion
         versionCode = mochilVersionCode
+        if (mochilPreview > 0) versionNameSuffix = "-preview$mochilPreview"
     }
     flavorDimensions += "distribution"
     productFlavors {
@@ -106,6 +114,12 @@ android {
     providers.gradleProperty("testTmpDir").orNull?.let { tmp ->
         tasks.withType<Test>().configureEach {
             jvmArgs("-Djava.io.tmpdir=$tmp")
+        }
+    }
+    // Screenshot goldens (src/test/screenshots) verify on a normal run; -PrecordGoldens=true rewrites them.
+    if (providers.gradleProperty("recordGoldens").orNull == "true") {
+        tasks.withType<Test>().configureEach {
+            systemProperty("mochil.goldens", "record")
         }
     }
     sourceSets.getByName("test").resources.directories.add(rootProject.file("../contracts").path)

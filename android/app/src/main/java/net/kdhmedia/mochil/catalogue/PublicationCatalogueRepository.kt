@@ -14,8 +14,8 @@ internal class PublicationCatalogueRepository(
     }
     suspend fun continuing(credential: DeviceCredential, libraryId: String, query: String) =
         io { catalogue.continuing(credential, libraryId, query) }
-    suspend fun books(credential: DeviceCredential, libraryId: String, cursor: String?, query: String = "", bucket: String = "", sort: String = "") =
-        io { catalogue.books(credential, libraryId, cursor, query, bucket, sort) }
+    suspend fun books(credential: DeviceCredential, libraryId: String, cursor: String?, query: String = "", bucket: String = "", sort: String = "", status: String = "") =
+        io { catalogue.books(credential, libraryId, cursor, query, bucket, sort, status) }
     suspend fun seriesBooks(credential: DeviceCredential, libraryId: String, series: String, cursor: String? = null) =
         io { catalogue.books(credential, libraryId, series, cursor) }
     suspend fun authorBooks(credential: DeviceCredential, libraryId: String, author: String, cursor: String? = null) =

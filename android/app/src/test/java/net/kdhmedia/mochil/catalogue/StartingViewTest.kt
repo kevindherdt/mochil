@@ -11,6 +11,13 @@ class StartingViewTest {
     }
 
     @Test
+    fun theFallbackIsTheDevicesOwnView() {
+        assertEquals(PublicationGrouping.Books, PublicationGrouping.Continue.startingView(PublicationGrouping.Books))
+        assertEquals(PublicationGrouping.Books, PublicationGrouping.Collections.startingView(PublicationGrouping.Books))
+        assertEquals(PublicationGrouping.Authors, PublicationGrouping.Authors.startingView(PublicationGrouping.Books))
+    }
+
+    @Test
     fun theOtherViewsAreKept() {
         assertEquals(PublicationGrouping.Authors, PublicationGrouping.Authors.startingView())
         assertEquals(PublicationGrouping.Books, PublicationGrouping.Books.startingView())

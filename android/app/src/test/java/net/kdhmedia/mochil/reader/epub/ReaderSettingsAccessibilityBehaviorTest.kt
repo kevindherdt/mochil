@@ -34,6 +34,6 @@ class ReaderSettingsAccessibilityBehaviorTest {
             }
         }
         compose.onNodeWithContentDescription("Reader settings").performClick()
-        compose.onNodeWithText("Paged").assertIsDisplayed()
+        compose.onNodeWithText("Display & theme").performClick(); compose.onNodeWithText("Paged").assertIsDisplayed()
     }
 }

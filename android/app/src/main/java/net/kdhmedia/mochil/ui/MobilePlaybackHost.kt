@@ -16,9 +16,9 @@ import net.kdhmedia.mochil.playback.PlaybackViewModel
 
 /** Playback clocks recompose these small hosts, never the catalogue shell. */
 @Composable
-internal fun MobileMiniPlayerHost(playbackViewModel: PlaybackViewModel, onExpand: () -> Unit) {
+internal fun MobileMiniPlayerHost(playbackViewModel: PlaybackViewModel, navigationInset: Boolean = true, onExpand: () -> Unit) {
     val dock by playbackViewModel.dockState.collectAsStateWithLifecycle()
-    MiniPlayer(dock, playbackViewModel.timelineState, playbackViewModel::toggle, playbackViewModel::closePlayback, onExpand)
+    MiniPlayer(dock, playbackViewModel.timelineState, playbackViewModel::toggle, playbackViewModel::closePlayback, onExpand, navigationInset)
 }
 
 /** Collects queue and playlist mutations only while their expanded surface exists. */

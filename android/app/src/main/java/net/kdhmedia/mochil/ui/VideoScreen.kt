@@ -1,5 +1,6 @@
 package net.kdhmedia.mochil.ui
 
+import net.kdhmedia.mochil.ui.kit.LucideIcons
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
@@ -266,8 +267,8 @@ private fun MobileShowDetail(
 private fun VideoToolbar(state: VideoState, onLayout: (VideoLayout) -> Unit, onSearchOpen: (Boolean) -> Unit, onSearch: (String) -> Unit) {
     val covers = state.layout == VideoLayout.Covers
     HeaderActions(listOfNotNull(
-        if (!state.searchOpen) HeaderAction(Icons.Default.Search, "Search videos", { onSearchOpen(true) }) else null,
-        HeaderAction(if (covers) Icons.AutoMirrored.Filled.ViewList else Icons.Default.GridView, if (covers) "Use list view" else "Use cover view", { onLayout(if (covers) VideoLayout.List else VideoLayout.Covers) }),
+        if (!state.searchOpen) HeaderAction(LucideIcons.Search, "Search videos", { onSearchOpen(true) }) else null,
+        HeaderAction(if (covers) LucideIcons.List else LucideIcons.LayoutGrid, if (covers) "Use list view" else "Use cover view", { onLayout(if (covers) VideoLayout.List else VideoLayout.Covers) }),
     ))
     if (state.searchOpen) {
         // A local draft submitted on the IME action, the same shape as the book and music shelves. Sending every
@@ -310,7 +311,7 @@ private fun VideoShowGrid(state: VideoState, artworkUrl: (String) -> String, aut
             VideoCard(
                 art = { AuthenticatedArtwork(artworkUrl(show.artworkPath), authorizationHeader, show.name, it) }, aspect = 2f / 3f,
                 title = show.name, caption = show.caption(),
-                modifier = Modifier.gridCard().clickable(onClickLabel = "Open ${show.name}", role = Role.Button) { onOpen(show) }.padding(10.dp),
+                modifier = Modifier.clickable(onClickLabel = "Open ${show.name}", role = Role.Button) { onOpen(show) },
             )
         }
         videoPaging(state, onLoadMore, onRetry)
@@ -344,8 +345,8 @@ private fun VideoItems(state: VideoState, artworkUrl: (String) -> String, author
                     VideoCard(
                         art = { AuthenticatedArtwork(artworkUrl(item.artworkPath), authorizationHeader, item.displayTitle, it) },
                         aspect = if (item.episode > 0) 16f / 9f else 2f / 3f,
-                        title = item.displayTitle, caption = item.caption(),
-                        modifier = actionModifier.gridCard().padding(10.dp),
+                        title = item.displayTitle, caption = item.caption(), formatLabel = videoFormatLabel(item.videoHeight, item.directPlay),
+                        modifier = actionModifier,
                     )
                 }
             }

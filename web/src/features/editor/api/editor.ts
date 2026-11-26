@@ -243,7 +243,8 @@ export interface EditorQuery {
   sort: string;
   dir: "asc" | "desc";
   offset: number;
-  limit: number;
+  /** A page size, or "all" for the whole matching set (the server caps it; see fetchAllEditorBooks). */
+  limit: number | "all";
 }
 
 export async function fetchEditorBooks(query: EditorQuery, signal?: AbortSignal): Promise<EditorPage> {
@@ -319,12 +320,33 @@ export async function fetchEditorBooks(query: EditorQuery, signal?: AbortSignal)
 /** `changes` is keyed by book id, then field name — exactly what the server expects. */
 export type EditorChanges = Record<string, Partial<Record<EditorField, string>>>;
 
+/** The deterministic cleanup rules' answer: staged-shaped changes, grouped by the rule that decided them. */
+export interface EditorTidy {
+  changes: EditorChanges;
+  groups: { rule: string; count: number }[];
+  books: number;
+  unsure: number;
+}
+
+/**
+ * Asks the server which rows the cleanup rules would change, and to what.
+ *
+ * The rules are deterministic (internal/metadata/tidying.go), so this is a read: nothing is written, and the answer is
+ * the same every time it is asked. The result is already in the shape `stage` takes, which is why the panel can hand it
+ * straight to the review the editor already has.
+ */
+export async function tidyBooks(libraryId: string, ids: string[]): Promise<EditorTidy> {
+  return request<EditorTidy>("/api/metadata/editor/tidy", { method: "POST", body: { library: libraryId, ids } });
+}
+
 export interface EditorChange {
   book: string;
   title: string;
   field: string;
   from: string;
   to: string;
+  /** The tool that proposed this change, set client-side from EditorSources. Absent for a typed cell or a bulk edit. */
+  source?: string;
 }
 
 const changeSchema = z.looseObject({
@@ -441,24 +463,33 @@ export interface EditorAll {
   transferTo: TransferTarget[];
 }
 
-/** Loads every matching row in 1 000-row chunks (the server's maximum page) so the whole library is one scrollable
- *  spreadsheet instead of pages. A few requests for a few thousand books; the legacy editor did the same. */
+/**
+ * Loads every matching row so the whole library is one scrollable spreadsheet instead of pages.
+ *
+ * It asks for all of them in **one** request first. Every request to this endpoint builds, filters and sorts every
+ * row of the library before slicing — so chunking meant the server did identical work once per chunk: measured on the
+ * 5 544-book `test` library, six chunks of 36 ms (216 ms) to deliver 4 068 kB that one 91 ms request returns. The
+ * server caps a one-shot response
+ * at its payload limit and reports the real `total`, so a library past that limit falls back to exactly the chunked
+ * walk this always did (it compares what it received against the total it was told).
+ */
 export async function fetchAllEditorBooks(
   query: Omit<EditorQuery, "offset" | "limit">,
   signal?: AbortSignal,
 ): Promise<EditorAll> {
   const CHUNK = 1000;
   const items: EditorBook[] = [];
-  let last: Awaited<ReturnType<typeof fetchEditorBooks>> | undefined;
-  for (let offset = 0; ; offset += CHUNK) {
-    const page = await fetchEditorBooks({ ...query, offset, limit: CHUNK }, signal);
-    items.push(...page.items);
-    last = page;
-    if (items.length >= page.total) break;
+  let page = await fetchEditorBooks({ ...query, offset: 0, limit: "all" }, signal);
+  items.push(...page.items);
+  while (items.length < page.total && page.items.length > 0) {
+    const next = await fetchEditorBooks({ ...query, offset: items.length, limit: CHUNK }, signal);
     // A short page is the server saying there is nothing more, whatever the total said. Without this the loop asked
     // for the same empty window for ever when the total over-reported or was missing.
-    if (page.items.length < CHUNK) break;
+    if (next.items.length === 0) break;
+    items.push(...next.items);
+    page = next;
   }
+  const last = page;
   // Every page carries the same totals, counts and column definitions; read them from the final one.
   const summary = last as NonNullable<typeof last>;
   return {
@@ -528,6 +559,64 @@ export function mergeChanges(base: EditorChanges, incoming: EditorChanges): Edit
   return next;
 }
 
+/** Which tool staged one field of one book. The review panel labels a change with it ("From Find ISBNs"), and a task's
+ *  review is exactly the subset whose fields came from that tool — which is how two tools' results can be reviewed and
+ *  applied independently without a second staging map. */
+export interface FieldSource {
+  tool: string;
+  /** The tool's own name, as the tasks endpoint sends it, so a label cannot drift from the row it came from. */
+  title: string;
+}
+
+export type EditorSources = Record<string, Partial<Record<EditorField, FieldSource>>>;
+
+/** Tag every field in `incoming` with the tool that proposed it. */
+export function tagChanges(sources: EditorSources, incoming: EditorChanges, source: FieldSource): EditorSources {
+  const next: EditorSources = { ...sources };
+  for (const [book, fields] of Object.entries(incoming)) {
+    const forBook = { ...(next[book] ?? {}) };
+    for (const field of Object.keys(fields) as EditorField[]) forBook[field] = source;
+    next[book] = forBook;
+  }
+  return next;
+}
+
+/** The staged changes one tool put there, and nothing else. */
+export function changesFrom(changes: EditorChanges, sources: EditorSources, tool: string): EditorChanges {
+  const next: EditorChanges = {};
+  for (const [book, fields] of Object.entries(changes)) {
+    for (const field of Object.keys(fields) as EditorField[]) {
+      if (sources[book]?.[field]?.tool !== tool) continue;
+      next[book] = { ...(next[book] ?? {}), [field]: fields[field] };
+    }
+  }
+  return next;
+}
+
+/** Drop exactly the fields that were just written, so another tool's staged work survives a save. */
+export function withoutChanges(changes: EditorChanges, applied: EditorChanges): EditorChanges {
+  const next: EditorChanges = { ...changes };
+  for (const [book, fields] of Object.entries(applied)) {
+    const forBook = { ...(next[book] ?? {}) };
+    for (const field of Object.keys(fields) as EditorField[]) delete forBook[field];
+    if (Object.keys(forBook).length === 0) delete next[book];
+    else next[book] = forBook;
+  }
+  return next;
+}
+
+/** The same, for the tags: a field that is no longer staged cannot keep claiming a tool. */
+export function withoutSources(sources: EditorSources, applied: EditorChanges): EditorSources {
+  const next: EditorSources = { ...sources };
+  for (const [book, fields] of Object.entries(applied)) {
+    const forBook = { ...(next[book] ?? {}) };
+    for (const field of Object.keys(fields) as EditorField[]) delete forBook[field];
+    if (Object.keys(forBook).length === 0) delete next[book];
+    else next[book] = forBook;
+  }
+  return next;
+}
+
 /** "isbn:123, hardcover:abc" with one scheme replaced or added; the other identifiers survive. */
 export function identifierWith(existing: string, scheme: string, value: string): string {
   const parts = existing
@@ -550,6 +639,25 @@ export function isbnOf(book: EditorBook): string {
 
 /** What taking a certain match does to one book: fill the fields it has nothing in, and add the link. Never replaces a
  *  value the book already says — that is the difference between "Use matches" and rewriting metadata. */
+/**
+ * A blurb without the recap marker the publisher leaves at its front.
+ *
+ * Proposals sometimes arrive as "(Volume 6)Accelerator has killed thousands of Sisters…" on the volume 7 record: the text
+ * itself is the right book's, but it opens by naming the volume it follows, which reads as a mismatch on a row that says
+ * "Volume 07". The marker is stripped only when it names a volume other than this book's own, so a blurb that really is
+ * about its own volume keeps whatever it says.
+ */
+function blurbFor(book: EditorBook, overview: string): string {
+  const marker = /^\s*\(?\s*(?:volume|vol\.?|tome|book)\s*0*(\d+(?:\.\d+)?)\s*\)?\s*[:.\u2014-]?\s*/i.exec(overview);
+  if (marker === null) return overview;
+  const named = Number(marker[1]);
+  const own = book.seriesIndex;
+  if (own !== undefined && Number.isFinite(own) && Math.abs(named - own) < 0.01) return overview;
+  const rest = overview.slice(marker[0].length).trim();
+  // Only when something is left: a blurb that is nothing but the marker is not ours to empty.
+  return rest === "" ? overview : rest;
+}
+
 export function matchFill(book: EditorBook, editable: readonly EditorField[]): Partial<Record<EditorField, string>> {
   const match = book.match;
   if (match === undefined || !book.matchClear) return {};
@@ -561,7 +669,7 @@ export function matchFill(book: EditorBook, editable: readonly EditorField[]): P
   take("title", book.title, match.title);
   take("authors", book.authors.join(" & "), match.authors.join(" & "));
   take("published", yearOf(book.published), match.year > 0 ? String(match.year) : "");
-  take("description", book.description, match.overview);
+  take("description", book.description, match.overview === "" ? "" : blurbFor(book, match.overview));
   if (editable.includes("identifiers") && match.providerId !== "" && /hardcover/i.test(match.provider)) {
     const identifiers = identifierWith(book.identifiers, "hardcover", match.providerId);
     if (identifiers !== book.identifiers) fields.identifiers = identifiers;
@@ -872,6 +980,99 @@ export async function jobState(libraryId: string, tool: EditorTool): Promise<Job
 
 export async function stopJob(libraryId: string, tool: EditorTool): Promise<void> {
   await request<unknown>(`${jobPath(tool)}?library=${encodeURIComponent(libraryId)}`, { method: "DELETE" });
+}
+
+// ---- tasks (one row per tool run, see docs/editor-tasks-plan.md) ----
+//
+// Each tool owns its results and its own dismissal set, so what one tool's run found can be put aside without hiding
+// the same books from another tool. The server is the count: `found` and `dismissed` come from it and are what the row
+// reports. Which books are dismissed is not in this answer — the panel keeps the ids it dismissed itself (see
+// taskDismissals.ts) and the count is what says whether anything is left.
+export interface EditorTask {
+  /** The server's id for the tool: "isbn", "match", "tidy", …. Used verbatim in the dismiss path. */
+  tool: string;
+  /** The tool's name, from the server, so a row never invents a wording the run does not use. */
+  title: string;
+  state: "idle" | "running" | "finished";
+  found: number;
+  dismissed: number;
+  /** When it last ran, ISO; "" for a tool that never has. */
+  ranAt: string;
+}
+
+/** The tools whose rows can start a run from the panel, mapped to the job the Tools row already starts. A tool that
+ *  is a read (the cleanup rules) is not here: re-running it would be a different action, not a job. */
+export const TASK_JOBS: Record<string, EditorTool> = { isbn: "isbn", match: "matches" };
+
+const taskSchema = z.looseObject({
+  tool: z.string().optional(),
+  title: z.string().optional(),
+  state: z.string().optional(),
+  found: z.number().nullable().optional(),
+  dismissed: z.number().nullable().optional(),
+  ran_at: z.string().nullable().optional(),
+});
+
+export async function fetchEditorTasks(libraryId: string, signal?: AbortSignal): Promise<EditorTask[]> {
+  const raw = await request<{ tasks?: unknown }>(
+    `/api/metadata/editor/tasks?library=${encodeURIComponent(libraryId)}`,
+    signal === undefined ? {} : { signal },
+  );
+  return z
+    .array(taskSchema)
+    .parse(raw.tasks ?? [])
+    .filter((task) => (task.tool ?? "") !== "")
+    .map((task) => {
+      const state = task.state ?? "idle";
+      return {
+        tool: task.tool ?? "",
+        title: task.title ?? task.tool ?? "",
+        state: (["idle", "running", "finished"].includes(state) ? state : "idle") as EditorTask["state"],
+        found: task.found ?? 0,
+        dismissed: task.dismissed ?? 0,
+        ranAt: task.ran_at ?? "",
+      };
+    });
+}
+
+/** Put books aside for one tool. No books means "everything it found" — the server reads an empty list that way, so
+ *  the panel does not have to enumerate a 251-row title run to say "none of these". */
+export async function dismissTask(libraryId: string, tool: string, books: string[] = []): Promise<void> {
+  await request<unknown>(`/api/metadata/editor/tasks/${encodeURIComponent(tool)}/dismiss`, {
+    method: "POST",
+    body: { library: libraryId, books },
+  });
+}
+
+/** Bring back everything one tool had put aside. Only that tool: the other rows keep their own answers. */
+export async function restoreTask(libraryId: string, tool: string): Promise<void> {
+  await request<unknown>(`/api/metadata/editor/tasks/${encodeURIComponent(tool)}/dismiss?library=${encodeURIComponent(libraryId)}`, {
+    method: "DELETE",
+  });
+}
+
+/** Which fields a Hardcover match may write for one library. The server keeps this per library, so it travels
+ *  with the library rather than with the browser that chose it.
+ *
+ *  The endpoint answers the seven names when nothing has been saved; it is not the client's job to invent that
+ *  default, and a client that did would disagree with a second browser the moment someone saved a narrower list. */
+export async function fetchMatchFields(libraryId: string, signal?: AbortSignal): Promise<string[]> {
+  const raw = await request<{ fields?: unknown }>(
+    `/api/metadata/editor/match-fields?library=${encodeURIComponent(libraryId)}`,
+    signal === undefined ? {} : { signal },
+  );
+  // Loose, like the neighbours here: the names are checked by the server on the way in, and the editor narrows
+  // the answer to the fields it can actually write (matchFields.ts's MATCH_WRITABLE) rather than trusting it.
+  return z.array(z.string()).parse(raw.fields ?? []);
+}
+
+/** Replace one library's list of writable match fields. An empty list is a real choice — a match writes nothing —
+ *  so it is sent as `[]` and never turned into all seven on the way out. */
+export async function saveMatchFields(libraryId: string, fields: readonly string[]): Promise<void> {
+  await request<unknown>("/api/metadata/editor/match-fields", {
+    method: "PUT",
+    body: { library: libraryId, fields },
+  });
 }
 
 /** Which rows to draw for a box scrolled `scrollTop` pixels down and `viewport` pixels tall, plus blank space above and

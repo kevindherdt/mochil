@@ -1,6 +1,12 @@
 package net.kdhmedia.mochil.ui
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -15,7 +21,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.SkipNext
+import androidx.compose.material.icons.filled.Redo
 import androidx.compose.material.icons.filled.SkipPrevious
+import androidx.compose.material.icons.filled.Undo
 import androidx.compose.material.icons.automirrored.filled.QueueMusic
 import androidx.compose.material.icons.filled.Repeat
 import androidx.compose.material.icons.filled.RepeatOne
@@ -47,6 +55,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.flow.StateFlow
 import net.kdhmedia.mochil.audio.identityKey
+import net.kdhmedia.mochil.ui.theme.MochilChrome
 import net.kdhmedia.mochil.playback.PlaybackPlayerState
 import net.kdhmedia.mochil.playback.PlaybackTimelineState
 import net.kdhmedia.mochil.playback.chapterAt
@@ -72,6 +81,7 @@ fun FullPlayer(
 ) {
     val track = state.current ?: return
     var sleepMenuExpanded by remember { mutableStateOf(false) }
+    val timelineState by timeline.collectAsStateWithLifecycle()
     Column(
         Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).navigationBarsPadding()
             .padding(start = 28.dp, top = 18.dp, end = 28.dp, bottom = 28.dp),
@@ -88,12 +98,28 @@ fun FullPlayer(
             playerSourceFacts(track)?.let { Text(it, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
         }
         FullPlayerTimeline(timeline, track.identityKey, onSeek)
-        Row(horizontalArrangement = Arrangement.spacedBy(22.dp), verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = onPrevious, modifier = Modifier.size(56.dp)) { Icon(Icons.Default.SkipPrevious, contentDescription = "Previous track") }
-            IconButton(onClick = onToggle, modifier = Modifier.size(72.dp)) {
-                Icon(if (state.isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow, contentDescription = if (state.isPlaying) "Pause" else "Play", modifier = Modifier.size(44.dp))
+        // Sheet 2's transport: 15 seconds either way, then previous / the big accent play / next.
+        val durationMs = timelineState.durationMs.coerceAtLeast(0L)
+        val skipBack = { onSeek((timelineState.positionMs - 15_000).coerceAtLeast(0L)) }
+        val skipForward = { onSeek((timelineState.positionMs + 15_000).coerceAtMost(durationMs)) }
+        Row(horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.CenterVertically) {
+            SkipSecondsButton(Icons.Default.Undo, "Back 15 seconds", skipBack)
+            IconButton(onClick = onPrevious, modifier = Modifier.size(52.dp)) { Icon(Icons.Default.SkipPrevious, contentDescription = "Previous track") }
+            // One filled circle, the screen's only solid button: the mock-up's accent play.
+            Box(
+                Modifier.size(72.dp).clip(androidx.compose.foundation.shape.CircleShape)
+                    .background(MaterialTheme.colorScheme.primary)
+                    .clickable(onClickLabel = if (state.isPlaying) "Pause" else "Play", role = Role.Button, onClick = onToggle),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    if (state.isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                    contentDescription = if (state.isPlaying) "Pause" else "Play",
+                    modifier = Modifier.size(36.dp), tint = MaterialTheme.colorScheme.onPrimary,
+                )
             }
-            IconButton(onClick = onNext, modifier = Modifier.size(56.dp)) { Icon(Icons.Default.SkipNext, contentDescription = "Next track") }
+            IconButton(onClick = onNext, modifier = Modifier.size(52.dp)) { Icon(Icons.Default.SkipNext, contentDescription = "Next track") }
+            SkipSecondsButton(Icons.Default.Redo, "Forward 15 seconds", skipForward)
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
             if (showsShuffle(track.libraryKind)) {
@@ -165,6 +191,20 @@ private fun FullPlayerTimeline(timeline: StateFlow<PlaybackTimelineState>, itemK
             Text(playbackClock(displayed), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Text(playbackClock(state.durationMs), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
+    }
+}
+
+/** The mock-up's 15-second skip: the loop arrow with the number in it, a small target beside the transport. */
+@Composable
+internal fun SkipSecondsButton(icon: androidx.compose.ui.graphics.vector.ImageVector, description: String, onClick: () -> Unit) {
+    Box(
+        Modifier.size(MochilChrome.touchMin).clip(androidx.compose.foundation.shape.CircleShape)
+            .clickable(onClickLabel = description, role = Role.Button, onClick = onClick)
+            .semantics { contentDescription = description },
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(icon, contentDescription = null, modifier = Modifier.size(MochilChrome.touchMin / 2), tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = .55f))
+        Text("15", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurface)
     }
 }
 

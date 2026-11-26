@@ -11,6 +11,8 @@ data class LibraryState(
     val booksLayout: PublicationLayout = PublicationLayout.Covers,
     val query: String = "",
     val bucket: String = "",
+    /** The reading-status chip over the plain list of books; All when no chip is chosen or the view has no such list. */
+    val status: BookStatusFilter = BookStatusFilter.All,
     val books: List<BookSummary> = emptyList(),
     val series: List<SeriesSummary> = emptyList(),
     val authors: List<AuthorSummary> = emptyList(),
@@ -71,6 +73,8 @@ internal fun LibraryState.withRefreshedLibraries(
         offlineOnly = false,
         offlineDiagnostic = null,
         books = if (changedShelf) emptyList() else books,
+        // A different library starts unfiltered, as if it had been chosen from the pills.
+        status = if (changedShelf) BookStatusFilter.All else status,
         series = if (changedShelf) emptyList() else series,
         authors = if (changedShelf) emptyList() else authors,
     )
@@ -84,6 +88,14 @@ fun PublicationGrouping.usesGroupLayout(): Boolean = isGrouped() || this == Publ
 
 fun PublicationGrouping.isGrouped(): Boolean =
     this == PublicationGrouping.Series || this == PublicationGrouping.Authors
+
+/** The chips filter the plain list of books on the server, so they belong to that list online and nowhere else. */
+fun LibraryState.showsStatusChips(keepDetailFilters: Boolean = false): Boolean =
+    selected?.isPublicationLibrary() == true &&
+        (grouping == PublicationGrouping.Books || grouping == PublicationGrouping.Recent) &&
+        !downloadedOnly && !offlineOnly &&
+        // On a wide screen the list stays on screen beside the open book, and the chips are the only sign of its filter.
+        (keepDetailFilters || (selectedBook == null && selectedSeries == null && selectedAuthor == null))
 
 internal fun LibraryState.bookSort(): String =
     when (grouping) { PublicationGrouping.Recent -> "recent"; PublicationGrouping.Books -> sort; else -> "" }

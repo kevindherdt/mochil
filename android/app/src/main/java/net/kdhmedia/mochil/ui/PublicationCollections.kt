@@ -67,7 +67,7 @@ internal fun PublicationCollections(
             state.groupLoading -> AccessibleLoadingIndicator("Loading collection", Modifier.fillMaxSize())
             state.groupError != null -> PublicationEmpty(state.groupError)
             state.seriesBooks.isEmpty() -> PublicationEmpty("This collection is empty.")
-            state.currentLayout() == PublicationLayout.Covers -> BookGrid(state.seriesBooks, coverUrl, header, null, onRead, onCollect, {}, {})
+            state.currentLayout() == PublicationLayout.Covers -> BookGrid(state.seriesBooks, coverUrl, header, null, onRead, onCollect, {}, {}, kind = state.selected?.kind.orEmpty())
             else -> BookList(state.seriesBooks, coverUrl, header, null, onRead, onCollect, {}, {})
         }
     }

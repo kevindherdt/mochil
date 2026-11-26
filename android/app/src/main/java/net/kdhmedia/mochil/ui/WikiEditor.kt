@@ -112,7 +112,7 @@ internal fun WikiEditor(pageId: String, draft: String, onDraft: (String) -> Unit
             TextButton(onClick = { applyLine("- [ ] ", "task") }) { Text("Task") }
             TextButton(onClick = { applyLine("> ", "quote") }) { Text("Quote") }
             TextButton(onClick = { apply("[", "](https://)", "link text") }) { Text("Link") }
-            TextButton(onClick = { apply("[[", "]]", "Page name") }) { Text("Wiki link") }
+            TextButton(onClick = { apply("[[", "]]", "Page name") }) { Text("Note link") }
         }
         OutlinedTextField(
             value = value,

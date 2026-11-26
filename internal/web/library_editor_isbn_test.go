@@ -143,6 +143,57 @@ func newISBNStore(t *testing.T) (*filefacts.Store[isbn.Result], error) {
 	return filefacts.Open[isbn.Result](filepath.Join(t.TempDir(), "isbn-found.json"))
 }
 
+// The note is worded only for the rows a response carries, after the whole library has been sorted, so a row that
+// lands on a later page must still get its own book's note and not one left over from the row built last.
+func TestTheISBNNoteReachesTheRowOnWhicheverPageItLands(t *testing.T) {
+	server := editorTestServer(t)
+	store, err := newISBNStore(t)
+	if err != nil {
+		t.Fatal(err)
+	}
+	server.isbnFound = store
+	// a1 sorts first and n1 (no series, no author) last in the editor's default order.
+	reasons := map[string]string{"a1": "on the copyright page", "n1": "listed in the book's own metadata"}
+	for _, book := range server.libraries[0].Store.Books() {
+		reason, found := reasons[book.ID]
+		if !found {
+			continue
+		}
+		store.Put("books", book.ID, book.Size, book.Modified, isbn.Result{
+			Own:        "9780306406157",
+			Candidates: []isbn.Candidate{{ISBN: "9780306406157", Reasons: []string{reason}}},
+		})
+	}
+	first := listEditor(t, server, "&limit=1")
+	if len(first.Items) != 1 || first.Items[0].ID != "a1" || !strings.Contains(first.Items[0].IsbnNote, reasons["a1"]) {
+		t.Fatalf("first page = %+v", first.Items)
+	}
+	last := listEditor(t, server, "&limit=1&offset=4")
+	if len(last.Items) != 1 || last.Items[0].ID != "n1" || !strings.Contains(last.Items[0].IsbnNote, reasons["n1"]) {
+		t.Fatalf("last page = %+v", last.Items)
+	}
+	if strings.Contains(last.Items[0].IsbnNote, reasons["a1"]) {
+		t.Fatalf("a row carries another book's note: %q", last.Items[0].IsbnNote)
+	}
+}
+
+// A note that already fits is handed back as it is, and one that does not is cut on a whole character. Bytes
+// outnumber characters, so counting bytes first is enough to know that most notes need no conversion at all.
+func TestBoundingCountsCharactersNotBytes(t *testing.T) {
+	accents := strings.Repeat("é", 12) // 24 bytes, 12 characters
+	if got := bounded(20, accents); got != accents {
+		t.Fatalf("a note of 12 characters was cut to %q", got)
+	}
+	exact := strings.Repeat("x", 20)
+	if got := bounded(20, exact); got != exact {
+		t.Fatalf("a note at the limit was cut to %q", got)
+	}
+	got := bounded(10, strings.Repeat("é", 30))
+	if len([]rune(got)) != 10 || []rune(got)[8] != 'é' || !strings.HasSuffix(got, "…") {
+		t.Fatalf("a long note was cut in the wrong place: %q", got)
+	}
+}
+
 // A book that already carries an ISBN is skipped by default, and that is the point of the recheck option: reading it
 // anyway is the only way to learn that the number in the metadata is not the number printed in the file.
 func TestRecheckReadsBooksThatAlreadyHaveAnISBN(t *testing.T) {

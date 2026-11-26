@@ -13,6 +13,10 @@
   color: var(--color-error);
 }
 
+.warning {
+  color: var(--color-warning);
+}
+
 .heading {
   margin: 0;
   color: var(--color-text);

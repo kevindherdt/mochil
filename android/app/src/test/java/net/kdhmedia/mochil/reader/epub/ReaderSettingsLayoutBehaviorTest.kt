@@ -45,6 +45,8 @@ class ReaderSettingsLayoutBehaviorTest {
             }
         }
         compose.onNodeWithText("Aa").performClick()
+        // Paging is a page setting now, under Display & theme.
+        compose.onNodeWithText("Display & theme").performClick()
         assertSingleLine("Paged")
         compose.onNodeWithText("Paged").performClick()
         assertSingleLine("Scroll")

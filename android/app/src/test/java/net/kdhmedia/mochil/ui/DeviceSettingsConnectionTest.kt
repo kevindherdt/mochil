@@ -35,7 +35,7 @@ class DeviceSettingsConnectionTest {
                 annotationPrivacyState = AnnotationPrivacyState(), onExportAnnotations = {}, onDeleteServerAnnotations = {},
                 libraries = emptyList(), visibleLibraryIds = emptySet(), deviceClass = ClientDeviceClass.Handheld,
                 onLibraryVisibility = { _, _ -> }, showCollections = true, showSources = true,
-                onDestinationVisibility = { _, _ -> }, onBack = {},
+                onDestinationVisibility = { _, _ -> },
             )
         }
         compose.onNodeWithText("Paired").assertIsDisplayed()

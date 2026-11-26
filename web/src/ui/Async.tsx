@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { Skeleton } from "./Skeleton";
 import { EmptyState } from "./EmptyState";
 import { ErrorState } from "./ErrorState";
+import { StaleNotice } from "./StaleNotice";
 import { Stack } from "./Stack";
 
 /** The subset of TanStack Query's UseQueryResult that <Async> needs — kept narrow so it isn't coupled to one
@@ -27,6 +28,10 @@ export interface AsyncProps<T> {
   empty?: (data: T) => boolean;
   emptyMessage?: string;
   emptyAction?: { label: string; onClick: () => void };
+  /** A failed *refetch* keeps the data on screen with a "couldn't refresh" strip; this makes it swap in the full
+      error panel instead. Only a screen whose writes depend on the data being current wants that — a stale playlist
+      revision, for instance, makes every further edit fail on the server. Everything else should keep the data. */
+  failOnRefetchError?: boolean;
 }
 
 const defaultSkeleton = (
@@ -37,12 +42,44 @@ const defaultSkeleton = (
   </Stack>
 );
 
-export function Async<T>({ query, children, skeleton, empty, emptyMessage = "Nothing here yet.", emptyAction }: AsyncProps<T>) {
+export function Async<T>({
+  query,
+  children,
+  skeleton,
+  empty,
+  emptyMessage = "Nothing here yet.",
+  emptyAction,
+  failOnRefetchError = false,
+}: AsyncProps<T>) {
   if (query.isLoading) return <>{skeleton ?? defaultSkeleton}</>;
-  if (query.isError) return <ErrorState onRetry={query.refetch} />;
-  // A query that has not started yet is waiting, not broken: an `enabled: false` query reports `isLoading === false`
-  // with no data, which used to paint a red "No data." and a retry button that could only refetch nothing.
-  if (query.data === undefined) return <>{skeleton ?? defaultSkeleton}</>;
-  if (empty?.(query.data)) return <EmptyState message={emptyMessage} action={emptyAction} />;
-  return <>{children(query.data)}</>;
+
+  if (query.data === undefined) {
+    // A load that failed has nothing to show, so it gets the one action that fixes it. A load that has not started
+    // yet is waiting, not broken: an `enabled: false` query reports `isLoading === false` with no data, which used to
+    // paint a red "No data." and a retry button that could only refetch nothing.
+    return query.isError ? <ErrorState onRetry={query.refetch} /> : <>{skeleton ?? defaultSkeleton}</>;
+  }
+
+  // Data that failed to *refresh* is still the data the person asked for: TanStack reports `isError` for a failed
+  // refetch while keeping the last successful result. Swapping in a full error panel here threw away a list someone
+  // was reading (and editing, and scrolled halfway down) over one dropped request, with a Retry that a moment later
+  // would have worked anyway. Keep it and say it may be out of date. A screen that cannot act on stale data — the
+  // playlist detail writes with an ETag, so a stale revision fails every edit — asks for the panel instead.
+  if (query.isError && failOnRefetchError) return <ErrorState onRetry={query.refetch} />;
+  const stale = query.isError ? <StaleNotice onRetry={query.refetch} /> : null;
+
+  if (empty?.(query.data)) {
+    return (
+      <>
+        {stale}
+        <EmptyState message={emptyMessage} action={emptyAction} />
+      </>
+    );
+  }
+  return (
+    <>
+      {stale}
+      {children(query.data)}
+    </>
+  );
 }

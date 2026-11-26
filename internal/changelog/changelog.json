@@ -1,6 +1,63 @@
 {
  "entries": [
   {
+   "component": "android",
+   "version": "0.2.0",
+   "date": "2026-11-26",
+   "new": [
+    "The phone app is rebuilt around the web's design: a dock for Library, Discover, the assistant, Notes and Settings, with the libraries as scrollable pills marked by a glyph.",
+    "Reading-status chips filter a shelf by All, In Progress or Unread, and the counts and paging follow the filter.",
+    "Book, video and music cards share one shape: the kind glyph, volume plate and headphones on the artwork, a thin progress bar while reading and a tick when read, and video cards print the resolution the server probed.",
+    "Discover is four rails — continue reading, listening and watching, plus recently added — each drawn with the same cards a shelf uses.",
+    "Settings is a hub of cards with an Appearance page that shows the four themes as swatches.",
+    "The player's transport gained 15-second skips around a single play button, and the About page lists the version and the licence notices for the icons and bundled fonts."
+   ],
+   "fixed": [
+    "Long-pressing a card on Discover removes it from the rail again.",
+    "Tapping a status chip while the next page was loading no longer stops the list at its first page."
+   ],
+   "changes": [
+    "The library drop-down is gone: the dock switches places and a library's pills switch shelves.",
+    "The reader's settings are grouped as Typography, and everything that styles the page as display and theme."
+   ]
+  },
+  {
+   "component": "server",
+   "version": "0.2.0",
+   "date": "2026-11-25",
+   "new": [
+    "The editor remembers which results you put aside, per tool and per library, so each tool's answer survives a restart and stays separate from the others.",
+    "Clean up titles: fixed rules propose a cleaner title, series, author list and series position for the rows you select, grouped by the rule that decided each one, so a whole rule's batch can be judged or reverted at once. Nothing is written until you stage the diff and save.",
+    "Side stories are folded into the series they belong to as a sub-series, and a title that carried a volume marker now gets that number as its position."
+   ],
+   "fixed": [
+    "A title beginning with a number was being cut in half: 1984 - A Novel was stored as volume 1984 titled A Novel, and a series whose own name starts with a number (86--EIGHTY-SIX) produced every volume as volume 86 titled -EIGHTY-SIX - Volume 01. That leading dash came from this rule, not from an import.",
+    "A folder only named its series when its filenames happened to parse, so tightening the rule above would have silently dropped the series name as well."
+   ],
+   "performance": [
+    "The editor builds its library once per load instead of once per thousand rows: 91 ms against 216 ms for the same 4 MB on a 5 544-book library.",
+    "Every feed and editor chunk stopped deep-copying the whole catalogue, and the row build stopped re-reading its finding stores twice per book, folding a sort string per row per column, and hashing every book id per chunk."
+   ]
+  },
+  {
+   "component": "web",
+   "version": "0.2.0",
+   "date": "2026-11-25",
+   "new": [
+    "Tasks: every tool in the editor now has its own row — Find ISBNs, Hardcover matches and Clean up titles — showing what it found, how much you have put aside and when it last ran, with Review, Discard rest and Re-run on the row. Putting the ISBN results aside no longer hides those books from the match run, and a batch can be reviewed and applied one task at a time instead of as one blended pile.",
+    "Playlists: make one, add tracks from the Now Playing screen, reorder or remove tracks, rename, delete and play the list in order. Every edit is guarded by the playlist's own revision, so a change made on another device is reported instead of overwritten.",
+    "Clean up titles in the editor's Tasks panel, with the rules' findings shown before anything is staged."
+   ],
+   "fixed": [
+    "Selecting a library no longer forgets what you had put aside, which is why the same found ISBNs came back after every reload.",
+    "A failed background refresh no longer replaces the list you were reading with an error panel; it keeps the rows and shows a strip you can retry from. The playlist screen opts out on purpose, because a stale revision makes every edit fail.",
+    "Creating a playlist reported a failure even though it had been created: a 201 with no body was being parsed as JSON."
+   ],
+   "changes": [
+    "The retired web app is gone: its 245 modules, the bundler that packaged them, and the tests that drove them."
+   ]
+  },
+  {
    "component": "web",
    "version": "0.1.99",
    "date": "2026-11-24",

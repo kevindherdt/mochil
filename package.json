@@ -7,6 +7,7 @@
     "tokens:gen": "node scripts/gen-tokens.mjs",
     "tokens:check": "node scripts/gen-tokens.mjs --check",
     "tokens:contrast": "node scripts/contrast-check.mjs",
+    "icons:gen": "node scripts/gen-lucide-kt.mjs",
     "test:layout-gate": "node scripts/layout-gate.mjs",
     "test:frontend": "node --test internal/web/static_test/*.test.mjs",
     "test:browser": "node scripts/browser-smoke.mjs",

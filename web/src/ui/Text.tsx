@@ -7,7 +7,7 @@ export interface TextProps {
   children: ReactNode;
   size?: FontSizeKey;
   muted?: boolean;
-  tone?: "default" | "error";
+  tone?: "default" | "error" | "warning";
   as?: ElementType;
 }
 
@@ -15,6 +15,7 @@ export function Text({ children, size = "14", muted, tone = "default", as: Tag =
   const classes = [styles.text];
   if (muted) classes.push(styles.muted);
   if (tone === "error") classes.push(styles.error);
+  if (tone === "warning") classes.push(styles.warning);
   return (
     <Tag className={classes.join(" ")} style={{ fontSize: `var(--font-size-${size})` }}>
       {children}

@@ -16,7 +16,7 @@ internal fun WikiMissingLinkDialog(
     AlertDialog(
         onDismissRequest = { if (!busy) onDismiss() },
         title = { Text("Create “$label”?") },
-        text = { Text("This Wiki link does not exist yet. Create $path in this vault?") },
+        text = { Text("This note link does not exist yet. Create $path in this vault?") },
         confirmButton = {
             TextButton(onClick = onCreate, enabled = !busy) { Text(if (busy) "Creating…" else "Create page") }
         },

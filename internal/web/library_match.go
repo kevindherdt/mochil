@@ -4,7 +4,6 @@ import (
 	"errors"
 	"net/http"
 	"os"
-	"sort"
 	"strings"
 
 	"mochil/internal/customcolumns"
@@ -133,7 +132,7 @@ func (m *multiServer) editorMatch(w http.ResponseWriter, r *http.Request) {
 			Score:    matchScore(title, authors, result),
 		})
 	}
-	sort.SliceStable(candidates, func(i, j int) bool { return candidates[i].Score > candidates[j].Score })
+	rankForBook(candidates, title, 0)
 	if len(candidates) > 8 {
 		candidates = candidates[:8]
 	}

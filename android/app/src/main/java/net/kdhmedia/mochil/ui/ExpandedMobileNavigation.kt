@@ -8,7 +8,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.FolderOpen
-import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.outlined.Explore
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material.icons.outlined.Cloud
@@ -53,7 +53,7 @@ internal fun ExpandedMobileNavigation(
     ) {
         LazyColumn(contentPadding = PaddingValues(horizontal = 12.dp, vertical = 16.dp)) {
             item("home") {
-                ExpandedDestination("Home", destination == MobileShellDestination.Home, { Icon(Icons.Default.Home, null) }, onHome)
+                ExpandedDestination("Discover", destination == MobileShellDestination.Discover, { Icon(Icons.Outlined.Explore, null) }, onHome)
             }
             items(libraries, key = LibrarySummary::id) { library ->
                 ExpandedDestination(

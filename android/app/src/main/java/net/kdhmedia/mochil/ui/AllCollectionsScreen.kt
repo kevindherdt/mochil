@@ -1,5 +1,6 @@
 package net.kdhmedia.mochil.ui
 
+import net.kdhmedia.mochil.ui.kit.LucideIcons
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.icons.Icons
@@ -32,7 +33,7 @@ internal fun AllCollectionsScreen(
 ) {
     val covers = state.seriesLayout == PublicationLayout.Covers
     HeaderActions(listOf(
-        HeaderAction(if (covers) Icons.AutoMirrored.Filled.ViewList else Icons.Default.GridView, if (covers) "Show as list" else "Show as covers", onToggleLayout, MaterialTheme.colorScheme.onSurfaceVariant),
+        HeaderAction(if (covers) LucideIcons.List else LucideIcons.LayoutGrid, if (covers) "Show as list" else "Show as covers", onToggleLayout),
     ))
     LaunchedEffect(Unit) { onLoad() }
     val libraries = state.libraries.associateBy { it.id }

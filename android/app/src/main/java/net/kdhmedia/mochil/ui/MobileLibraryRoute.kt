@@ -39,11 +39,7 @@ internal fun MobileLibraryRoute(
     playbackViewModel: PlaybackViewModel,
     playlistState: MusicPlaylistState,
     showCollections: Boolean,
-    showSources: Boolean,
-    onOpenSettings: () -> Unit,
-    onOpenHome: () -> Unit,
     onOpenCollections: () -> Unit,
-    onOpenSources: () -> Unit,
     onWatch: (VideoItem) -> Unit,
 ) {
     val libraryState by libraryViewModel.state.collectAsStateWithLifecycle()
@@ -251,12 +247,9 @@ internal fun MobileLibraryRoute(
             queueViewModel.replace(queue)
             playbackViewModel.play(queue, track, musicViewModel::playbackUrl)
         },
-        onOpenSettings = onOpenSettings,
-        onOpenHome = onOpenHome,
         showCollections = showCollections,
-        showSources = showSources,
         onOpenCollections = onOpenCollections,
-        onOpenSources = onOpenSources,
+        onStatusFilter = libraryViewModel::setStatus,
     )
 
     CollectionPickerSheet(

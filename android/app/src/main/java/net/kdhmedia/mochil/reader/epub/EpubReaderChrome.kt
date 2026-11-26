@@ -64,7 +64,12 @@ import java.util.Date
 
 data class EpubChapter(val title: String, val depth: Int, val link: Link)
 private enum class ReaderPanel(val label: String) { Contents("Contents"), Bookmarks("Bookmarks"), Highlights("Highlights"), Statistics("Stats") }
-private enum class SettingsSection(val label: String) { Layout("Layout"), Text("Text"), Appearance("Appearance") }
+/**
+ * The web reader's grouping, as far as the phone has settings for it: everything that sets the text (Typography), then
+ * everything that sets the page around it (Display & theme). The web's third tab, Narration, has no settings of its own here:
+ * the read-aloud controls are the bar above this sheet, always one tap away.
+ */
+private enum class SettingsSection(val label: String) { Typography("Typography"), Display("Display & theme") }
 
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
@@ -108,7 +113,7 @@ internal fun EpubReaderChrome(
     var readerPanel by remember { mutableStateOf(ReaderPanel.Contents) }
     // Layout is the default tab so the paging mode (Paged/Scroll) stays immediately reachable,
     // matching the long-standing one-tap behaviour the existing settings tests rely on.
-    var settingsSection by remember { mutableStateOf(SettingsSection.Layout) }
+    var settingsSection by remember { mutableStateOf(SettingsSection.Typography) }
     var searchExpanded by remember { mutableStateOf(false) }
     var searchDraft by remember { mutableStateOf("") }
     val focusManager = LocalFocusManager.current
@@ -184,7 +189,7 @@ internal fun EpubReaderChrome(
                         }
                         Column(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp)) {
                             when (settingsSection) {
-                                SettingsSection.Text -> {
+                                SettingsSection.Typography -> {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         Text("Font size", modifier = Modifier.weight(1f), color = chromeContent)
                                         ReaderChromeTextButton(
@@ -204,7 +209,7 @@ internal fun EpubReaderChrome(
                                         ) { fontsExpanded = true }
                                     }
                                 }
-                                SettingsSection.Layout -> {
+                                SettingsSection.Display -> {
                                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                                         Text("Page turning", modifier = Modifier.weight(1f), color = chromeContent)
                                         ReaderChromeTextButton(if (preferences.scroll) "Scroll" else "Paged", chromeContent) { onPreferences { current -> current.copy(scroll = !current.scroll) } }
@@ -215,8 +220,6 @@ internal fun EpubReaderChrome(
                                             onPreferences { current -> current.copy(tapZones = current.tapZones.next()) }
                                         }
                                     }
-                                }
-                                SettingsSection.Appearance -> {
                                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                                         Text("Theme", modifier = Modifier.weight(1f), color = chromeContent)
                                         ReaderChromeTextButton(preferences.theme.label, chromeContent) { onPreferences { current -> current.copy(theme = current.theme.next()) } }

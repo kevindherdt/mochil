@@ -20,6 +20,9 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -70,19 +73,10 @@ fun DashboardScreen(
     onWatch: (VideoItem) -> Unit,
     onDismissWatching: (VideoItem) -> Unit,
     onRefresh: () -> Unit,
-    onOpenSettings: () -> Unit,
     libraries: List<LibrarySummary>,
-    selectedLibrary: LibrarySummary?,
-    showCollections: Boolean,
-    showSources: Boolean,
-    onOpenCollections: () -> Unit,
-    onOpenSources: () -> Unit,
-    onSelectLibrary: (LibrarySummary) -> Unit,
 ) {
+  // No drop-down: the dock switches places and the library screen's pills switch shelves, as on the web.
   Column(Modifier.fillMaxSize()) {
-    if (!LocalExpandedMobileNavigation.current) Row(Modifier.fillMaxWidth().padding(horizontal = MOBILE_CONTENT_GUTTER)) {
-        MobileLibraryRail(libraries, selectedLibrary, MobileShellDestination.Home, {}, showCollections, showSources, onOpenCollections, onOpenSources, onOpenSettings, onSelectLibrary)
-    }
     PullToRefreshBox(isRefreshing = state.loading, onRefresh = onRefresh, modifier = Modifier.weight(1f)) {
       LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         if (state.error != null) {
@@ -97,21 +91,39 @@ fun DashboardScreen(
                 }
             }
         }
-        if (state.loading && state.reading.isEmpty() && state.held.isEmpty() && state.listening.isEmpty() && state.watching.isEmpty()) {
+        if (state.loading && state.reading.isEmpty() && state.held.isEmpty() && state.listening.isEmpty() && state.watching.isEmpty() && state.recent.isEmpty()) {
             item { HomeSkeleton() }
-        } else if (state.reading.isEmpty() && state.held.isEmpty() && state.listening.isEmpty() && state.watching.isEmpty()) {
+        } else if (state.reading.isEmpty() && state.held.isEmpty() && state.listening.isEmpty() && state.watching.isEmpty() && state.recent.isEmpty()) {
             if (state.error == null) item { Text("Media you start will wait for you here.", Modifier.padding(20.dp), color = MaterialTheme.colorScheme.onSurfaceVariant) }
         } else {
             val kindOf = { libraryId: String -> libraries.firstOrNull { it.id == libraryId }?.kind.orEmpty() }
-            val jumpBackIn = dashboardJumpBackIn(
-                state.reading.map { item -> DashboardEntry("book:${item.book.libraryId}:${item.book.id}") { ReadingRow(item, kindOf(item.book.libraryId), coverUrl(item.book), authorizationHeader, { onRead(item.book) }) { onDismissReading(item.book) } } },
-                state.watching.map { item -> DashboardEntry("video:${item.libraryId}:${item.id}") { WatchingRow(item, kindOf(item.libraryId), videoArtworkUrl(item), authorizationHeader, { onWatch(item) }) { onDismissWatching(item) } } },
-                state.listening.map { item -> DashboardEntry("audio:${item.track.libraryId}:${item.track.id}") { ListeningRow(item, item.track.libraryKind.ifBlank { kindOf(item.track.libraryId) }, artworkUrl(item.track), authorizationHeader, { onListen(item.track) }) { onDismissListening(item) } } },
-            )
-            if (jumpBackIn.isNotEmpty()) {
-                item { DashboardSectionTitle("Jump back in") }
-                items(jumpBackIn, key = DashboardEntry::key) { entry -> entry.content() }
-            }
+            item { DashboardRail("Continue reading", state.reading, { it.book.libraryId to it.book.id }) { item ->
+                BookCard(item.book, kindOf(item.book.libraryId), coverUrl(item.book), authorizationHeader, onRead, {}, onDismiss = { onDismissReading(item.book) })
+            } }
+            item { DashboardRail("Continue listening", state.listening, { it.track.libraryId to it.track.id }) { item ->
+                MusicAlbumCard(
+                    title = item.track.title, subtitle = item.track.artist.ifBlank { item.track.album },
+                    art = { AuthenticatedArtwork(artworkUrl(item.track), authorizationHeader, item.track.title, Modifier.fillMaxSize()) },
+                    onClick = { onListen(item.track) },
+                    onDismiss = { onDismissListening(item) },
+                )
+            } }
+            item { DashboardRail("Continue watching", state.watching, { it.libraryId to it.id }) { item ->
+                VideoCard(
+                    art = { AuthenticatedArtwork(videoArtworkUrl(item), authorizationHeader, item.displayTitle, it) },
+                    aspect = if (item.episode > 0) 16f / 9f else 2f / 3f,
+                    title = item.displayTitle, caption = item.caption(),
+                    formatLabel = videoFormatLabel(item.videoHeight, item.directPlay),
+                    // Long press removes it from Discover, the same gesture the rows had; never a visible button.
+                    modifier = Modifier.combinedClickable(
+                        onClickLabel = "Open ${item.displayTitle}", role = Role.Button, onClick = { onWatch(item) },
+                        onLongClickLabel = "Remove ${item.displayTitle} from Discover", onLongClick = { onDismissWatching(item) },
+                    ),
+                )
+            } }
+            item { DashboardRail("Recently added", state.recent, { it.libraryId to it.id }) { book ->
+                BookCard(book, kindOf(book.libraryId), coverUrl(book), authorizationHeader, onRead, {})
+            } }
             if (state.held.isNotEmpty()) {
                 item { DashboardSectionTitle("On hold & dropped") }
                 items(state.held, key = { "held:${it.book.libraryId}:${it.book.id}" }) { item ->
@@ -124,52 +136,29 @@ fun DashboardScreen(
   }
 }
 
-/** One row of Jump back in, with the key that keeps it stable in the list. */
-internal class DashboardEntry(val key: String, val content: @Composable () -> Unit)
-
-/** Reading, watching and listening mixed in turn, so one kind does not push the others off the screen. Each list keeps its own order. */
-internal fun <T> dashboardJumpBackIn(vararg lists: List<T>): List<T> {
-    val longest = lists.maxOfOrNull { it.size } ?: 0
-    return buildList { for (index in 0 until longest) lists.forEach { list -> list.getOrNull(index)?.let(::add) } }
-}
-
-/** A round icon in the library kind's own strong colour, so a book, a film and a recording can be told apart at a glance. */
+/**
+ * One rail of Discover: a heading and a sideways row of the same cards the library draws, as the web's Discover does
+ * (web/src/features/discover/screens/DiscoverScreen.tsx). A rail with nothing in it is left out entirely rather than
+ * shown empty; the screen's own empty state covers "nothing at all".
+ */
 @Composable
-private fun MediaTypeBadge(kind: String) {
-    val style = mediaKindStyle(
-        kind,
-        monochromeColor = if (LocalEInkPalette.current) MaterialTheme.colorScheme.onSurface else null,
-    )
-    val tint = style.tint(MaterialTheme.colorScheme.background)
-    Box(Modifier.size(34.dp).clip(androidx.compose.foundation.shape.CircleShape).background(tint.copy(alpha = .20f)), contentAlignment = Alignment.Center) {
-        Icon(style.icon, contentDescription = style.label, modifier = Modifier.size(20.dp), tint = tint)
-    }
-}
-
-@Composable
-private fun WatchingRow(item: VideoItem, kind: String, artworkUrl: String, authorizationHeader: String?, onClick: () -> Unit, onDismiss: () -> Unit) {
-    var menuExpanded by remember { mutableStateOf(false) }
-    Box {
-    Row(
-        Modifier.homeCard().combinedClickable(onClickLabel = "Continue watching ${item.displayTitle}", role = Role.Button, onClick = onClick, onLongClickLabel = "More options", onLongClick = { menuExpanded = true })
-            .semantics { customActions = listOf(CustomAccessibilityAction("Remove from Home") { onDismiss(); true }) }.padding(12.dp),
-        horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.CenterVertically,
-    ) {
-        AuthenticatedArtwork(artworkUrl, authorizationHeader, item.displayTitle, Modifier.size(width = 72.dp, height = 44.dp))
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
-            Text(item.displayTitle, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            val context = listOfNotNull(item.show.takeIf(String::isNotBlank), item.episode.takeIf { it > 0 }?.let { "S${item.season}E$it" }).joinToString(" · ")
-            if (context.isNotBlank()) Text(context, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text("${(item.progressFraction * 100).toInt()}% watched", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-        MediaTypeBadge(kind)
-    }
-        DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
-            DropdownMenuItem(text = { Text("Remove from Home") }, onClick = { menuExpanded = false; onDismiss() })
+internal fun <T> DashboardRail(title: String, entries: List<T>, key: (T) -> Pair<String, String>, card: @Composable (T) -> Unit) {
+    if (entries.isEmpty()) return
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(vertical = 4.dp)) {
+        DashboardSectionTitle(title)
+        LazyRow(
+            contentPadding = PaddingValues(horizontal = MOBILE_CONTENT_GUTTER),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            items(entries, key = { item -> key(item).first + "\u001f" + key(item).second }) { item ->
+                // A grid cell's width, so a rail card is the same size as a card in a shelf.
+                Box(Modifier.width(148.dp)) { card(item) }
+            }
         }
     }
 }
 
+/** A book the reader parked, with the one action that brings it back. */
 @Composable
 private fun HeldRow(item: ContinueReading, coverUrl: String, authorizationHeader: String?, label: String, action: String, onAction: () -> Unit) {
     val title = dashboardReadingTitle(item.book)
@@ -185,33 +174,7 @@ private fun HeldRow(item: ContinueReading, coverUrl: String, authorizationHeader
 
 @Composable
 private fun DashboardSectionTitle(title: String) {
-    Text(title, Modifier.padding(start = 20.dp, end = 20.dp, top = 18.dp, bottom = 4.dp), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
-}
-
-@Composable
-private fun ReadingRow(item: ContinueReading, kind: String, coverUrl: String, authorizationHeader: String?, onClick: () -> Unit, onDismiss: () -> Unit) {
-    val fraction = item.fraction.takeIf(Double::isFinite)?.coerceIn(0.0, 1.0) ?: 0.0
-    val title = dashboardReadingTitle(item.book)
-    var menuExpanded by remember { mutableStateOf(false) }
-    Box {
-    Row(
-        Modifier.homeCard().combinedClickable(onClickLabel = "Continue reading $title", role = Role.Button, onClick = onClick, onLongClickLabel = "More options", onLongClick = { menuExpanded = true })
-            .semantics { customActions = listOf(CustomAccessibilityAction("Remove from Home") { onDismiss(); true }) }.padding(12.dp),
-        horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.CenterVertically,
-    ) {
-        AuthenticatedArtwork(coverUrl, authorizationHeader, item.book.title, Modifier.size(width = 40.dp, height = 56.dp))
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
-            Text(title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text("${(fraction * 100).toInt()}% read", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            ThinProgress(progress = { fraction.toFloat() }, Modifier.fillMaxWidth().height(4.dp).clip(RoundedCornerShape(2.dp)))
-            if (item.book.readAlong) ReadAlongLabel()
-        }
-        MediaTypeBadge(kind)
-    }
-        DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
-            DropdownMenuItem(text = { Text("Remove from Home") }, onClick = { menuExpanded = false; onDismiss() })
-        }
-    }
+    Text(title, Modifier.padding(start = MOBILE_CONTENT_GUTTER, end = MOBILE_CONTENT_GUTTER, top = 18.dp, bottom = 4.dp), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
 }
 
 internal fun dashboardReadingTitle(book: BookSummary): String {
@@ -220,26 +183,3 @@ internal fun dashboardReadingTitle(book: BookSummary): String {
     return if (series.isNotBlank() && title.startsWith("chapter ", ignoreCase = true)) "$series — $title" else title
 }
 
-@Composable
-private fun ListeningRow(item: ContinueListening, kind: String, artworkUrl: String, authorizationHeader: String?, onClick: () -> Unit, onDismiss: () -> Unit) {
-    val fraction = if (item.durationSeconds.isFinite() && item.durationSeconds > 0 && item.positionSeconds.isFinite()) (item.positionSeconds / item.durationSeconds).coerceIn(0.0, 1.0) else 0.0
-    var menuExpanded by remember { mutableStateOf(false) }
-    Box {
-    Row(
-        Modifier.homeCard().combinedClickable(onClickLabel = "Continue listening to ${item.track.title}", role = Role.Button, onClick = onClick, onLongClickLabel = "More options", onLongClick = { menuExpanded = true })
-            .semantics { customActions = listOf(CustomAccessibilityAction("Remove from Home") { onDismiss(); true }) }.padding(12.dp),
-        horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.CenterVertically,
-    ) {
-        AuthenticatedArtwork(artworkUrl, authorizationHeader, item.track.title, Modifier.size(48.dp))
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
-            Text(item.track.title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text(item.track.artist.ifBlank { "Unknown artist" }, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text("${(fraction * 100).toInt()}% listened", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-        MediaTypeBadge(kind)
-    }
-        DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
-            DropdownMenuItem(text = { Text("Remove from Home") }, onClick = { menuExpanded = false; onDismiss() })
-        }
-    }
-}

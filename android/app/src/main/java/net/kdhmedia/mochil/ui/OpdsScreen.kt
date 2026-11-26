@@ -1,5 +1,6 @@
 package net.kdhmedia.mochil.ui
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -59,6 +60,8 @@ fun OpdsScreen(onBack: () -> Unit, model: OpdsViewModel = viewModel()) {
     var searching by rememberSaveable { mutableStateOf(false) }
     var query by rememberSaveable { mutableStateOf("") }
     var pendingRemoval by rememberSaveable { mutableStateOf<String?>(null) }
+    // System Back walks the same folder stack as the arrow, so it goes up one level before it leaves the screen.
+    BackHandler { if (!model.back()) onBack() }
     var editingId by rememberSaveable { mutableStateOf<String?>(null) }
     Column(Modifier.fillMaxSize().padding(horizontal = 12.dp, vertical = 8.dp)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {

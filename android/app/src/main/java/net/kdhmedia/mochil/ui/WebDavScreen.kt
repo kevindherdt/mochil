@@ -1,5 +1,6 @@
 package net.kdhmedia.mochil.ui
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -61,6 +62,8 @@ fun WebDavScreen(onBack: () -> Unit, model: WebDavViewModel = viewModel(), playb
     var query by rememberSaveable { mutableStateOf("") }
     var removalId by rememberSaveable { mutableStateOf<String?>(null) }
     var editingId by rememberSaveable { mutableStateOf<String?>(null) }
+    // System Back walks the same folder stack as the arrow, so it goes up one level before it leaves the screen.
+    BackHandler { if (!model.back()) onBack() }
     LaunchedEffect(state.readyAudio?.id) {
         state.readyAudio?.let { track -> playback.play(listOf(track), track, { it.id }); model.consumeReadyAudio() }
     }

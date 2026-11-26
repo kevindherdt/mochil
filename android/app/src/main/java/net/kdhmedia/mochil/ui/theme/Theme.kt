@@ -28,13 +28,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
 
-private fun dark(primary: Long, background: Long, surface: Long, raised: Long, text: Long = 0xFFF4EEE6, muted: Long = 0xFFB8AEA3): ColorScheme {
+private fun dark(primary: Long, background: Long, surface: Long, raised: Long, text: Long = 0xFFF4EEE6, muted: Long = 0xFFB8AEA3, line: Long, ink: Long): ColorScheme {
     val accent = Color(primary)
     val foreground = Color(text)
     val raisedSurface = Color(raised)
     return darkColorScheme(
         primary = accent,
-        onPrimary = Color(background),
+        onPrimary = Color(ink),
         primaryContainer = accent.copy(alpha = .24f).compositeOver(raisedSurface),
         onPrimaryContainer = foreground,
         secondaryContainer = raisedSurface,
@@ -46,16 +46,18 @@ private fun dark(primary: Long, background: Long, surface: Long, raised: Long, t
         surfaceVariant = raisedSurface,
         onSurfaceVariant = Color(muted),
         outline = Color(muted),
+        // The web's --color-line: the hairline round a card and between rows.
+        outlineVariant = Color(line),
     )
 }
 
-private fun light(primary: Long, background: Long, surface: Long, raised: Long, text: Long = 0xFF241F1A, muted: Long = 0xFF72675D): ColorScheme {
+private fun light(primary: Long, background: Long, surface: Long, raised: Long, text: Long = 0xFF241F1A, muted: Long = 0xFF72675D, line: Long, ink: Long): ColorScheme {
     val accent = Color(primary)
     val foreground = Color(text)
     val raisedSurface = Color(raised)
     return lightColorScheme(
         primary = accent,
-        onPrimary = Color.White,
+        onPrimary = Color(ink),
         primaryContainer = accent.copy(alpha = .14f).compositeOver(raisedSurface),
         onPrimaryContainer = foreground,
         secondaryContainer = raisedSurface,
@@ -67,6 +69,8 @@ private fun light(primary: Long, background: Long, surface: Long, raised: Long, 
         surfaceVariant = raisedSurface,
         onSurfaceVariant = Color(muted),
         outline = Color(muted),
+        // The web's --color-line: the hairline round a card and between rows.
+        outlineVariant = Color(line),
     )
 }
 
@@ -74,8 +78,8 @@ private fun light(primary: Long, background: Long, surface: Long, raised: Long, 
 // hex. This is what stops phone and web drifting apart: Compose's Tide used to be a different colour from the web's
 // (#45DCD4/#334246 here vs the web's #38e0c6/#0b2b2c) because nothing enforced the two stayed equal — found and
 // fixed 21 Nov 2026. One edit to tokens.json now reaches both.
-private fun darkFrom(c: GeneratedTokens.Mode): ColorScheme = dark(c.accent, c.bg, c.surface, c.raised, c.text, c.muted)
-private fun lightFrom(c: GeneratedTokens.Mode): ColorScheme = light(c.accent, c.bg, c.surface, c.raised, c.text, c.muted)
+private fun darkFrom(c: GeneratedTokens.Mode): ColorScheme = dark(c.accent, c.bg, c.surface, c.raised, c.text, c.muted, c.line, c.accentInk)
+private fun lightFrom(c: GeneratedTokens.Mode): ColorScheme = light(c.accent, c.bg, c.surface, c.raised, c.text, c.muted, c.line, c.accentInk)
 
 private val Ember = darkFrom(GeneratedTokens.Mochil.Dark)
 private val EmberLight = lightFrom(GeneratedTokens.Mochil.Light)
@@ -101,7 +105,7 @@ fun MochilTheme(selection: AppThemeSelection? = null, glow: Boolean = true, cine
         LocalReduceMotion provides chosen.reduceMotion,
         LocalEInkPalette provides (chosen.palette == AppPalette.EInk),
     ) {
-        MaterialTheme(colorScheme = colors, typography = if (cinema) TvTypography else Typography()) {
+        MaterialTheme(colorScheme = colors, typography = if (cinema) TvTypography else PhoneTypography) {
             // Every theme but e-ink wears a faint glow of its own accent, like the web; it sits over the screen and never takes touches.
             // The Box is unconditional on purpose: the glow used to be added by wrapping the content, so
             // crossing the e-ink boundary moved the content to a different call site, disposed the whole
@@ -178,11 +182,17 @@ fun AppPalette.swatch(dark: Boolean): Color = when (this) {
     AppPalette.EInk -> if (dark) EInkDark else EInkLight
 }.primary
 
+/** The page colour of a palette, for the swatch that previews it; the accent shows as the dot inside. */
+fun AppPalette.backdrop(dark: Boolean): Color = paletteScheme(this, dark).background
+
 /**
  * The 10-foot type scale. Material's defaults are sized for a phone held at arm's length: at three
  * metres a 14sp caption is roughly 3.4mm of cap height, which is below the readable floor. Every TV
  * screen inherits this through MaterialTheme, so the ramp lives here rather than per screen.
  */
+/** Built once: the families load their font files on first use, and a theme change must not rebuild them. */
+private val PhoneTypography by lazy { mochilTypography() }
+
 private val TvTypography = Typography(
     displaySmall = TextStyle(fontSize = 44.sp, lineHeight = 46.sp, fontWeight = FontWeight.SemiBold, letterSpacing = (-0.5).sp),
     headlineMedium = TextStyle(fontSize = 36.sp, lineHeight = 40.sp, fontWeight = FontWeight.SemiBold),

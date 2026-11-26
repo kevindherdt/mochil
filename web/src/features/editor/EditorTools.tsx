@@ -1,29 +1,34 @@
-// features/editor/EditorTools.tsx — the bulk metadata tools: find first, then use what was found.
+// features/editor/EditorTools.tsx — the bulk metadata tools: find first, then deal with what was found.
 //
 // Per-book lookups are useless on a library of thousands, so this follows the legacy editor's two stages:
 //
 //   1. FIND — a background job on the server, scoped to the selection or the whole library. It keeps running if the page
 //      closes, it can be stopped, and starting it again continues where a stop left off. Four of them: find ISBNs, find
 //      Hardcover matches, and the two AI asks that only decide the cases the plain lookups were unsure about.
-//   2. STAGE — put the results into the same pending-edits map a typed cell goes into, which then goes through the normal
-//      review → save → undo path. Matches stage one of two ways, chosen beside the button: FILL rewrites only the fields
-//      the book has nothing in (year, description, cover, the usable half of a match), REPLACE rewrites what the match
-//      disagrees about (title, authors, series, series index, year, description, the hardcover link) — the "(Polish)"
-//      left in a title, a series spelled one way here and another on Hardcover. "Stage found ISBNs" only ever touches
-//      books without one.
+//   2. THE TASKS PANEL — one row per tool run, with its own counts, its own Review, its own dismissal set and its own
+//      re-run. It replaced one "Stage N" button fed by every tool at once, where the button meant something different
+//      depending on which tool ran last and the only way to a result was a chain (cancel the ISBNs, then the matches
+//      appear, then discard those). Reviewing a row stages into the same pending-edits map a typed cell goes into, so
+//      the review → save → undo path is unchanged; matches still stage one of two ways, chosen beside the panel: FILL
+//      rewrites only the fields the book has nothing in, REPLACE rewrites what the match disagrees about.
 //
 // Nothing here writes metadata by itself. A tool that wrote directly would be a tool nobody dares run on 4 800 books.
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import { Search } from "lucide-react";
 import { toneInk } from "./tone";
 import { Button, FilterChips, Inline, Menu, Stack, Text, Toolbar } from "../../ui";
+import { MATCH_WRITABLE, useMatchFields } from "./matchFields";
+import { TasksPanel } from "./TasksPanel";
 import {
+  FIELD_LABELS,
+  TASK_JOBS,
   isbnFills,
   jobState,
   matchFills,
   matchReplaces,
   startJob,
   stopJob,
+  tidyBooks,
   writeMetadataFiles,
   type MetadataFileOutcome,
   type EditorBook,
@@ -86,27 +91,24 @@ export function EditorTools({
   selected,
   editable,
   hermes,
-  onStage,
+  onReviewTask,
   refetch,
   open,
   pending,
   calibre,
-  dismissed,
-  onRestore,
 }: {
   libraryId: string;
   books: EditorBook[];
   selected: string[];
   editable: readonly EditorField[];
   hermes: HermesAbilities;
-  onStage: (changes: EditorChanges) => void;
+  /** Stage one task's changes and open the review on them. The screen owns staging and the diff, so the panel only
+   *  says which tool and what it would change. */
+  onReviewTask: (tool: string, title: string, changes: EditorChanges) => void;
   /** How many edits are staged but not saved. Writing files writes what is saved, so this has to be zero first. */
   pending: number;
   /** Calibre owns this library's folders and its own metadata.opf, so writing files there is not offered at all. */
   calibre: boolean;
-  /** Books the person discarded from staging. They are already left out of `books`; this is how many, and the way back. */
-  dismissed: number;
-  onRestore: () => void;
   /** Owned by the screen: the trigger lives in the toolbar, the panel expands under it. */
   open: boolean;
   /** react-query's refetch — a stable identity, so the polling effect does not restart on every render. */
@@ -118,9 +120,10 @@ export function EditorTools({
   // What the last job said when it finished. A job can end in under a second, and the progress line only exists while a
   // job is running, so without this the server's own message ("2 already have an ISBN") would never be read.
   const [summary, setSummary] = useState<string | undefined>(undefined);
-  // Reading a book that already has an ISBN is a different question — "is the number in the metadata the one printed in
-  // the file?" — and it costs a file read per book. It is a second item on the ISBN tool's own menu rather than a
-  // checkbox sitting in the panel all day for a question nobody asks about the other three tools.
+  // The task rows open under the trigger rather than in a dialog: they are a list to keep an eye on while the table
+  // behind them is being worked, not a thing to be dismissed before you can see the library again.
+  const [tasksOpen, setTasksOpen] = useState(false);
+  const tasksId = useId();
   // Writing metadata.opf beside the books: what makes the work leave Mochil and land in Calibre's import.
   const [embed, setEmbed] = useState(false);
   const [overwriteSidecar, setOverwriteSidecar] = useState(false);
@@ -137,17 +140,20 @@ export function EditorTools({
   // something alone, replacing is how "The Last Wish (Polish)" becomes "The Last Wish". Both stage into the same
   // pending map, so both get the same per-book diff, apply and undo.
   const [matchMode, setMatchMode] = useState<"fill" | "replace">("fill");
-  const fillChanges = useMemo(() => matchFills(scopeBooks, editable), [scopeBooks, editable]);
-  const replaceChanges = useMemo(() => matchReplaces(scopeBooks, editable), [scopeBooks, editable]);
-  const isbnChanges = useMemo(() => isbnFills(scopeBooks, editable), [scopeBooks, editable]);
-  const fillCount = Object.keys(fillChanges).length;
-  const replaceCount = Object.keys(replaceChanges).length;
-  const isbnCount = Object.keys(isbnChanges).length;
+  // What a match may write here, chosen per library. Everything below that takes the match — the two counts and the
+  // staging itself — narrows to it, so a series name that must not move is never even proposed.
+  const [matchFields, setMatchFields] = useMatchFields(libraryId);
+  const matchEditable = useMemo(
+    () => matchFields.filter((field) => editable.includes(field)),
+    [editable, matchFields],
+  );
+  const fillChanges = useMemo(() => matchFills(scopeBooks, matchEditable), [scopeBooks, matchEditable]);
+  const replaceChanges = useMemo(() => matchReplaces(scopeBooks, matchEditable), [scopeBooks, matchEditable]);
   // A Calibre library keeps its own title, authors and series (the server answers 409 for them), so offering to
   // replace them there would be offering a refusal.
   const canReplace = editable.includes("title");
-  const matchChanges = matchMode === "replace" ? replaceChanges : fillChanges;
-  const matchCount = matchMode === "replace" ? replaceCount : fillCount;
+  const fillCount = Object.keys(fillChanges).length;
+  const replaceCount = Object.keys(replaceChanges).length;
 
   // Re-attach to a job that is still running on the server (it survives the page being closed).
   useEffect(() => {
@@ -216,15 +222,19 @@ export function EditorTools({
     };
   }, [running, libraryId, refetch]);
 
-  async function start(tool: ToolId, options: { recheck?: boolean } = {}) {
+  /** False when the server refused it. `problem` says why either way; the Tasks panel needs the answer because it
+   *  started the job from its own row. */
+  async function start(tool: ToolId, options: { recheck?: boolean; ids?: string[] } = {}): Promise<boolean> {
     setProblem(undefined);
     setSummary(undefined);
     try {
-      await startJob(libraryId, tool, selected, { recheck: tool === "isbn" && options.recheck === true });
+      await startJob(libraryId, tool, options.ids ?? selected, { recheck: tool === "isbn" && options.recheck === true });
       setRunning(tool);
       setJob(undefined);
+      return true;
     } catch (error) {
       setProblem(error instanceof Error ? error.message : "That could not be started.");
+      return false;
     }
   }
 
@@ -250,6 +260,26 @@ export function EditorTools({
     }
   }
 
+  /**
+   * What one task's Review would stage, with that task's dismissed books left out — the whole point of the panel:
+   * what the ISBN run put aside must not be offered by the match run, and vice versa.
+   */
+  async function changesFor(tool: string, excluded: string[]): Promise<EditorChanges> {
+    const skip = new Set(excluded);
+    const scoped = skip.size === 0 ? scopeBooks : scopeBooks.filter((book) => !skip.has(book.id));
+    if (tool === "tidy") return (await tidyBooks(libraryId, scoped.map((book) => book.id))).changes;
+    if (tool === "isbn") return isbnFills(scoped, editable);
+    if (tool === "match") return matchMode === "replace" ? matchReplaces(scoped, matchEditable) : matchFills(scoped, matchEditable);
+    return {};
+  }
+
+  /** A re-run is the whole library: the row is about a run, not about whatever happens to be selected now. */
+  async function rerun(tool: string): Promise<void> {
+    const jobId = TASK_JOBS[tool];
+    if (jobId === undefined) return;
+    if (!(await start(jobId, { ids: [] }))) throw new Error("That could not be started.");
+  }
+
   const scopeLabel = selected.length > 0 ? `${selected.length} selected` : "the whole library";
 
   // Closed with nothing to report: render nothing at all, rather than an empty row where a panel would be. Hooks are
@@ -273,6 +303,11 @@ export function EditorTools({
         )}
         {running === undefined && summary !== undefined && <Text size="11" muted>{summary}</Text>}
         <div style={{ flex: 1 }} />
+        {/* The one door to what the tools found. Each row carries its own counts and actions; nothing here stages
+            anything by itself. */}
+        <Button variant="secondary" aria-expanded={tasksOpen} aria-controls={tasksId} onClick={() => setTasksOpen(!tasksOpen)}>
+          Tasks
+        </Button>
         {canReplace && (fillCount > 0 || replaceCount > 0) && (
           <FilterChips
             items={[
@@ -283,32 +318,46 @@ export function EditorTools({
             onSelect={(id) => setMatchMode(id === "replace" ? "replace" : "fill")}
           />
         )}
-        {matchCount > 0 && (
-          <Button
-            variant="secondary"
-            onClick={() => onStage(matchChanges)}
-            title={
-              matchMode === "replace"
-                ? "Rewrite every field the match disagrees with: title, authors, series, series position, year, description and the hardcover link. Names are compared loosely, the year and the blurb exactly. A field the match does not know is left alone. Nothing is written yet — you review the diff first."
-                : "Stage the other fields of each match whose title and author agree: year, description, cover where the book has none. Nothing is written yet."
-            }
-          >
-            {matchMode === "replace"
-              ? `Stage ${matchCount} replacement${matchCount === 1 ? "" : "s"}`
-              : `Stage ${matchCount} confident match${matchCount === 1 ? "" : "es"}`}
-          </Button>
-        )}
-        {matchMode === "replace" && replaceCount === 0 && fillCount > 0 && (
-          <Text size="11" muted>
-            No match disagrees with a title, author, series, year or blurb.
-          </Text>
-        )}
-        {isbnCount > 0 && (
-          <Button variant="secondary" onClick={() => onStage(isbnChanges)} title="Stage the ISBN found inside each book file. Nothing is written yet.">
-            Stage {isbnCount} found ISBN{isbnCount === 1 ? "" : "s"}
-          </Button>
+        {/* Which fields a match may write. A match carries a title, a series, a year and a blurb, and taking it used to
+            mean all of them — sometimes the blurb is the point and the series name is the thing that must not move. */}
+        {available.some((tool) => tool.id === "matches") && (
+          <Inline gap={8} align="center" wrap>
+            <Text size="11" muted>
+              Match may write
+            </Text>
+            {MATCH_WRITABLE.filter((field) => editable.includes(field)).map((field) => (
+              <label
+                key={field}
+                style={{
+                  display: "inline-flex",
+                  gap: "var(--space-4)",
+                  alignItems: "center",
+                  fontSize: "var(--font-size-11)",
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={matchFields.includes(field)}
+                  onChange={() =>
+                    setMatchFields(
+                      matchFields.includes(field)
+                        ? matchFields.filter((chosen) => chosen !== field)
+                        : [...matchFields, field],
+                    )
+                  }
+                />
+                {FIELD_LABELS[field]}
+              </label>
+            ))}
+          </Inline>
         )}
       </Inline>
+
+      {tasksOpen && (
+        <div id={tasksId}>
+          <TasksPanel libraryId={libraryId} buildChanges={changesFor} onReview={onReviewTask} onRerun={rerun} />
+        </div>
+      )}
 
       {open && (
         <div style={{ border: "1px solid var(--color-line)", borderRadius: "var(--radius-12)", padding: "var(--space-8) var(--space-12)", background: "var(--color-surface)" }}>
@@ -367,17 +416,6 @@ export function EditorTools({
             </Toolbar>
 
             <Inline gap={16} align="center" wrap>
-              {dismissed > 0 && (
-                // A discard that cannot be undone is a trap, so the count is visible and one click brings them back.
-                <Inline gap={4} align="center">
-                  <Text size="11" muted>
-                    {dismissed} set aside
-                  </Text>
-                  <Button variant="secondary" onClick={onRestore}>
-                    Bring back
-                  </Button>
-                </Inline>
-              )}
               {calibre && (
                 <Text size="11" muted>
                   Calibre owns this library's folders and its own metadata.opf, so writing files stays Calibre's job.

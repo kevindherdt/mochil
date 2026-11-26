@@ -2,104 +2,50 @@ package net.kdhmedia.mochil.ui
 
 import net.kdhmedia.mochil.catalogue.BookSummary
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * The two lines a library card adds to its artwork. They follow the mock-up's card, minus its habit of
- * labelling everything "AI": a pill names the state or the format of that one book, and the progress line
- * only appears when there is progress to show.
+ * The marks a library card puts on its artwork and the two lines under it. The web's card (web/src/ui/BookCard.tsx):
+ * a kind glyph and a "Vol. N" plate, a bar while reading, a tick when read — and no pill of text under the author.
  */
 class BookCardTextTest {
     private fun book(
         title: String = "Neuromancer",
         series: String = "",
         seriesIndex: Double? = null,
-        format: String = "epub",
         fraction: Double? = null,
         finished: Boolean = false,
-        readAlong: Boolean = false,
-        status: String = "",
     ) = BookSummary(
         id = "one", libraryId = "books", title = title, authors = listOf("William Gibson"),
-        series = series, seriesIndex = seriesIndex, format = format, mediaType = "application/epub+zip", language = "en",
-        description = "", size = 1, readingFraction = fraction, finished = finished, readAlong = readAlong, status = status,
+        series = series, seriesIndex = seriesIndex, format = "epub", mediaType = "application/epub+zip", language = "en",
+        description = "", size = 1, readingFraction = fraction, finished = finished,
     )
 
-    /** The foot says where the reader is; a card with nothing else to add gets no pill at all. */
     @Test
-    fun `an untouched book carries no pill`() {
-        assertEquals("", bookCardTag(book()))
-        assertNull(bookProgressLabel(book()))
+    fun `a series position is the web's plate, and only a real one`() {
+        assertEquals("Vol. 3", bookVolumePlate(book(series = "The Expanse", seriesIndex = 3.0)))
+        // Every row carries a 1 by default; a book outside a series must not claim to be volume one.
+        assertNull(bookVolumePlate(book(seriesIndex = 1.0)))
+        assertNull(bookVolumePlate(book(series = "The Expanse", seriesIndex = 2.5)))
+        // A number that is the title ("1984") is never a position.
+        assertNull(bookVolumePlate(book(title = "1984", series = "1984", seriesIndex = 1.0)))
+        // A zero-padded title prefix is a position, as the web's titles.ts still reads it.
+        assertEquals("Vol. 1", bookVolumePlate(book(title = "01 Dies the Fire")))
+        assertEquals("Vol. 12", bookVolumePlate(book(title = "012 - The Long War")))
+        // Not zero-padded: a leading number is part of the title, not a position.
+        assertNull(bookVolumePlate(book(title = "12 - The Long War")))
+        assertNull(bookVolumePlate(book(title = "1984", seriesIndex = 1.0)))
     }
 
     @Test
-    fun `a narrated book says so, not that some model is involved`() {
-        assertEquals("Narrated", bookCardTag(book(readAlong = true, fraction = .3)))
-    }
-
-    /** Progress lives on the artwork; repeating it as "In progress" was the same fact twice. */
-    @Test
-    fun `progress is printed over the artwork and not repeated in a pill`() {
-        val reading = book(fraction = .72)
-        assertEquals("72% read", bookProgressLabel(reading))
-        assertEquals("", bookCardTag(reading))
-    }
-
-    @Test
-    fun `a finished book is marked with a tick, not a strip over the artwork`() {
-        // The strip ("Read", a 100%-filled bar) is gone for a finished book -- BookFinishedBadge draws the one
-        // mark a reader needs in the cover's free corner instead, the same rule as the web's .cover-done (0.1.83).
-        assertNull(bookProgressLabel(book(fraction = .98, finished = true)))
-        assertEquals(false, bookProgressBarShown(book(fraction = .98, finished = true)))
-        assertEquals("", bookCardTag(book(fraction = .98, finished = true)))
-    }
-
-    @Test
-    fun `a parked book keeps its own word`() {
-        assertEquals("On hold", bookCardTag(book(status = "on_hold")))
-        assertEquals("Dropped", bookCardTag(book(status = "dropped")))
-    }
-
-    /** A file extension is not something a reader scans for; the pill stays in the reader's words. */
-    @Test
-    fun `a comic is still just something to read`() {
-        assertEquals("", bookCardTag(book(format = "cbz")))
-        assertEquals("", bookCardTag(book(format = "")))
-    }
-
-    @Test
-    fun `a book in a series says where it sits`() {
-        assertEquals("Book 3", bookSeriesLabel(book(series = "The Expanse", seriesIndex = 3.0)))
-    }
-
-    @Test
-    fun `a stored index without a series is noise`() {
-        // Every row carries a 1 by default, so 1984 must not claim to be Book 1 of nothing.
-        assertEquals("", bookSeriesLabel(book(title = "1984", seriesIndex = 1.0)))
-    }
-
-    @Test
-    fun `a series that only repeats the title is not a series`() {
-        assertEquals("", bookSeriesLabel(book(title = "1984", series = "1984", seriesIndex = 1.0)))
-    }
-
-    @Test
-    fun `a zero padded title prefix gives a position`() {
-        assertEquals("Book 1", bookSeriesLabel(book(title = "01 Dies the Fire")))
-        assertEquals("", bookSeriesLabel(book(title = "127 Hours")))
-    }
-
-    /** One page in is "Started", not "0% read": a number that rounds to nothing says nothing. */
-    @Test
-    fun `a book opened once says started and draws no bar`() {
-        val barely = book(fraction = 0.004)
-        assertEquals("Started", bookProgressLabel(barely))
-        assertEquals(false, bookProgressBarShown(barely))
-        val opened = book(fraction = 0.42)
-        assertEquals("42% read", bookProgressLabel(opened))
-        assertEquals(true, bookProgressBarShown(opened))
-        // Finished has no bar and no label at all -- see "a finished book is marked with a tick..." above.
-        assertEquals(false, bookProgressBarShown(book(finished = true)))
+    fun `the bar is the only reading state, so any progress shows it, and never on a finished book`() {
+        assertFalse(bookProgressBarShown(book()))
+        // A book just marked "Reading" sits at 0.1% (ReadingStatus.Reading); the old card said "Started" there.
+        assertTrue(bookProgressBarShown(book(fraction = 0.001)))
+        assertTrue(bookProgressBarShown(book(fraction = 0.42)))
+        assertFalse("the tick replaces the bar", bookProgressBarShown(book(fraction = 1.0, finished = true)))
     }
 }

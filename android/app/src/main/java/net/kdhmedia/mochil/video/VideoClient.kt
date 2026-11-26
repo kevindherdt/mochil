@@ -109,6 +109,11 @@ class VideoClient {
             finished = progress?.optBoolean("finished") ?: false,
             progressRevision = progress?.optLong("revision") ?: 0,
             year = value.optInt("year"), overview = value.optString("overview"),
+            // The web's resolutionLabel takes the first stream that has a height (media.ts), which is the one the demuxer plays.
+            videoHeight = value.optJSONArray("video_streams")?.let { streams ->
+                (0 until minOf(streams.length(), MAX_VIDEO_STREAMS)).firstNotNullOfOrNull { index -> streams.optJSONObject(index)?.optInt("height")?.takeIf { it > 0 } }
+            },
+            directPlay = value.optBoolean("direct_play"),
         )
     }
 
@@ -145,6 +150,8 @@ internal fun appendQuery(path: String, name: String, value: String): String =
 internal const val VIDEO_PAGE_SIZE = 60
 private const val MAX_VIDEO_SEASONS = 200
 private const val MAX_VIDEO_SUBTITLES = 128
+/** The server probes a handful of streams; this bounds what a response can make the parser read. */
+private const val MAX_VIDEO_STREAMS = 32
 internal data class VideoPage<T>(val items: List<T>, val nextOffset: Int?)
 
 internal fun videoQuery(libraryId: String, show: VideoShow?, season: Int?, search: String, offset: Int = 0): String = buildString {

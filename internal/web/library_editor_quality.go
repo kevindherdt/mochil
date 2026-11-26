@@ -17,20 +17,21 @@ func bookCheckKey(library string) string { return "book-check:" + library }
 // review", which is for things that are wrong with a book's catalogue entry.
 var qualityIssues = map[string]bool{"no_description": true, "no_isbn": true, "no_cover": true, "unreadable": true, "isbn_found": true, "isbn_differs": true, "isbn_unsure": true, "match_found": true, "match_unsure": true, "match_none": true, "hardcover_doubt": true, "hardcover_nomatch": true, "hardcover_ignored": true}
 
-// quickQualityIssues needs nothing but the catalogue, so it is always on show.
-func quickQualityIssues(book catalog.Book) []string {
-	var found []string
+// quickQualityIssues needs nothing but the catalogue, so it is always on show. It adds to the slice the caller already
+// has rather than building one of its own: it runs for every book of every chunk, and the issue list it feeds is
+// allocated anyway.
+func quickQualityIssues(into []string, book catalog.Book) []string {
 	if strings.TrimSpace(book.Description) == "" {
-		found = append(found, "no_description")
+		into = append(into, "no_description")
 	}
 	hasISBN := strings.HasPrefix(strings.ToLower(book.Identifier), "isbn")
 	for scheme, value := range book.Identifiers {
 		hasISBN = hasISBN || (strings.EqualFold(scheme, "isbn") && strings.TrimSpace(value) != "")
 	}
 	if !hasISBN {
-		found = append(found, "no_isbn")
+		into = append(into, "no_isbn")
 	}
-	return found
+	return into
 }
 
 // checkBook opens one book's file the way a reader would and says what is wrong with it. It only reads.

@@ -14,6 +14,8 @@ data class DashboardSnapshot(
 
 data class DashboardState(
     val reading: List<ContinueReading> = emptyList(),
+    /** The newest books across the first browsable library, for Discover's "Recently added" rail (`?sort=recent`). */
+    val recent: List<BookSummary> = emptyList(),
     val listening: List<ContinueListening> = emptyList(),
     val watching: List<VideoItem> = emptyList(),
     /** Books the reader put on hold or dropped: out of Continue reading, kept here with a way back. */

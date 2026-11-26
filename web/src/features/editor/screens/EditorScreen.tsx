@@ -13,7 +13,7 @@
 // AI-ask tools, collections and transfer.
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Columns3, Folders, LibraryBig, ListFilter, Moon, Search, Sun } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Page, Heading, Text, Button, TextField, Stack, Inline, Async, EmptyState, ResizeHandle, Menu, IconButton, Toolbar } from "../../../ui";
 import { useEditorEnabled } from "../../../lib/useModules";
 import { useThemeContext } from "../../theme/ThemeContext";
@@ -31,13 +31,17 @@ import {
   applyChanges,
   matchReplace,
   changeCount,
+  changesFrom,
   editableFieldsFor,
   CALIBRE_OWNED_FIELDS,
   fetchAllEditorBooks,
   fetchCollections,
   mergeChanges,
   previewChanges,
+  tagChanges,
   undoChanges,
+  withoutChanges,
+  withoutSources,
   isbnOf,
   isbnState,
   sortKeyFor,
@@ -48,7 +52,9 @@ import {
   type EditorChange,
   type EditorChanges,
   type EditorField,
+  type EditorSources,
 } from "../api/editor";
+import { dismissBooks } from "../taskDismissals";
 
 interface EditorLibraries {
   libraries: LibraryOption[];
@@ -200,6 +206,7 @@ const FILTERS = [
 export function EditorScreen() {
   // Off means no editor at all, not a half-working one: the module switch has to mean something.
   const editorEnabled = useEditorEnabled();
+  const queryClient = useQueryClient();
   const libraries = useQuery({
     queryKey: ["editor", "libraries"],
     queryFn: async (): Promise<EditorLibraries> => {
@@ -272,10 +279,16 @@ export function EditorScreen() {
   const [anchor, setAnchor] = useState<string | undefined>(undefined);
   // The keyboard cursor: a row index into the loaded library and a column index into the shown columns.
   const [cursor, setCursor] = useState<{ row: number; col: number }>({ row: 0, col: 0 });
-  // Books the person set aside while staging: discarding a book dropped its pending edits, but the match that produced
-  // them was still there, so pressing "Stage matches" again put the same discarded book straight back. This keeps the
-  // decision until it is undone, and the panel offers the way back.
-  const [dismissed, setDismissed] = useState<string[]>([]);
+  // Which tool staged each field of each book. Staging used to be one anonymous map, so the review could not say where
+  // a change came from and one tool's batch could not be applied without the other's. The map itself is unchanged —
+  // apply, undo and the per-book path still take an EditorChanges — this only tags the entries.
+  const [sources, setSources] = useState<EditorSources>({});
+  // The task whose review is open, or undefined for "everything staged" (typed cells and bulk edits included).
+  const [activeTask, setActiveTask] = useState<string | undefined>(undefined);
+  // Dismissal is per tool now, and lives in taskDismissals.ts: the Tasks panel and the review panel's Discard both
+  // write it, and the server's counts are what the row reports. Nothing here clears it on a library switch — a
+  // dismissal belongs to the library it was made in, which is the bug that was just fixed.
+
   // The book whose match candidates are open. Choosing one stages its difference like any other edit.
   const [matchFor, setMatchFor] = useState<EditorBook | undefined>(undefined);
   const [bulkOpen, setBulkOpen] = useState(false);
@@ -398,11 +411,8 @@ export function EditorScreen() {
 
   // What the tools may stage into. A new array identity here made EditorTools recompute three full-library
   // match fill/replace scans (each normalising every title through NFKD) on every arrow key and every keystroke.
-  const browsable = useMemo(() => {
-    if (dismissed.length === 0) return books;
-    const skip = new Set(dismissed);
-    return books.filter((book) => !skip.has(book.id));
-  }, [books, dismissed]);
+  // Per-tool dismissals are applied inside EditorTools, where each task's staging is computed: a book put aside by
+  // the ISBN run is still offered to the match run, which is the whole point.
 
   const windowed = windowFor({ scrollTop, viewport, rowHeight: ROW_HEIGHT, count: books.length });
   const visible = books.slice(windowed.start, windowed.end);
@@ -523,12 +533,72 @@ export function EditorScreen() {
     setAnchor(book.id);
   }, [anchor, books]);
 
+  /**
+   * Splits a staged set into requests the server will accept. One request carries at most EDITOR_MAXIMUM_EDITS books;
+   * sending more is refused outright, which is how a 2 859-book review ended with a message and no panel.
+   */
+  function batchesOf(all: EditorChanges, size: number): EditorChanges[] {
+    const ids = Object.keys(all);
+    const out: EditorChanges[] = [];
+    for (let start = 0; start < ids.length; start += size) {
+      const batch: EditorChanges = {};
+      for (const id of ids.slice(start, start + size)) batch[id] = all[id] ?? {};
+      out.push(batch);
+    }
+    return out;
+  }
+
+  /** A server preview with each change labelled by the tool that proposed it — the panel's "From Find ISBNs". */
+  function labelled(preview: EditorChange[], from: EditorSources): EditorChange[] {
+    return preview.map((change) => {
+      const source = from[change.book]?.[change.field as EditorField];
+      return source === undefined ? change : { ...change, source: source.title };
+    });
+  }
+
   async function review() {
     if (libraryId === undefined) return;
     setBusy(true);
     setMessage(undefined);
     try {
-      setPreview(await previewChanges(libraryId, changes, resets));
+      setActiveTask(undefined);
+      setPreview(labelled(await previewChanges(libraryId, changes, resets), sources));
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Those changes could not be checked.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  /**
+   * Review one task's results: stage what that tool proposed, tag it with the tool, then ask the server for the diff of
+   * just those fields. Another task's staged work is left where it is — it is reviewed on its own row, and checked out
+   * on its own, so a 251-row title diff and a 41-row ISBN fill can both be dealt with in one sitting.
+   */
+  async function reviewTask(tool: string, title: string, incoming: EditorChanges) {
+    if (libraryId === undefined) return;
+    const merged = mergeChanges(changes, incoming);
+    const tagged = tagChanges(sources, incoming, { tool, title });
+    setChanges(merged);
+    setSources(tagged);
+    const subset = changesFrom(merged, tagged, tool);
+    if (changeCount(subset) === 0) {
+      setMessage(`Nothing to change from ${title}: those books already say what it proposes.`);
+      return;
+    }
+    setBusy(true);
+    setMessage(undefined);
+    try {
+      setActiveTask(tool);
+      // The preview is asked for in batches, because one request carries at most EDITOR_MAXIMUM_EDITS books and a tool
+      // that found 2 859 would otherwise be answered with "Edit between 1 and 2000 books at a time" — the row said
+      // Review, the review never opened, and nothing on screen explained why.
+      const rows: EditorChange[] = [];
+      for (const batch of batchesOf(subset, EDITOR_MAXIMUM_EDITS)) {
+        // No resets here: a reset is "forget every Mochil edit of this book", which is a bulk-edit decision, not a tool's.
+        rows.push(...labelled(await previewChanges(libraryId, batch, []), tagged));
+      }
+      setPreview(rows);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Those changes could not be checked.");
     } finally {
@@ -538,17 +608,38 @@ export function EditorScreen() {
 
   async function apply() {
     if (libraryId === undefined) return;
+    // A task's review applies that task and nothing else. Everything staged by hand still applies as one batch.
+    const applying = activeTask === undefined ? changes : changesFrom(changes, sources, activeTask);
+    const applyingResets = activeTask === undefined ? resets : [];
     setBusy(true);
     setMessage(undefined);
     try {
-      const result = await applyChanges(libraryId, changes, resets);
+      // Batched for the same reason the preview is: the server saves at most EDITOR_MAXIMUM_EDITS books per request.
+      // Resets ride on the first batch — they are a whole-book decision, not a per-batch one.
+      let changed = 0;
+      let undo = "";
+      let batches = 0;
+      for (const batch of batchesOf(applying, EDITOR_MAXIMUM_EDITS)) {
+        const result = await applyChanges(libraryId, batch, batches === 0 ? applyingResets : []);
+        changed += result.changed;
+        undo = result.undo || undo;
+        batches += 1;
+      }
       setPreview(undefined);
-      setChanges({});
-      setResets([]);
+      setChanges((current) => withoutChanges(current, applying));
+      setSources((current) => withoutSources(current, applying));
+      if (activeTask === undefined) setResets([]);
+      setActiveTask(undefined);
       setSelected([]);
-      setUndoToken(result.undo);
-      setMessage(`Saved ${result.changed} ${result.changed === 1 ? "change" : "changes"}.`);
-      await all.refetch();
+      setUndoToken(undo);
+      setMessage(
+        `Saved ${changed} ${changed === 1 ? "change" : "changes"}` +
+          (batches > 1 ? ` in ${batches} batches; undo covers the last one.` : "."),
+      );
+      // The Tasks rows count what is left to do, so they are wrong the moment something is saved. Without this the
+      // panel kept its old counts: the row still read "2 859 found" after all 2 859 had been written, which reads as
+      // "did that work, or is there something else to review?"
+      await Promise.all([all.refetch(), queryClient.invalidateQueries({ queryKey: ["editor", "tasks"] })]);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Those changes could not be saved.");
     } finally {
@@ -562,8 +653,12 @@ export function EditorScreen() {
    */
   async function applyBook(bookId: string) {
     if (libraryId === undefined) return;
-    const staged = changes[bookId];
-    if (staged === undefined) return;
+    const full = changes[bookId];
+    if (full === undefined) return;
+    // In a task's review, "this book" means this task's fields on it: the other task's staged work is still waiting on
+    // its own row, and writing it here would save something the person was never shown.
+    const staged = activeTask === undefined ? full : (changesFrom({ [bookId]: full }, sources, activeTask)[bookId] ?? {});
+    if (Object.keys(staged).length === 0) return;
     setBusy(true);
     setMessage(undefined);
     try {
@@ -571,15 +666,12 @@ export function EditorScreen() {
       // passing the whole list here silently reset the other 19 books the user was still deciding about.
       const result = await applyChanges(libraryId, { [bookId]: staged }, resets.filter((id) => id === bookId));
       setResets((current) => current.filter((id) => id !== bookId));
-      setChanges((current) => {
-        const next = { ...current };
-        delete next[bookId];
-        return next;
-      });
+      setChanges((current) => withoutChanges(current, { [bookId]: staged }));
+      setSources((current) => withoutSources(current, { [bookId]: staged }));
       setPreview((current) => current?.filter((change) => change.book !== bookId) ?? current);
       setUndoToken(result.undo);
       setMessage(`Saved ${result.changed} ${result.changed === 1 ? "change" : "changes"} for one book.`);
-      await all.refetch();
+      await Promise.all([all.refetch(), queryClient.invalidateQueries({ queryKey: ["editor", "tasks"] })]);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Those changes could not be saved.");
     } finally {
@@ -587,30 +679,59 @@ export function EditorScreen() {
     }
   }
 
-  /** Drop one book's staged changes without writing anything, and stop offering it again. */
-  function discardBook(bookId: string) {
-    setChanges((current) => {
-      const next = { ...current };
-      delete next[bookId];
-      return next;
+  /** The tools that proposed a book's staged fields. A typed cell has none, so discarding it hides it from no run. */
+  function toolsBehind(bookId: string): string[] {
+    if (activeTask !== undefined) return [activeTask];
+    return [...new Set(Object.values(sources[bookId] ?? {}).map((source) => source.tool))];
+  }
+
+  /** Put a book aside for one tool, and say so if the server refuses — the local set moves first, so a silent failure
+   *  would read as a dismissal that quietly came back. */
+  function dismissFor(tool: string, books: string[]): void {
+    if (libraryId === undefined) return;
+    void dismissBooks(libraryId, tool, books).catch((error: unknown) => {
+      setMessage(error instanceof Error ? error.message : "That could not be set aside.");
     });
+  }
+
+  /** The part of a book's staged work that the review on screen is about: one task's fields, or all of them. */
+  function stagedFor(bookId: string): Partial<Record<EditorField, string>> {
+    const full = changes[bookId] ?? {};
+    if (activeTask === undefined) return full;
+    return changesFrom({ [bookId]: full }, sources, activeTask)[bookId] ?? {};
+  }
+
+  /** Drop one book's staged changes without writing anything, and stop that tool offering it again. */
+  function discardBook(bookId: string) {
+    const staged = stagedFor(bookId);
+    for (const tool of toolsBehind(bookId)) dismissFor(tool, [bookId]);
+    const fields = new Set(Object.keys(staged));
+    setChanges((current) => withoutChanges(current, { [bookId]: staged }));
+    setSources((current) => withoutSources(current, { [bookId]: staged }));
     // A book staged to be reset ("back to what the files say") is staged in `resets`, not in `changes`. Dropping only
     // the changes left the reset behind, so a book the user had just discarded was still the one thing Apply wrote.
     setResets((current) => current.filter((id) => id !== bookId));
-    setPreview((current) => current?.filter((change) => change.book !== bookId) ?? current);
-    setDismissed((current) => (current.includes(bookId) ? current : [...current, bookId]));
+    setPreview((current) => current?.filter((change) => !(change.book === bookId && fields.has(change.field))) ?? current);
   }
 
   /** Drop every staged change at once — the batch is often "none of these", and 38 clicks is not an answer. */
   function discardAll() {
-    setDismissed((current) => [...new Set([...current, ...Object.keys(changes)])]);
-    setChanges({});
-    setResets([]);
+    // Whatever is on screen: a task's review discards that task's books, the unfiltered one discards them all.
+    const books = preview !== undefined ? [...new Set(preview.map((change) => change.book))] : Object.keys(changes);
+    // One request per tool rather than one per book: 38 books from a single tool is one dismissal, not 38.
+    const byTool = new Map<string, string[]>();
+    const dropped: EditorChanges = {};
+    for (const bookId of books) {
+      for (const tool of toolsBehind(bookId)) byTool.set(tool, [...(byTool.get(tool) ?? []), bookId]);
+      const staged = stagedFor(bookId);
+      if (Object.keys(staged).length > 0) dropped[bookId] = staged;
+    }
+    for (const [tool, ids] of byTool) dismissFor(tool, ids);
+    setChanges((current) => withoutChanges(current, dropped));
+    setSources((current) => withoutSources(current, dropped));
+    if (activeTask === undefined) setResets((current) => current.filter((id) => !books.includes(id)));
     setPreview(undefined);
-  }
-
-  function restoreDismissed() {
-    setDismissed([]);
+    setActiveTask(undefined);
   }
 
   async function undo() {
@@ -620,7 +741,7 @@ export function EditorScreen() {
       await undoChanges(libraryId, undoToken);
       setUndoToken(undefined);
       setMessage("Undone.");
-      await all.refetch();
+      await Promise.all([all.refetch(), queryClient.invalidateQueries({ queryKey: ["editor", "tasks"] })]);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "That undo could not be applied.");
     } finally {
@@ -834,7 +955,15 @@ export function EditorScreen() {
                     setSelected([]);
                     setCursor({ row: 0, col: 0 });
                     setChanges({});
-                    setDismissed([]);
+                    // Staged work and its review belong to the library they were made in; the dismissals below do not
+                    // belong to this screen at all — they live per library, in taskDismissals.ts.
+                    setSources({});
+                    setPreview(undefined);
+                    setActiveTask(undefined);
+                    // Dismissals are NOT cleared here any more. They are kept per library, so switching shelves already
+                    // shows the right answer for the shelf you land on — and clearing them here meant every reload (a
+                    // rebuild, a new tab) wiped the decision the person had just made, which is how the same 41 found
+                    // ISBNs kept coming back.
                     setMessage(undefined);
                     setUndoToken(undefined);
                     setScrollTop(0);
@@ -927,16 +1056,14 @@ export function EditorScreen() {
         {libraryId !== undefined && all.data !== undefined && (
           <EditorTools
             libraryId={libraryId}
-            books={browsable}
+            books={books}
             selected={selected}
-            dismissed={dismissed.length}
-            onRestore={restoreDismissed}
             open={toolsOpen}
             editable={editable}
             hermes={hermes}
             pending={pending}
             calibre={chosen?.sourceType === "calibre"}
-            onStage={(incoming) => setChanges((current) => mergeChanges(current, incoming))}
+            onReviewTask={(tool, title, incoming) => void reviewTask(tool, title, incoming)}
             refetch={all.refetch}
           />
         )}
@@ -1142,7 +1269,9 @@ export function EditorScreen() {
                   </Button>
                 </Inline>
 
-                {preview !== undefined && (
+                {/* An empty review panel is a panel with nothing in it: after a save there is no preview to close by hand,
+                    and leaving it open read as "there is still something here" under a bar that said "No pending changes". */}
+                {preview !== undefined && preview.length > 0 && (
                   <ReviewPanel
                     changes={preview}
                     books={books}

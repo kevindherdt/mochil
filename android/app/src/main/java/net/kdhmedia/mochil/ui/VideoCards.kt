@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -46,6 +47,26 @@ internal fun VideoItem.caption(): VideoCaption {
     return VideoCaption(text, if (finished) 1f else if (resumeSeconds > 0) progressFraction else null, finished)
 }
 
+/**
+ * The strip the web prints on a film's artwork: the real probe's resolution, and "Direct Play" only when the server says the
+ * file plays as it is (web/src/features/library/api/media.ts `resolutionLabel`). Never invented, so a film without a probe
+ * carries no strip at all.
+ */
+internal fun videoFormatLabel(height: Int?, directPlay: Boolean): String? =
+    resolutionLabel(height)?.let { label -> if (directPlay) "$label · Direct Play" else label }
+
+/** The usual ladder, rounded down: an 800-line encode is "720p" in every interface a person has used. */
+internal fun resolutionLabel(height: Int?): String? {
+    if (height == null || height <= 0) return null
+    return when {
+        height >= 2000 -> "4K"
+        height >= 1000 -> "1080p"
+        height >= 700 -> "720p"
+        height >= 400 -> "480p"
+        else -> "${height}p"
+    }
+}
+
 internal fun videoLengthLabel(seconds: Double): String {
     val minutes = (seconds / 60).toInt()
     return if (minutes >= 60) "${minutes / 60} h ${(minutes % 60).toString().padStart(2, '0')} min" else "$minutes min"
@@ -56,12 +77,21 @@ internal fun videoLengthLabel(seconds: Double): String {
  * unstarted) and a caption. Fixed slots keep every tile in a row the same height.
  */
 @Composable
-internal fun VideoCard(art: @Composable (Modifier) -> Unit, aspect: Float, title: String, caption: VideoCaption, modifier: Modifier = Modifier) {
-    Column(modifier, verticalArrangement = Arrangement.spacedBy(7.dp)) {
-        art(Modifier.fillMaxWidth().aspectRatio(aspect))
-        Text(title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium, minLines = 2, maxLines = 2, overflow = TextOverflow.Ellipsis)
-        Box(Modifier.fillMaxWidth().height(3.dp)) { caption.fraction?.let { ThinProgress({ it }, Modifier.fillMaxWidth()) } }
-        Text(caption.text, style = MaterialTheme.typography.labelSmall, maxLines = 1, overflow = TextOverflow.Ellipsis, color = if (caption.done) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
+internal fun VideoCard(art: @Composable (Modifier) -> Unit, aspect: Float, title: String, caption: VideoCaption, formatLabel: String? = null, modifier: Modifier = Modifier) {
+    // The card carries its own surface, like a book's and an album's, so every family is one object (web parity).
+    Column(modifier.gridCard().padding(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Box(Modifier.fillMaxWidth().aspectRatio(aspect).clip(RoundedCornerShape(8.dp))) {
+            art(Modifier.fillMaxSize())
+            // The strip replaces the plain bar while it is set, as on the web: the format is what a film has to say about itself.
+            // A finished film keeps the words and loses the bar: the tick and "Played" already say it.
+            if (formatLabel != null) ArtworkFormatStrip(formatLabel, caption.fraction?.takeIf { !caption.done }?.let { fraction -> { fraction } }, Modifier.align(Alignment.BottomCenter))
+            else if (!caption.done) caption.fraction?.takeIf { it > 0f }?.let { ArtworkProgressScrim({ it }, modifier = Modifier.align(Alignment.BottomCenter)) }
+            if (caption.done) BookFinishedBadge(Modifier.align(Alignment.BottomStart).padding(8.dp))
+        }
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, minLines = 2, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            Text(caption.text, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, minLines = 1, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
     }
 }
 

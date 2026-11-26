@@ -4,6 +4,11 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.PaddingValues
+import net.kdhmedia.mochil.ui.kit.MochilCard
+import net.kdhmedia.mochil.ui.theme.MochilChrome
+import net.kdhmedia.mochil.ui.theme.MochilRadius
+import net.kdhmedia.mochil.ui.theme.MochilSpace
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -12,6 +17,7 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.material.icons.filled.BookmarkAdd
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -34,23 +40,26 @@ internal fun Modifier.homeCard(): Modifier = this
     .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = .55f))
     .border(BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = .22f)), CardShape)
 
-/** A settings tab's cards, one under the other. */
+/** A settings page's cards, one under the other. */
 @Composable
 internal fun SettingsSurface(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
-    Column(modifier.fillMaxWidth().padding(bottom = 24.dp), verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(14.dp), content = content)
+    Column(modifier.fillMaxWidth().padding(bottom = MochilSpace.s24), verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(MochilSpace.s24), content = content)
 }
 
-/** One group of related settings on its own rounded card, with its heading above it, as the web groups them. */
+/**
+ * One group of related settings on the web's card, with its small heading above it in the mock-up's muted caps. The rows
+ * inside carry 8 of their own padding, so the card adds 8 more at the sides and they sit 16 in, like the web card.
+ */
 @Composable
 internal fun SettingsCard(title: String?, content: @Composable ColumnScope.() -> Unit) {
-    Column(Modifier.fillMaxWidth().padding(top = 14.dp)) {
-        if (title != null) Text(title, Modifier.padding(start = 6.dp, bottom = 6.dp), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-        Column(
-            Modifier.fillMaxWidth().clip(CardShape).background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = .45f))
-                .border(BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = .22f)), CardShape)
-                .padding(horizontal = 6.dp, vertical = 10.dp),
-            content = content,
+    Column(Modifier.fillMaxWidth()) {
+        if (title != null) Text(
+            title.uppercase(),
+            Modifier.padding(start = MochilSpace.s4, bottom = MochilSpace.s8).semantics { heading() },
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+        MochilCard(contentPadding = PaddingValues(horizontal = MochilSpace.s8, vertical = MochilSpace.s12), content = content)
     }
 }
 
@@ -68,9 +77,9 @@ internal fun StatusPill(text: String, positive: Boolean = false, modifier: Modif
 /** A cover card in a grid: the same bordered surface the web uses, so a cover and its title read as one object. */
 @Composable
 internal fun Modifier.gridCard(): Modifier = this
-    .clip(RoundedCornerShape(18.dp))
-    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = .5f))
-    .border(BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = .22f)), RoundedCornerShape(18.dp))
+    .clip(RoundedCornerShape(MochilRadius.r12))
+    .background(MaterialTheme.colorScheme.surface)
+    .border(BorderStroke(MochilChrome.hairline, MaterialTheme.colorScheme.outlineVariant), RoundedCornerShape(MochilRadius.r12))
 
 /** The small round "add to a collection" button on a cover. */
 @Composable
@@ -84,32 +93,3 @@ internal fun CollectButton(label: String, onClick: () -> Unit, modifier: Modifie
         }
     }
 }
-
-/** A row of pill tabs in one rounded container, the same control Books uses for Series, Authors and All. */
-@Composable
-internal fun <T> PillTabs(choices: List<T>, selected: T, label: (T) -> String, onSelect: (T) -> Unit, modifier: Modifier = Modifier) {
-    val shape = RoundedCornerShape(16.dp)
-    androidx.compose.foundation.layout.Row(
-        modifier.clip(shape).background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = .45f))
-            .border(BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = .22f)), shape).padding(4.dp)
-            .androidx_horizontalScroll(),
-        horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(2.dp),
-    ) {
-        choices.forEach { choice ->
-            val on = choice == selected
-            Text(
-                label(choice),
-                Modifier.clip(RoundedCornerShape(12.dp)).background(if (on) MaterialTheme.colorScheme.primaryContainer else Color.Transparent)
-                    .androidx_selectable(on) { onSelect(choice) }.padding(horizontal = 12.dp, vertical = 8.dp),
-                style = MaterialTheme.typography.titleSmall, fontWeight = if (on) FontWeight.SemiBold else FontWeight.Medium,
-                color = if (on) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1,
-            )
-        }
-    }
-}
-
-@Composable
-private fun Modifier.androidx_horizontalScroll(): Modifier = this.then(Modifier.horizontalScroll(androidx.compose.foundation.rememberScrollState()))
-
-private fun Modifier.androidx_selectable(on: Boolean, onClick: () -> Unit): Modifier =
-    this.selectable(on, role = androidx.compose.ui.semantics.Role.Tab, onClick = onClick)

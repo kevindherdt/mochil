@@ -1,7 +1,6 @@
 package catalog
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -11,7 +10,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"time"
 
 	"mochil/internal/statefile"
 )
@@ -44,6 +42,14 @@ func (s *OverrideStore) Get(libraryID, bookID string) (MetadataOverride, bool) {
 	value, ok := s.data.Libraries[libraryID][bookID]
 	value.Authors = append([]string(nil), value.Authors...)
 	return value, ok
+}
+
+// HasOverrides reports whether the library has any correction at all, so a
+// caller can hand out the published catalogue untouched when it has none.
+func (s *OverrideStore) HasOverrides(libraryID string) bool {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return len(s.data.Libraries[libraryID]) > 0
 }
 
 func (s *OverrideStore) SetArtwork(libraryID, bookID, artworkURL, provider, providerID string) error {
@@ -419,99 +425,4 @@ func (s *OverrideStore) saveLocked() error {
 		return err
 	}
 	return os.Rename(name, s.path)
-}
-
-type OverrideBackend struct {
-	libraryID string
-	backend   Backend
-	overrides *OverrideStore
-}
-
-func (s *OverrideStore) Wrap(libraryID string, backend Backend) *OverrideBackend {
-	return &OverrideBackend{libraryID: libraryID, backend: backend, overrides: s}
-}
-
-func (b *OverrideBackend) Underlying() Backend  { return b.backend }
-func (b *OverrideBackend) Scan() (Stats, error) { return b.backend.Scan() }
-func (b *OverrideBackend) Acquire(ctx context.Context, book Book) (Acquisition, error) {
-	return b.backend.Acquire(ctx, book)
-}
-func (b *OverrideBackend) Books() []Book {
-	books := b.backend.Books()
-	for index := range books {
-		books[index] = b.overrides.apply(b.libraryID, books[index])
-	}
-	return books
-}
-
-// Snapshot is Books without the deep clone: the wrapped catalogue is copied
-// shallowly so overrides can be laid over it, and the published books it shares
-// backing storage with are never written to.
-func (b *OverrideBackend) Snapshot() []Book {
-	var source []Book
-	if published, ok := b.backend.(interface{ Snapshot() []Book }); ok {
-		source = published.Snapshot()
-	} else {
-		source = b.backend.Books()
-	}
-	books := make([]Book, len(source))
-	copy(books, source)
-	for index := range books {
-		books[index] = b.overrides.apply(b.libraryID, books[index])
-	}
-	return books
-}
-
-// Summary passes the count and newest modification through: an override changes
-// a book's metadata, never whether it exists or when its file changed.
-func (b *OverrideBackend) Summary() (int, time.Time) {
-	if summarized, ok := b.backend.(interface {
-		Summary() (int, time.Time)
-	}); ok {
-		return summarized.Summary()
-	}
-	books := b.backend.Books()
-	return len(books), latestModified(books)
-}
-func (b *OverrideBackend) Book(id string) (Book, bool) {
-	book, ok := b.backend.Book(id)
-	if ok {
-		book = b.overrides.apply(b.libraryID, book)
-	}
-	return book, ok
-}
-func (b *OverrideBackend) CatalogVersion() uint64 {
-	var version uint64
-	if backend, ok := b.backend.(VersionedBackend); ok {
-		version = backend.CatalogVersion()
-	}
-	b.overrides.mu.RLock()
-	generation := b.overrides.generation
-	b.overrides.mu.RUnlock()
-	return version + generation
-}
-
-func unwrapBackend(backend Backend) Backend {
-	for {
-		wrapper, ok := backend.(interface{ Underlying() Backend })
-		if !ok {
-			return backend
-		}
-		backend = wrapper.Underlying()
-	}
-}
-
-func CoverCapability(backend Backend) (CoverBackend, bool) {
-	provider, ok := unwrapBackend(backend).(CoverBackend)
-	return provider, ok
-}
-
-func PageCapability(backend Backend) (PageBackend, bool) {
-	provider, ok := unwrapBackend(backend).(PageBackend)
-	return provider, ok
-}
-
-func MetadataHydrationCapability(backend Backend) (MetadataHydrationBackend, bool) {
-	provider, ok := unwrapBackend(backend).(MetadataHydrationBackend)
-	return provider, ok
 }

@@ -29,11 +29,16 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.flow.StateFlow
 import net.kdhmedia.mochil.playback.PlaybackDockState
 import net.kdhmedia.mochil.playback.PlaybackTimelineState
+import net.kdhmedia.mochil.ui.theme.LocalEInkPalette
 
 @Composable
-fun MiniPlayer(state: PlaybackDockState, timeline: StateFlow<PlaybackTimelineState>, onToggle: () -> Unit, onClose: () -> Unit, onExpand: () -> Unit) {
+fun MiniPlayer(state: PlaybackDockState, timeline: StateFlow<PlaybackTimelineState>, onToggle: () -> Unit, onClose: () -> Unit, onExpand: () -> Unit, navigationInset: Boolean = true) {
     val track = state.current ?: return
-    Surface(modifier = Modifier.navigationBarsPadding().clickable(onClickLabel = "Open player", role = Role.Button, onClick = onExpand), tonalElevation = 3.dp) {
+    // No shadow on e-ink: a raised surface over a panel of one grey is a smudge, not a layer.
+    Surface(
+        modifier = (if (navigationInset) Modifier.navigationBarsPadding() else Modifier).clickable(onClickLabel = "Open player", role = Role.Button, onClick = onExpand),
+        tonalElevation = if (LocalEInkPalette.current) 0.dp else 3.dp,
+    ) {
         Column {
             MobileMiniPlayerProgress(timeline)
             Row(

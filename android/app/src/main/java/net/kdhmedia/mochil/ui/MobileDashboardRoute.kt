@@ -78,17 +78,7 @@ internal fun MobileDashboardRoute(
         onWatch = onWatch,
         onDismissWatching = dashboardViewModel::dismissWatching,
         onRefresh = dashboardViewModel::refresh,
-        onOpenSettings = onOpenSettings,
         libraries = directory.libraries,
-        selectedLibrary = directory.selected,
-        showCollections = showCollections,
-        showSources = showSources,
-        onOpenCollections = onOpenCollections,
-        onOpenSources = onOpenSources,
-        onSelectLibrary = { library ->
-            libraryViewModel.select(library)
-            onOpenLibrary()
-        },
     )
     OpeningBannerHost(libraryViewModel, Modifier.align(Alignment.BottomCenter))
     }

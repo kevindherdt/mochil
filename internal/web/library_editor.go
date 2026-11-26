@@ -14,9 +14,10 @@ import (
 )
 
 const (
-	editorMaximumBody  = 1 << 20
-	editorMaximumPage  = 1000
-	editorMaximumEdits = 2000
+	editorMaximumBody    = 1 << 20
+	editorMaximumPage    = 1000
+	editorOneShotMaximum = 6000
+	editorMaximumEdits   = 2000
 )
 
 type editorRow struct {
@@ -56,41 +57,15 @@ type editorRow struct {
 	// Hardcover is where the book stands with the Hardcover sync (see hardcoverFacts.state); the note says why.
 	Hardcover     string `json:"hardcover"`
 	HardcoverNote string `json:"hardcover_note"`
+	// book is the catalogue entry this row was built from, kept so that a field only the page being sent needs can
+	// be filled after the whole library has been sorted (see addFindingNote). It is never sent: encoding/json does
+	// not look at unexported fields.
+	book *catalog.Book
 }
 
-// editorIssues names what a person should look at on each book. Duplicates need the whole library, so they are found
-// first.
-func editorIssues(books []catalog.Book) map[string][]string {
-	issues := map[string][]string{}
-	seen := map[string][]string{}
-	for _, book := range books {
-		if book.Series != "" && book.SeriesIndex != nil {
-			key := strings.ToLower(book.Series) + "\x00" + strconv.FormatFloat(*book.SeriesIndex, 'f', -1, 64)
-			seen[key] = append(seen[key], book.ID)
-		}
-	}
-	for _, ids := range seen {
-		if len(ids) > 1 {
-			for _, id := range ids {
-				issues[id] = append(issues[id], "duplicate")
-			}
-		}
-	}
-	for _, book := range books {
-		if len(book.Authors) == 0 || strings.EqualFold(strings.TrimSpace(book.Authors[0]), "unknown") {
-			issues[book.ID] = append(issues[book.ID], "no_author")
-		}
-		if book.Series != "" && book.SeriesIndex == nil {
-			issues[book.ID] = append(issues[book.ID], "no_number")
-		}
-		if strings.Contains(strings.ToLower(book.Title), "side stor") {
-			issues[book.ID] = append(issues[book.ID], "side_story")
-		}
-	}
-	return issues
-}
-
-func editorMatches(row editorRow, filter, query string) bool {
+// editorMatches applies the list's filter and its search to one row. The search is prepared once per request — see
+// editorSearch — because folding the query and its four fields per book was three allocations per row.
+func editorMatches(row editorRow, filter string, search *editorSearch) bool {
 	switch filter {
 	case "", "all":
 	case "issues":
@@ -114,21 +89,16 @@ func editorMatches(row editorRow, filter, query string) bool {
 			return false
 		}
 	}
-	if query == "" {
+	if search == nil {
 		return true
 	}
-	haystack := strings.ToLower(row.Title + " " + strings.Join(row.Authors, " ") + " " + row.Series + " " + row.Path)
-	for _, word := range strings.Fields(strings.ToLower(query)) {
-		if !strings.Contains(haystack, word) {
-			return false
-		}
-	}
-	return true
+	return search.matches(row)
 }
 
 func (m *multiServer) apiEditor(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "no-store")
-	switch strings.TrimPrefix(r.URL.Path, "/api/metadata/editor/") {
+	route := strings.TrimPrefix(r.URL.Path, "/api/metadata/editor/")
+	switch route {
 	case "books":
 		m.editorBooks(w, r)
 	case "edit":
@@ -147,6 +117,8 @@ func (m *multiServer) apiEditor(w http.ResponseWriter, r *http.Request) {
 		m.editorCount(w, r)
 	case "check":
 		m.editorCheck(w, r)
+	case "tidy":
+		m.editorTidy(w, r)
 	case "isbn":
 		m.editorISBN(w, r)
 	case "isbn-ask":
@@ -167,7 +139,17 @@ func (m *multiServer) apiEditor(w http.ResponseWriter, r *http.Request) {
 		m.editorTransfer(w, r)
 	case "metadata-files":
 		m.editorMetadataFiles(w, r)
+	case "tasks":
+		m.editorTasks(w, r)
+	case "match-fields":
+		m.editorMatchFields(w, r)
 	default:
+		// The tasks panel's one write is nested under its tool, so it is matched here instead of as a case:
+		// a case per tool would be a second list of tools to keep in step with the first.
+		if parts := strings.Split(route, "/"); len(parts) == 3 && parts[0] == "tasks" && parts[2] == "dismiss" {
+			m.editorTaskDismiss(w, r, parts[1])
+			return
+		}
 		http.NotFound(w, r)
 	}
 }
@@ -195,11 +177,10 @@ func (m *multiServer) editorBooks(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	books := lib.Store.Books()
+	// Snapshot, not Books: this request only reads, and Books deep-copies every book (16 000 allocations for
+	// 5 400) for a caller that edits nothing. Rows point into the copy the wrapper makes, never into the cache.
+	books := publishedBooks(lib.Store)
 	issues, facts := editorIssues(books), m.hardcoverFacts()
-	for _, book := range books {
-		issues[book.ID] = append(issues[book.ID], m.findingIssues(lib, book, facts)...)
-	}
 	custom := map[string]map[string]string{}
 	if m.customColumns != nil {
 		custom = m.customColumns.Library(lib.ID)
@@ -208,17 +189,22 @@ func (m *multiServer) editorBooks(w http.ResponseWriter, r *http.Request) {
 	inCollections, within := m.editorMemberships(account, lib), query.Get("collection")
 	rows := make([]editorRow, 0, len(books))
 	counts := map[string]int{}
-	filter, search := query.Get("filter"), strings.TrimSpace(query.Get("q"))
-	for _, book := range books {
+	filter, search := query.Get("filter"), newEditorSearch(strings.TrimSpace(query.Get("q")))
+	for i := range books {
+		book := books[i]
 		_, edited := m.metadataOverrides.Get(lib.ID, book.ID)
 		row := editorRow{ID: book.ID, Title: book.Title, Authors: append([]string{}, book.Authors...), Series: book.Series, SeriesIndex: book.SeriesIndex, Format: book.Format, Tags: append([]string{}, book.Tags...), Publisher: book.Publisher, Published: book.Published, Language: book.Language,
 			Rating: float64(book.Rating) / 2, Description: book.Description, Identifiers: editorIdentifiers(book.Identifiers), TitleSort: book.TitleSort, AuthorSort: strings.Join(book.AuthorSort, " & "),
-			Path: book.Path, Edited: edited, Issues: issues[book.ID], Custom: custom[book.ID]}
-		m.addFindings(&row, lib, book, facts)
+			Path: book.Path, Edited: edited, Custom: custom[book.ID], book: &books[i]}
 		row.Collections = append([]string{}, inCollections.names[book.ID]...)
 		if within != "" && !inCollections.books[within][book.ID] {
 			continue
 		}
+		// Everything the background tools know about this book, read once and shared between the badges and the row's
+		// own fields. Read after the collection filter so that a book the request drops costs no lookup at all.
+		found := m.findings(lib, book, facts)
+		row.Issues = found.badges(issues[i], book)
+		found.apply(&row)
 		if stats, counted := m.editorCounts(lib.ID, book); counted {
 			row.Words, row.Pages = stats.Words, stats.Pages
 		}
@@ -243,7 +229,23 @@ func (m *multiServer) editorBooks(w http.ResponseWriter, r *http.Request) {
 	sortEditorRows(rows, query.Get("sort"), query.Get("dir") == "desc")
 	offset, _ := strconv.Atoi(query.Get("offset"))
 	limit, _ := strconv.Atoi(query.Get("limit"))
-	if limit < 1 || limit > editorMaximumPage {
+	if query.Get("limit") == "all" {
+		// One request for the whole matching set, up to editorOneShotMaximum rows.
+		//
+		// Why it exists: every request builds, filters and sorts *every* row of the library and then slices — so a
+		// page load in 1 000-row chunks rebuilt all 5 544 rows of the `test` library six times to send one response's
+		// worth of work five times over. Measured on `test` (5 544 books, same bytes either way): one request of all
+		// rows 91 ms, versus six chunks of 36 ms — 216 ms of identical rebuilds. Before the row-build work of the same
+		// night a chunk cost ~80 ms, so the duplication was costing ~400 ms.
+		//
+		// The cap is a payload limit, not a performance one: rows measure ~850 bytes each, so this is ~5 MB of JSON in
+		// a single response — already what the whole-library view ends up holding in the browser. Past it, the client
+		// keeps chunking exactly as before (it compares what it got against the total it was told).
+		limit = len(rows)
+		if limit > editorOneShotMaximum {
+			limit = editorOneShotMaximum
+		}
+	} else if limit < 1 || limit > editorMaximumPage {
 		limit = 100
 	}
 	if offset < 0 {
@@ -259,12 +261,17 @@ func (m *multiServer) editorBooks(w http.ResponseWriter, r *http.Request) {
 	// before an edit, and the person sees a change they just made disappear. (It also made a deployed fix look like it
 	// had not shipped, which is how this was noticed.)
 	w.Header().Set("Cache-Control", "no-store")
-	// Last, once every field is final including an edited description: the match blurb only rides along for a book
-	// that has nothing to describe itself with. Deciding this while the row was still being built missed the books
-	// whose description comes from an override, and left their blurbs in the payload.
-	for i := range rows {
-		if rows[i].Match != nil {
-			rows[i].Match = rows[i].Match.forList(&rows[i])
+	// Last, once every field is final including an edited description, and for the rows being sent only: these are
+	// notes a person reads, not values the editor sorts or filters on, and this request builds every row of the
+	// library to sort it. Building them for the whole library spent most of the work on rows the response drops —
+	// measured on 5 430 books, the ISBN note alone was 6 ms and a fifth of the request's allocations to send ~860 of
+	// them. The match blurb only rides along for a book that has nothing to describe itself with; deciding that while
+	// the row was still being built missed the books whose description comes from an override.
+	for position := offset; position < end; position++ {
+		row := &rows[position]
+		m.addFindingNote(row, lib)
+		if row.Match != nil {
+			row.Match = row.Match.forList(row)
 		}
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"total": len(rows), "library_total": len(books), "library_folder": lib.SourcePath, "collections": inCollections.list, "hardcover_sync": facts.on, "counts": counts, "items": rows[offset:end], "columns": m.editorColumns(), "transfer_to": m.transferTargets(lib)})

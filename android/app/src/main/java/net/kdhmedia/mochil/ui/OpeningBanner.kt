@@ -1,5 +1,6 @@
 package net.kdhmedia.mochil.ui
 
+import net.kdhmedia.mochil.ui.theme.LocalEInkPalette
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -35,7 +36,7 @@ fun OpeningBanner(state: LibraryState, queue: StateFlow<List<DownloadQueueItem>>
     // so a background download is never silent.
     val queueText = if (state.openingBookId == null) downloadQueueBannerText(queued) else null
     if (state.openingBookId == null && queueText == null) return
-    Surface(modifier.fillMaxWidth(), color = MaterialTheme.colorScheme.secondaryContainer, tonalElevation = 3.dp) {
+    Surface(modifier.fillMaxWidth(), color = MaterialTheme.colorScheme.secondaryContainer, tonalElevation = if (LocalEInkPalette.current) 0.dp else 3.dp) {
         Column(Modifier.padding(horizontal = 20.dp, vertical = 10.dp)) {
             Text(
                 queueText ?: openingText(state),

@@ -40,7 +40,7 @@ internal fun mediaKindStyle(kind: String, monochromeColor: Color? = null): Media
     LibraryKind.Music -> MediaKindStyle(Icons.Outlined.MusicNote, Color(0xFF5CC8F2), Color(0xFF00536F), "Music")
     LibraryKind.Audiobooks -> MediaKindStyle(Icons.Outlined.Headphones, Color(0xFF4FD1B8), Color(0xFF00544A), "Audiobook")
     LibraryKind.Podcasts -> MediaKindStyle(Icons.Outlined.Mic, Color(0xFFC3E94A), Color(0xFF3F5200), "Podcast")
-    LibraryKind.Vault -> MediaKindStyle(Icons.Outlined.Description, Color(0xFF9AA8BD), Color(0xFF3E4A5C), "Wiki")
+    LibraryKind.Vault -> MediaKindStyle(Icons.Outlined.Description, Color(0xFF9AA8BD), Color(0xFF3E4A5C), "Notes")
     LibraryKind.Books, LibraryKind.Mixed, LibraryKind.Calibre -> MediaKindStyle(Icons.AutoMirrored.Outlined.MenuBook, Color(0xFF7FB2F7), Color(0xFF12457F), "Book")
     }
     return monochromeColor?.let { style.copy(color = it, onLight = it) } ?: style

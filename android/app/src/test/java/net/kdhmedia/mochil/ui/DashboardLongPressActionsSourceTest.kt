@@ -9,9 +9,11 @@ import org.junit.Test
 class DashboardLongPressActionsSourceTest {
     private val source = Files.readString(Paths.get("src/main/java/net/kdhmedia/mochil/ui/DashboardScreen.kt"))
 
-    @Test fun `home removal stays behind the established long press menu`() {
-        assertTrue(source.contains("onLongClick = { menuExpanded = true }"))
-        assertTrue(source.contains("DropdownMenuItem(text = { Text(\"Remove from Home\") }"))
+    @Test fun `home removal stays behind a long press, never a visible button`() {
+        // Discover's rails are cards now: the gesture is still a long press, labelled "Remove … from Discover".
+        assertTrue(source.contains("from Discover"))
+        assertTrue(source.contains("onLongClickLabel"))
+        assertTrue(source.contains("onDismissReading") && source.contains("onDismissWatching") && source.contains("onDismissListening"))
         assertFalse(source.contains("Button(onClick = onDismiss"))
         assertFalse(source.contains("TextButton(onClick = onDismiss"))
         assertFalse(source.contains("IconButton(onClick = onDismiss"))

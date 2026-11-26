@@ -3,6 +3,7 @@ package net.kdhmedia.mochil.dashboard
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import net.kdhmedia.mochil.auth.DeviceCredential
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -12,6 +13,8 @@ import kotlinx.coroutines.launch
 import net.kdhmedia.mochil.auth.DeviceCredentialStore
 import net.kdhmedia.mochil.audio.AudioTrack
 import net.kdhmedia.mochil.catalogue.BookSummary
+import net.kdhmedia.mochil.catalogue.CatalogueClient
+import net.kdhmedia.mochil.catalogue.isPublicationLibrary
 import net.kdhmedia.mochil.catalogue.ReadingStatus
 import net.kdhmedia.mochil.diagnostics.PerformanceDiagnostics
 import net.kdhmedia.mochil.video.VideoClient
@@ -59,7 +62,7 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                 if (current) {
                     mutableState.value = snapshot.toDashboardState().copy(held = mutableState.value.held, finished = mutableState.value.finished)
                 }
-                if (current) loadHeld(saved, generation)
+                if (current) { loadHeld(saved, generation); loadRecent(saved, generation) }
                 if (refreshPending) { refreshPending = false; refresh(showLoading = !current); return@launch }
                 return@launch
             }
@@ -71,6 +74,7 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
             val watchingResult = watching.await()
             refreshInFlight = false
             val current = generation == refreshGeneration
+            if (current) loadRecent(saved, generation)
             if (current) mutableState.value = DashboardState(
                 reading = readingResult.getOrNull()?.let(::homeItems) ?: mutableState.value.reading,
                 listening = listeningResult.getOrNull()?.let { homeItems(it.filter(::isLongFormListening)) } ?: mutableState.value.listening,
@@ -82,6 +86,23 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
             )
             if (current) loadHeld(saved, generation)
             if (refreshPending) { refreshPending = false; refresh(showLoading = !current); return@launch }
+        }
+    }
+
+    /**
+     * Discover's "Recently added": the newest books of the first browsable library, from the same endpoint the web
+     * uses (`/books?sort=recent`). A failure leaves the rail out rather than failing the screen.
+     */
+    private fun loadRecent(saved: DeviceCredential, generation: Long) {
+        viewModelScope.launch {
+            val items = runCatching {
+                kotlinx.coroutines.withContext(Dispatchers.IO) {
+                    val client = CatalogueClient()
+                    val library = client.libraries(saved).firstOrNull { it.isPublicationLibrary() } ?: return@withContext emptyList<BookSummary>()
+                    client.books(saved, library.id, null, "", "", "recent").items
+                }
+            }.getOrDefault(emptyList())
+            if (generation == refreshGeneration) mutableState.value = mutableState.value.copy(recent = items)
         }
     }
 
@@ -123,7 +144,7 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
         viewModelScope.launch {
             runCatching { kotlinx.coroutines.withContext(Dispatchers.IO) { client.dismissReading(saved, book) } }
                 .onSuccess { mutableState.value = mutableState.value.copy(reading = mutableState.value.reading.filterNot { it.book.libraryId == book.libraryId && it.book.id == book.id }, loading = false) }
-                .onFailure { mutableState.value = mutableState.value.copy(error = "Could not remove this book from Home.", loading = false) }
+                .onFailure { mutableState.value = mutableState.value.copy(error = "Could not remove this book from the list.", loading = false) }
         }
     }
 
@@ -134,7 +155,7 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
         viewModelScope.launch {
             runCatching { kotlinx.coroutines.withContext(Dispatchers.IO) { videoClient.dismissContinueWatching(saved, item) } }
                 .onSuccess { mutableState.value = mutableState.value.copy(watching = mutableState.value.watching.filterNot { it.libraryId == item.libraryId && it.id == item.id }, loading = false) }
-                .onFailure { mutableState.value = mutableState.value.copy(error = "Could not remove this video from Home.", loading = false) }
+                .onFailure { mutableState.value = mutableState.value.copy(error = "Could not remove this video from the list.", loading = false) }
         }
     }
 
@@ -159,7 +180,7 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                         mutableState.value.listening.filterNot { it.track.libraryId == item.track.libraryId && it.track.id == item.track.id }
                     } else homeItems(listOf(item) + mutableState.value.listening), loading = false)
                 }
-                .onFailure { mutableState.value = mutableState.value.copy(error = "Could not update this item on Home.", loading = false) }
+                .onFailure { mutableState.value = mutableState.value.copy(error = "Could not update this item.", loading = false) }
         }
     }
 }

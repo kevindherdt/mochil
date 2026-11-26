@@ -29,8 +29,7 @@ class DashboardRecoveryUiTest {
         val book = JSONObject("""{"id":"book","library_id":"books","title":"Book","authors":[]}""").toBookSummary()
         val state = DashboardState(reading = listOf(ContinueReading(book, 0.5, 0)), loading = false, error = "Could not load your activity.")
         compose.setContent {
-            DashboardScreen(state, { "" }, { "" }, { "" }, null, {}, {}, {}, {}, {}, {}, {}, {}, {},
-                emptyList(), null, false, false, {}, {}, {})
+            DashboardScreen(state, { "" }, { "" }, { "" }, null, {}, {}, {}, {}, {}, {}, {}, {}, emptyList())
         }
         compose.onNodeWithText("Book").assertIsDisplayed()
         compose.onNodeWithText("Could not load your activity.").assertIsDisplayed()

@@ -43,7 +43,6 @@ internal fun MobileDeviceSettingsRoute(
     showCollections: Boolean,
     showSources: Boolean,
     onDestinationVisibility: (OptionalDestination, Boolean) -> Unit,
-    onBack: () -> Unit,
 ) {
     val libraryVisibilityFlow = remember(libraryViewModel) {
         libraryViewModel.state.map { it.visibilityProjection() }.distinctUntilChanged()
@@ -97,6 +96,5 @@ internal fun MobileDeviceSettingsRoute(
         showCollections = showCollections,
         showSources = showSources,
         onDestinationVisibility = onDestinationVisibility,
-        onBack = onBack,
     )
 }

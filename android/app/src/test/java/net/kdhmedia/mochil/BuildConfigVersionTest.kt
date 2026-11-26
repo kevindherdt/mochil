@@ -12,6 +12,8 @@ import org.junit.Test
  * removed from the server lived on in the installed app.
  */
 class BuildConfigVersionTest {
+    private val PREVIEW_SUFFIX = Regex("-preview(\\d+)$")
+
     /** The repository VERSION, found by walking up: a unit test's working directory is not the module's. */
     private fun repositoryVersion(): String {
         var directory: File? = File(System.getProperty("user.dir")).absoluteFile
@@ -25,7 +27,7 @@ class BuildConfigVersionTest {
 
     @Test
     fun `the app is labelled with the repository version`() {
-        assertEquals(repositoryVersion(), BuildConfig.VERSION_NAME)
+        assertEquals(repositoryVersion(), BuildConfig.VERSION_NAME.replace(PREVIEW_SUFFIX, ""))
     }
 
     /**
@@ -42,8 +44,10 @@ class BuildConfigVersionTest {
 
     @Test
     fun `the version code rises with the version name`() {
-        val parts = BuildConfig.VERSION_NAME.split(".").map { it.toInt() }
-        val expected = (parts[0] * 10000 + parts[1] * 100 + parts[2]) * 100
+        // A -PmochilPreview=N build is the release code plus N, and says so in its name.
+        val preview = PREVIEW_SUFFIX.find(BuildConfig.VERSION_NAME)?.groupValues?.get(1)?.toInt() ?: 0
+        val parts = BuildConfig.VERSION_NAME.replace(PREVIEW_SUFFIX, "").split(".").map { it.toInt() }
+        val expected = (parts[0] * 10000 + parts[1] * 100 + parts[2]) * 100 + preview
         assertEquals(expected, BuildConfig.VERSION_CODE)
     }
 }
