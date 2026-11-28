@@ -114,14 +114,9 @@ func (s *Store) Scan() (Stats, error) {
 	jobs := []probeJob{}
 	probeMigrations := 0
 	err = filepath.WalkDir(root, func(path string, entry os.DirEntry, walkErr error) error {
-		// One unreadable folder used to abort the whole scan and publish nothing, so a permission change emptied the library
-		// and a full disk froze it at the previous snapshot. Count the entry and keep walking.
+		// See internal/video/store.go: a failed walk aborts the scan rather than publishing a partial catalogue.
 		if walkErr != nil {
-			stats.Errors++
-			if entry != nil && entry.IsDir() {
-				return filepath.SkipDir
-			}
-			return nil
+			return walkErr
 		}
 		if path != root && entry.Type()&os.ModeSymlink != 0 {
 			if entry.IsDir() {
@@ -134,16 +129,14 @@ func (s *Store) Scan() (Stats, error) {
 		}
 		fileInfo, e := audioScanInfo(entry)
 		if e != nil {
-			stats.Errors++
-			return nil
+			return e
 		}
 		if fileInfo == nil {
 			return nil
 		}
 		relative, e := filepath.Rel(root, path)
 		if e != nil {
-			stats.Errors++
-			return nil
+			return e
 		}
 		item, ok := Identify(s.libraryID, relative, fileInfo.Size(), fileInfo.ModTime())
 		if !ok {

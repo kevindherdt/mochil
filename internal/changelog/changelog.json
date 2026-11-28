@@ -2,6 +2,15 @@
  "entries": [
   {
    "component": "server",
+   "version": "0.2.3",
+   "date": "2026-11-28",
+   "fixed": [
+    "A scan that loses read access to part of a library no longer publishes a half-listed catalogue: the last good one stays until the folder can be read again.",
+    "A full disk no longer empties a video or audio library, because the catalogue is published before the cache file is written."
+   ]
+  },
+  {
+   "component": "server",
    "version": "0.2.2",
    "date": "2026-11-28",
    "fixed": [
@@ -13,7 +22,7 @@
     "A fresh install no longer treats \"no account yet\" as \"administrator\" while the first account is being created.",
     "A podcast's download limit no longer deletes the episode you downloaded by hand because it is old.",
     "A failed audio probe, a failed podcast feed refresh and a failed Jellyfin progress save are no longer cached or answered as successes.",
-    "A single unreadable folder or a full disk no longer empties a scanned video or audio library.",
+    "A scan that cannot read part of a library keeps the catalogue it already had and reports the failure, instead of publishing a partial one.",
     "Hardcover no longer shelves the top-ranked guess when several books share a title and author; it waits for you to pick.",
     "\"Stop syncing\" to Hardcover reports a failure instead of a changed count when it cannot save.",
     "A moved book no longer holds the metadata lock for the length of the file copy, so editing stays usable during a large move.",

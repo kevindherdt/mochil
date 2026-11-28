@@ -114,14 +114,11 @@ func (s *Store) Scan() (Stats, error) {
 	items := make([]Item, 0)
 	stats := Stats{}
 	err = filepath.WalkDir(root, func(path string, entry os.DirEntry, walkErr error) error {
-		// One unreadable folder, or a file that vanished mid-walk, used to abort the whole scan and publish nothing: a cold
-		// start showed an empty library and a warm one froze at its previous snapshot. Count it and keep walking.
+		// A walk that fails must abort the scan, not publish a partial catalogue: internal/video's
+		// TestStoreDoesNotPublishPartialSnapshotAfterWalkFailure holds that guarantee, and a library half-listed after a
+		// permission change is worse than one that keeps its last-known-good snapshot and reports the failure.
 		if walkErr != nil {
-			stats.Errors++
-			if entry != nil && entry.IsDir() {
-				return filepath.SkipDir
-			}
-			return nil
+			return walkErr
 		}
 		if path != root && entry.Type()&os.ModeSymlink != 0 {
 			if entry.IsDir() {
@@ -134,13 +131,11 @@ func (s *Store) Scan() (Stats, error) {
 		}
 		info, infoErr := entry.Info()
 		if infoErr != nil {
-			stats.Errors++
-			return nil
+			return infoErr
 		}
 		relative, relErr := filepath.Rel(root, path)
 		if relErr != nil {
-			stats.Errors++
-			return nil
+			return relErr
 		}
 		item, supported := Identify(s.libraryID, relative, info.Size(), info.ModTime())
 		if !supported {
