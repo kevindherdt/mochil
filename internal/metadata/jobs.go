@@ -125,33 +125,68 @@ func (s *JobStore) Create(libraryID, libraryName string, books []catalog.Book) (
 // inheritDecisionsLocked carries the newest explicit choice into a new
 // inspection. A pending choice is a tombstone: it deliberately restores the
 // issue to review and prevents an older accepted/ignored choice resurfacing.
+//
+// A choice is only inherited while the issue is still the same issue. Keying on book and code alone meant a title edit
+// inherited "accept series_index 3" onto a book that now proposes 7, and the new job came back resolved with the stale value
+// already accepted -- ready to apply without anyone looking at it.
 func (s *JobStore) inheritDecisionsLocked(job *Job) int {
-	inherited := 0
-	for itemIndex := range job.Items {
-		item := &job.Items[itemIndex]
-		matched := false
-		for _, previous := range s.jobs {
-			if previous.LibraryID != job.LibraryID {
-				continue
-			}
-			for _, old := range previous.Items {
-				if old.BookID != item.BookID || old.Code != item.Code {
-					continue
-				}
-				matched = true
-				if old.Decision == "accepted" || old.Decision == "ignored" {
-					item.Decision = old.Decision
-					item.DecisionValue = old.DecisionValue
-					inherited++
-				}
-				break
-			}
-			if matched {
-				break
+	// One lookup per book and code, built once: the old nested walk was O(items x jobs x items) under the write lock.
+	newest := make(map[string]ReviewItem, len(s.jobs)*8)
+	for _, previous := range s.jobs {
+		if previous.LibraryID != job.LibraryID {
+			continue
+		}
+		for _, old := range previous.Items {
+			key := old.BookID + "\x00" + old.Code
+			if _, seen := newest[key]; !seen {
+				newest[key] = old
 			}
 		}
 	}
+	inherited := 0
+	for itemIndex := range job.Items {
+		item := &job.Items[itemIndex]
+		old, ok := newest[item.BookID+"\x00"+item.Code]
+		if !ok || !sameIssue(old, *item) {
+			continue
+		}
+		if old.Decision == "accepted" || old.Decision == "ignored" {
+			item.Decision = old.Decision
+			item.DecisionValue = old.DecisionValue
+			inherited++
+		}
+	}
 	return inherited
+}
+
+// sameIssue reports whether two review items describe the same problem with the same proposed answer, so a stored decision
+// still means what it meant.
+func sameIssue(old ReviewItem, current ReviewItem) bool {
+	if old.Path != current.Path || old.Title != current.Title || old.Series != current.Series || old.Reason != current.Reason {
+		return false
+	}
+	if (old.SeriesIndex == nil) != (current.SeriesIndex == nil) {
+		return false
+	}
+	if old.SeriesIndex != nil && *old.SeriesIndex != *current.SeriesIndex {
+		return false
+	}
+	if len(old.Authors) != len(current.Authors) {
+		return false
+	}
+	for i := range old.Authors {
+		if old.Authors[i] != current.Authors[i] {
+			return false
+		}
+	}
+	oldProposed, currentProposed := "", ""
+	if old.Proposal != nil {
+		oldProposed = old.Proposal.Proposed
+	}
+	if current.Proposal != nil {
+		currentProposed = current.Proposal.Proposed
+	}
+	return oldProposed == currentProposed
 }
 
 func (s *JobStore) List(libraryID string) []Job {

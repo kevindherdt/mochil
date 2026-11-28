@@ -48,8 +48,13 @@ func administratorOnly(path, method string) bool {
 	if path == "/api/jobs" {
 		return method != http.MethodGet && method != http.MethodHead
 	}
-	if strings.HasPrefix(path, "/api/metadata/") || strings.HasPrefix(path, "/api/publication-metadata/") || strings.HasPrefix(path, "/api/video-metadata/") || strings.HasPrefix(path, "/api/video-metadata-match/") || strings.HasPrefix(path, "/api/video-show-metadata/") {
+	if strings.HasPrefix(path, "/api/metadata/") || strings.HasPrefix(path, "/api/publication-metadata/") || strings.HasPrefix(path, "/api/video-metadata/") || strings.HasPrefix(path, "/api/video-metadata-match/") || strings.HasPrefix(path, "/api/video-show-metadata/") || strings.HasPrefix(path, "/api/video-metadata-search") || strings.HasPrefix(path, "/api/video-artwork-search") {
 		return true
+	}
+	// The OPML import rewrites the server-wide feed list and makes the server fetch every URL it lists, so it is the
+	// same kind of write as adding one feed -- which the UI already refuses below administrator.
+	if path == "/api/podcast-opml" {
+		return method != http.MethodGet && method != http.MethodHead
 	}
 	if path == "/api/podcast-feeds" || strings.HasPrefix(path, "/api/podcast-feeds/") || path == "/api/podcast-downloads" || strings.HasPrefix(path, "/api/podcast-downloads/") {
 		return method != http.MethodGet && method != http.MethodHead
@@ -64,7 +69,7 @@ func (m *multiServer) authorizeAdministrator(w http.ResponseWriter, r *http.Requ
 // authorizeAdministratorFor applies the policy to the website path a request stands for. The Android routes reach the same
 // handlers under another prefix, so they ask with the shared path.
 func (m *multiServer) authorizeAdministratorFor(w http.ResponseWriter, r *http.Request, path string) bool {
-	if !administratorOnly(path, r.Method) || m.accounts == nil {
+	if !administratorOnly(path, r.Method) || m.accountStore() == nil {
 		return true
 	}
 	identity, ok := identityFromRequest(r)
@@ -81,7 +86,7 @@ func (m *multiServer) mayEditVaults(r *http.Request) bool { return m.isAdministr
 
 // isAdministrator is true for an administrator, and always when the server has no accounts (a single owner).
 func (m *multiServer) isAdministrator(r *http.Request) bool {
-	if m.accounts == nil {
+	if m.accountStore() == nil {
 		return true
 	}
 	identity, ok := identityFromRequest(r)

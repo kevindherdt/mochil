@@ -84,15 +84,17 @@ func (m *multiServer) configurePersistentStores(cfg MultiConfig) error {
 		accountsPath = filepath.Join(filepath.Dir(cfg.ReadingState), "accounts.json")
 	}
 	if accountsPath != "" {
+		var store *accounts.Store
+		var err error
 		switch {
 		case cfg.Username != "":
 			// Credentials in the environment seed the administrator, exactly as before.
-			m.accounts, err = m.stores.accountStore(func() (*accounts.Store, error) {
+			store, err = m.stores.accountStore(func() (*accounts.Store, error) {
 				return accounts.Open(accountsPath, cfg.Username, cfg.Password)
 			})
 		case fileExists(accountsPath):
 			// An install that already created its account signs in with it; no environment needed.
-			m.accounts, err = m.stores.accountStore(func() (*accounts.Store, error) {
+			store, err = m.stores.accountStore(func() (*accounts.Store, error) {
 				return accounts.OpenFirstRun(accountsPath)
 			})
 		default:
@@ -103,6 +105,11 @@ func (m *multiServer) configurePersistentStores(cfg MultiConfig) error {
 		}
 		if err != nil {
 			return fmt.Errorf("open account store: %w", err)
+		}
+		// Published once, atomically, after the store is fully open: readers either see nil (first run, no account yet) or a
+		// store that is ready to authenticate.
+		if store != nil {
+			m.accountsStoreField.Store(store)
 		}
 	}
 	jellyfinPath := ""

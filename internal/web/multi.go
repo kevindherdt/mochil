@@ -11,10 +11,10 @@ import (
 	"mochil/internal/isbn"
 	"mochil/internal/narration"
 	"net/http"
-	"net/url"
 	"path/filepath"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"mochil/internal/accounts"
@@ -231,8 +231,11 @@ type multiServer struct {
 	androidDiagnosticStore *androidDiagnosticStore
 	narration              *narration.Engine
 	narrationVoices        *narration.Voices
-	accounts               *accounts.Store
-	stores                 *StoreSet
+	// accountsStore is read on every request and written once when the first account is created, or when a live
+	// reload adopts the previous store. A plain field made that a data race, and a request that sampled nil was
+	// treated as administrator because isAdministrator returns true while there is no account store.
+	accountsStoreField atomic.Pointer[accounts.Store]
+	stores             *StoreSet
 	// Where the first account will be written on an install that has none yet; empty once it has one.
 	firstRunAccountsPath string
 	accountMutationMu    sync.Mutex
@@ -387,7 +390,7 @@ func NewMulti(cfg MultiConfig, libraries []Library, logger *slog.Logger) (http.H
 	}
 	m.reconcileTransfers()
 	var handler http.Handler = m
-	if (cfg.Username != "" || m.accounts != nil || m.needsFirstAccount()) && !cfg.AllowOpen {
+	if (cfg.Username != "" || m.accountStore() != nil || m.needsFirstAccount()) && !cfg.AllowOpen {
 		sessions := cfg.Sessions
 		if sessions == nil {
 			sessions = NewSessionContinuity()
@@ -457,91 +460,11 @@ func writeJSON(w http.ResponseWriter, status int, value any) {
 	_ = json.NewEncoder(w).Encode(value)
 }
 
-func (m *multiServer) serveAcquisition(w http.ResponseWriter, r *http.Request) {
-	remainder := strings.TrimPrefix(r.URL.Path, "/books/")
-	parts := strings.SplitN(remainder, "/", 2)
-	if len(parts) > 0 {
-		id, err := url.PathUnescape(parts[0])
-		if err == nil {
-			if _, ok := m.handlers[id]; ok {
-				m.serveLibrary(w, r, "/books/", false)
-				return
-			}
-		}
-	}
-	if len(m.libraries) == 1 {
-		serveRewritten(m.handlers[m.libraries[0].ID], w, r, r.URL.Path)
-		return
-	}
-	http.NotFound(w, r)
-}
-
-func (m *multiServer) serveStream(w http.ResponseWriter, r *http.Request) {
-	remainder := strings.TrimPrefix(r.URL.Path, "/stream/")
-	parts := strings.SplitN(remainder, "/", 2)
-	if len(parts) != 2 {
-		http.NotFound(w, r)
-		return
-	}
-	id, err := url.PathUnescape(parts[0])
-	if err != nil {
-		http.NotFound(w, r)
-		return
-	}
-	handler, ok := m.handlers[id]
-	if !ok {
-		http.NotFound(w, r)
-		return
-	}
-	serveRewritten(handler, w, r, "/stream/"+parts[1])
-}
-
-func (m *multiServer) serveLibrary(w http.ResponseWriter, r *http.Request, prefix string, catalogRoute bool) {
-	remainder := strings.TrimPrefix(r.URL.Path, prefix)
-	parts := strings.SplitN(remainder, "/", 2)
-	id, err := url.PathUnescape(parts[0])
-	if err != nil || id == "" {
-		http.NotFound(w, r)
-		return
-	}
-	handler, ok := m.handlers[id]
-	if !ok {
-		http.NotFound(w, r)
-		return
-	}
-	suffix := ""
-	if len(parts) == 2 {
-		suffix = "/" + parts[1]
-	}
-	if suffix == "/" {
-		suffix = ""
-	}
-	internalPath := "/books" + suffix
-	if catalogRoute {
-		if suffix == "/opensearch.xml" {
-			internalPath = "/opensearch.xml"
-		} else {
-			internalPath = "/opds" + suffix
-		}
-	}
-	serveRewritten(handler, w, r, internalPath)
-}
-
-func (m *multiServer) serveLegacy(w http.ResponseWriter, r *http.Request) {
-	library := m.libraries[0]
-	handler := m.handlers[library.ID]
-	serveRewritten(handler, w, r, r.URL.Path)
-}
-
-func serveRewritten(handler http.Handler, w http.ResponseWriter, r *http.Request, path string) {
-	clone := r.Clone(r.Context())
-	clonedURL := *r.URL
-	clonedURL.Path = path
-	clonedURL.RawPath = ""
-	clone.URL = &clonedURL
-	handler.ServeHTTP(w, clone)
-}
-
 // narrationEnabled reports the switch, not the runtime: "off" and "no runtime installed" are
 // different problems for the person reading the settings page, and one of them is a two-tap fix.
 func (m *multiServer) narrationEnabled() bool { return m.moduleOn("narration") }
+
+// accountStore returns the account store, or nil during the first run before one exists. Every read goes through the atomic
+// so a request cannot observe a half-published store -- and, more importantly, cannot be treated as administrator merely
+// because the field still held nil while the first account was being created (or a live reload was adopting the previous one).
+func (m *multiServer) accountStore() *accounts.Store { return m.accountsStoreField.Load() }

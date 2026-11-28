@@ -1,6 +1,7 @@
 package ingest
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -66,5 +67,27 @@ func TestBatchPreviewBoundsAndValidatesEveryEntry(t *testing.T) {
 	}
 	if _, err = executor.PreviewBatch(make([]PlanEntry, MaximumBatchPreviewEntries+1)); err == nil {
 		t.Fatal("oversized preview was accepted")
+	}
+}
+
+// Plan is a client-facing endpoint of its own, so the batch cap has to hold there and not only in preview: a thousand
+// entries queued as one transaction bypasses the hundred-per-call rhythm every screen follows.
+func TestPlanRefusesMoreThanOneBatch(t *testing.T) {
+	root := t.TempDir()
+	incoming, managed := filepath.Join(root, "incoming"), filepath.Join(root, "managed")
+	if err := os.MkdirAll(incoming, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	executor, err := NewExecutor(incoming, managed, NewJournalStore(filepath.Join(root, "journal.json")), 2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	entries := make([]PlanEntry, MaximumBatchPreviewEntries+1)
+	for index := range entries {
+		name := fmt.Sprintf("book-%03d.epub", index)
+		entries[index] = PlanEntry{SourcePath: name, TargetPath: name}
+	}
+	if _, err = executor.Plan(entries); err == nil {
+		t.Fatalf("plan accepted %d entries", len(entries))
 	}
 }

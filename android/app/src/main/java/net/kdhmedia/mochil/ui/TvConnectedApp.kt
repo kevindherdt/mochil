@@ -17,6 +17,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.platform.LocalContext
+import net.kdhmedia.mochil.ui.theme.MochilSpace
 import net.kdhmedia.mochil.catalogue.LibraryShellProjection
 import net.kdhmedia.mochil.catalogue.LibraryKind
 import net.kdhmedia.mochil.catalogue.LibraryCategory
@@ -56,6 +57,9 @@ internal fun TvContentFrame(showRail: Boolean, playbackDockVisible: Boolean, con
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val inset = tvOverscan(maxWidth.value, maxHeight.value)
         Box(
+            // Start and bottom only. A review argued for top and end too, on the grounds that a set cuts the outer band off;
+            // the detail tests disagree — a 24dp top inset clips a show title out of its own viewport — and every screen
+            // already carries its own top breathing room. Left as measured rather than as argued.
             Modifier.fillMaxSize().padding(
                 start = if (showRail) TvNavRailWidth + inset else inset,
                 bottom = if (showRail && playbackDockVisible) inset + 64.dp else inset,
@@ -171,6 +175,13 @@ internal fun TvConnectedApp(
             onPlayVideo = playVideo,
         )
     } }
+    // Above the content, below the rail: Box children paint in declaration order, so this has to come after the frame —
+    // composed before it, every route's content drew over the clock and it was only visible where the corner happened to be
+    // empty (Home).
+    if (showRail) BoxWithConstraints(Modifier.fillMaxSize()) {
+        val corner = tvOverscan(maxWidth.value, maxHeight.value)
+        TvStatusCluster(Modifier.align(Alignment.TopEnd).padding(end = corner + MochilSpace.s24, top = corner + MochilSpace.s12))
+    }
     if (showRail) TvNavRailHost(
         libraryViewModel = libraryViewModel,
         route = route.name,

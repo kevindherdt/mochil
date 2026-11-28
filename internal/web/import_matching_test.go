@@ -1,6 +1,7 @@
 package web
 
 import (
+	"fmt"
 	"testing"
 
 	"mochil/internal/catalog"
@@ -49,3 +50,61 @@ func TestMatchingAnEmptyLibraryMarksEverythingNew(t *testing.T) {
 		t.Fatalf("%+v", rows)
 	}
 }
+
+// The index is built once per request now; matching must behave exactly as the old per-page rebuild did. This is the
+// equivalence pin, and it is also the cheap one: one library, two calls, same rows.
+func TestMatchingFromAPrebuiltIndexMatchesTheOldPerPageCall(t *testing.T) {
+	index := 2.0
+	books := []catalog.Book{
+		{ID: "a", Title: "Dune", Authors: []string{"Frank Herbert"}, Series: "Dune", SeriesIndex: &index},
+		{ID: "b", Title: "Neuromancer", Authors: []string{"William Gibson"}},
+	}
+	items := []ingest.DiscoveryItem{
+		{SourcePath: "incoming/dune-2.epub", Proposal: ingest.Proposal{Kind: ingest.Publication, Title: "Dune", Authors: []string{"Frank Herbert"}, Series: "Dune", SeriesIndex: &index}},
+		{SourcePath: "incoming/neuromancer.epub", Proposal: ingest.Proposal{Kind: ingest.Publication, Title: "Neuromancer", Authors: []string{"William Gibson"}}},
+	}
+	built := buildImportIndex(books)
+	fromIndex := built.match(items)
+	fromCall := matchImports(items, books)
+	if len(fromIndex) != len(fromCall) {
+		t.Fatalf("index matching returned %d rows, the wrapper %d", len(fromIndex), len(fromCall))
+	}
+	for i := range fromIndex {
+		if fromIndex[i].Status != fromCall[i].Status || fromIndex[i].SourcePath != fromCall[i].SourcePath {
+			t.Errorf("row %d differs: %+v vs %+v", i, fromIndex[i], fromCall[i])
+		}
+	}
+	if fromIndex[0].Status != importInLibrary {
+		t.Errorf("a duplicate should still be recognised, got %q", fromIndex[0].Status)
+	}
+}
+
+// The cost this refactor removed, as a number rather than an adjective: sixty discovery pages over a 5,000-book library,
+// rebuilding the whole index per page versus building it once.
+func benchmarkImportMatching(b *testing.B, perPageRebuild bool) {
+	books := make([]catalog.Book, 5000)
+	for i := range books {
+		index := float64(i%40 + 1)
+		books[i] = catalog.Book{ID: fmt.Sprintf("%05d", i), Title: fmt.Sprintf("Book %05d", i), Authors: []string{"A. Author"}, Series: "Series", SeriesIndex: &index}
+	}
+	items := make([]ingest.DiscoveryItem, 100)
+	for i := range items {
+		items[i] = ingest.DiscoveryItem{SourcePath: fmt.Sprintf("incoming/%03d.epub", i), Proposal: ingest.Proposal{Kind: ingest.Publication, Title: fmt.Sprintf("Book %05d", i), Authors: []string{"A. Author"}, Series: "Series"}}
+	}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		if perPageRebuild {
+			for page := 0; page < 60; page++ {
+				_ = matchImports(items, books)
+			}
+		} else {
+			index := buildImportIndex(books)
+			for page := 0; page < 60; page++ {
+				_ = index.match(items)
+			}
+		}
+	}
+}
+
+func BenchmarkImportMatchingRebuiltPerPage(b *testing.B) { benchmarkImportMatching(b, true) }
+func BenchmarkImportMatchingFromOneIndex(b *testing.B)   { benchmarkImportMatching(b, false) }

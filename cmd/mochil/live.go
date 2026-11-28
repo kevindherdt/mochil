@@ -280,6 +280,13 @@ func (a *liveApplication) apply(data []byte) (web.SettingsApplyResult, error) {
 	if err != nil {
 		return web.SettingsApplyResult{}, err
 	}
+	// Every state file this process holds open -- sessions, reading progress, the ingest journal, each cache -- hangs off the
+	// cache directory. A live apply that moved it published a server whose reading store still wrote to the old path, so the
+	// progress written after the save went where the next boot does not look. Refuse the change instead of half-applying it.
+	if candidate.cacheDirectory != a.current.cacheDirectory {
+		closeLibraries(candidate.libraries)
+		return web.SettingsApplyResult{}, fmt.Errorf("the cache directory cannot change while the server is running: it holds the open reading, session and ingest state. Edit it in the config file and restart; nothing was changed")
+	}
 	toScan, reused := reuseUnchangedLibraries(&candidate, a.current)
 	pendingAudio := make([]web.Library, 0)
 	for _, library := range toScan {

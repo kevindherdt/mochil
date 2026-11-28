@@ -245,3 +245,29 @@ func TestMissingTitleProposalRemovesStructuredSeriesAndVolume(t *testing.T) {
 	}
 	t.Fatalf("unexpected title proposal: %#v", job.Items)
 }
+
+// A decision is only carried over while the issue is still the same issue. The old rule keyed on book and code alone, so a
+// book whose title changed inherited the old "accept" value and came back resolved with a stale answer already applied.
+func TestChangedIssueDoesNotInheritAnOldDecision(t *testing.T) {
+	store, err := OpenJobStore(filepath.Join(t.TempDir(), "reviews.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	first, err := store.Create("books", "Books", []catalog.Book{{ID: "one", Title: "Book", Authors: []string{"Unknown"}}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.Decide(first.ID, "one", "missing_author", "accepted", "Writer"); err != nil {
+		t.Fatal(err)
+	}
+	second, err := store.Create("books", "Books", []catalog.Book{{ID: "one", Title: "A Renamed Book", Authors: []string{"Unknown"}}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if second.InheritedDecisions != 0 {
+		t.Fatalf("a changed issue inherited %d decisions: %#v", second.InheritedDecisions, second.Items)
+	}
+	if second.Items[0].Decision != "" || second.Status != "review" {
+		t.Fatalf("the changed issue came back with a stale decision: %#v", second.Items[0])
+	}
+}

@@ -100,7 +100,8 @@ func TestAccountExportIsBoundedPasswordFreeAndIsolated(t *testing.T) {
 	if err = audioStore.Put(reader.ID, audio.Progress{LibraryID: "music", ItemID: "track-1", Position: 12, Duration: 120}); err != nil {
 		t.Fatal(err)
 	}
-	m := &multiServer{accounts: accountStore, reading: readingStore, annotations: annotationStore, audioProgress: audioStore}
+	m := &multiServer{reading: readingStore, annotations: annotationStore, audioProgress: audioStore}
+	m.accountsStoreField.Store(accountStore)
 	owner, _ := accountStore.IdentityByID("owner")
 	request := httptest.NewRequest(http.MethodGet, "/api/accounts/"+url.PathEscape(reader.ID)+"/export", nil)
 	request = request.WithContext(contextWithIdentity(request.Context(), owner))
@@ -237,7 +238,8 @@ func TestDisabledAccountDeletionPurgesEveryPersonalStoreAndCredential(t *testing
 	if err = accountStore.SetDisabled(reader.ID, true); err != nil {
 		t.Fatal(err)
 	}
-	m := &multiServer{accounts: accountStore, reading: readingStore, annotations: annotationStore, audioProgress: audioProgress, videoProgress: videoProgress, audioQueue: queue, audioFavorites: favorites, audioPlaylists: playlists, collections: collections, wiki: wikiStore, externalLibrary: external, androidDevices: androidDevices, jellyfinDevices: jellyfinDevices, devices: koDevices}
+	m := &multiServer{reading: readingStore, annotations: annotationStore, audioProgress: audioProgress, videoProgress: videoProgress, audioQueue: queue, audioFavorites: favorites, audioPlaylists: playlists, collections: collections, wiki: wikiStore, externalLibrary: external, androidDevices: androidDevices, jellyfinDevices: jellyfinDevices, devices: koDevices}
+	m.accountsStoreField.Store(accountStore)
 	owner, _ := accountStore.IdentityByID("owner")
 
 	wrongResponse := httptest.NewRecorder()
@@ -306,7 +308,8 @@ func TestInterruptedAccountDeletionRemainsDisabledAndCanBeRetried(t *testing.T) 
 	if err := os.Mkdir(readingPath, 0o700); err != nil {
 		t.Fatal(err)
 	}
-	m := &multiServer{accounts: accountStore, reading: readingStore}
+	m := &multiServer{reading: readingStore}
+	m.accountsStoreField.Store(accountStore)
 	owner, _ := accountStore.IdentityByID("owner")
 	failed := httptest.NewRecorder()
 	m.ServeHTTP(failed, accountDeleteRequest(reader.ID, "reader", owner))
@@ -351,7 +354,8 @@ func TestPasswordResetEndsEveryExistingSignIn(t *testing.T) {
 	androidToken, _, _ := devices.issue(reader.ID, "Phone")
 	jellyfinToken, _, _ := jellyfin.issue(reader.ID, "TV")
 	dropped := ""
-	m := &multiServer{accounts: accountStore, androidDevices: devices, jellyfinDevices: jellyfin, devices: koDevices, dropSessions: func(id string) error { dropped = id; return nil }}
+	m := &multiServer{androidDevices: devices, jellyfinDevices: jellyfin, devices: koDevices, dropSessions: func(id string) error { dropped = id; return nil }}
+	m.accountsStoreField.Store(accountStore)
 	response := httptest.NewRecorder()
 	m.applyAccountAction(response, httptest.NewRequest(http.MethodPost, "/api/accounts/"+reader.ID, nil), reader.ID, "reset_password", "a brand new password")
 	if response.Code != http.StatusNoContent {
@@ -378,7 +382,8 @@ func TestPasswordResetReportsSignInsThatCouldNotBeEnded(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	m := &multiServer{accounts: accountStore, dropSessions: func(string) error { return errors.New("disk full") }}
+	m := &multiServer{dropSessions: func(string) error { return errors.New("disk full") }}
+	m.accountsStoreField.Store(accountStore)
 	response := httptest.NewRecorder()
 	m.applyAccountAction(response, httptest.NewRequest(http.MethodPost, "/api/accounts/"+reader.ID, nil), reader.ID, "reset_password", "a brand new password")
 	if response.Code != http.StatusInternalServerError || !strings.Contains(response.Body.String(), "Reset it again") {

@@ -46,6 +46,11 @@ func (m *multiServer) settings(w http.ResponseWriter, r *http.Request) {
 	}
 	result, err := m.settingsService.Update(data)
 	if err != nil {
+		if errors.Is(err, settingssvc.ErrStale) {
+			// Nothing was written: the caller's document is out of date. Conflict, not a bad request.
+			http.Error(w, err.Error(), http.StatusConflict)
+			return
+		}
 		if errors.Is(err, settingssvc.ErrUnavailable) {
 			http.Error(w, err.Error(), http.StatusNotImplemented)
 			return

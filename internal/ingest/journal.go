@@ -170,6 +170,11 @@ func validateJournal(journal Journal) error {
 	return nil
 }
 
+// ValidManagedPath reports whether a computed target is a path the executor would accept: relative, no backslashes, no
+// escapes. Callers that show a target to a person before anything is written need this, because a name that plan will
+// refuse must not be presented as the name a book is going to get.
+func ValidManagedPath(value string) bool { return safeJournalPath(value) }
+
 func safeJournalPath(value string) bool {
 	if value == "" || len(value) > 2048 || filepath.IsAbs(value) || strings.ContainsRune(value, '\x00') || strings.ContainsRune(value, '\\') {
 		return false

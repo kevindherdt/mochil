@@ -120,7 +120,7 @@ func (m *multiServer) exportAccount(w http.ResponseWriter, r *http.Request, id s
 }
 
 func (m *multiServer) accountSummary(id string) (accounts.Summary, bool) {
-	for _, item := range m.accounts.List() {
+	for _, item := range m.accountStore().List() {
 		if item.ID == id {
 			return item, true
 		}

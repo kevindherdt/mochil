@@ -1,6 +1,29 @@
 {
  "entries": [
   {
+   "component": "server",
+   "version": "0.2.2",
+   "date": "2026-11-28",
+   "fixed": [
+    "Only an administrator can import an OPML file or search video metadata; both wrote to the shared library from any account.",
+    "A shelf refresh during a scan no longer stops with \"reload the shelf\" although nothing had gone stale.",
+    "A config file is written atomically now, so an interrupted first boot can no longer leave one that exists and does not parse under every later start.",
+    "Changing the cache directory no longer half-applies: it is refused with an explanation, because the open state would keep writing to the old place.",
+    "Two saves of the settings no longer lose one silently: the second is told the settings changed and to reload.",
+    "A fresh install no longer treats \"no account yet\" as \"administrator\" while the first account is being created.",
+    "A podcast's download limit no longer deletes the episode you downloaded by hand because it is old.",
+    "A failed audio probe, a failed podcast feed refresh and a failed Jellyfin progress save are no longer cached or answered as successes.",
+    "A single unreadable folder or a full disk no longer empties a scanned video or audio library.",
+    "Hardcover no longer shelves the top-ranked guess when several books share a title and author; it waits for you to pick.",
+    "\"Stop syncing\" to Hardcover reports a failure instead of a changed count when it cannot save.",
+    "A moved book no longer holds the metadata lock for the length of the file copy, so editing stays usable during a large move.",
+    "An accepted metadata decision is no longer inherited by a different issue on the same book."
+   ],
+   "changes": [
+    "Narration splits a chapter that arrives as one long block about a thousand times faster, instead of taking minutes."
+   ]
+  },
+  {
    "component": "android",
    "version": "0.2.1",
    "date": "2026-11-26",

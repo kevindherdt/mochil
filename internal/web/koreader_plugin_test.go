@@ -435,7 +435,8 @@ func TestKoSyncMirrorUserFollowsTheAccountName(t *testing.T) {
 	if err := sync.ensureUser("dimadh", "secret"); err != nil {
 		t.Fatal(err)
 	}
-	server := &multiServer{accounts: store, kosync: sync}
+	server := &multiServer{kosync: sync}
+	server.accountsStoreField.Store(store)
 	if got := server.koSyncUserFor(second.ID); got != "dimadh" {
 		t.Fatalf("an account's mirror user is its user name, got %q", got)
 	}

@@ -48,8 +48,8 @@ func (m *multiServer) jellyfinIdentity(r *http.Request) (accounts.Identity, bool
 	if !ok {
 		return accounts.Identity{}, false
 	}
-	if m.accounts != nil {
-		return m.accounts.IdentityByID(account)
+	if m.accountStore() != nil {
+		return m.accountStore().IdentityByID(account)
 	}
 	return accounts.Identity{ID: account, Username: account, Role: accounts.RoleAdministrator}, true
 }
@@ -306,7 +306,11 @@ func (m *multiServer) jellyfinProgress(w http.ResponseWriter, r *http.Request) {
 			if duration > 0 && position > duration {
 				position = duration
 			}
-			_ = m.audioProgress.Put(account, audio.Progress{LibraryID: audioLibrary.ID, ItemID: audioItem.ID, Position: position, Duration: duration, PlaybackRate: 1})
+			// A failed write used to answer 204 like a saved one, so the client never retried and the position vanished.
+			if err := m.audioProgress.Put(account, audio.Progress{LibraryID: audioLibrary.ID, ItemID: audioItem.ID, Position: position, Duration: duration, PlaybackRate: 1}); err != nil {
+				http.Error(w, "Could not save progress", http.StatusInternalServerError)
+				return
+			}
 		}
 		w.WriteHeader(http.StatusNoContent)
 		return
@@ -328,7 +332,10 @@ func (m *multiServer) jellyfinProgress(w http.ResponseWriter, r *http.Request) {
 		if duration > 0 && position > duration {
 			position = duration
 		}
-		_ = m.videoProgress.Put(account, video.Progress{LibraryID: library.ID, ItemID: item.ID, Position: position, Duration: duration, DeviceID: "jellyfin"})
+		if err := m.videoProgress.Put(account, video.Progress{LibraryID: library.ID, ItemID: item.ID, Position: position, Duration: duration, DeviceID: "jellyfin"}); err != nil {
+			http.Error(w, "Could not save progress", http.StatusInternalServerError)
+			return
+		}
 	}
 	w.WriteHeader(http.StatusNoContent)
 }

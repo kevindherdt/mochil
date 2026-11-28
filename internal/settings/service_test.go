@@ -2,6 +2,7 @@ package settings
 
 import (
 	"encoding/json"
+	"errors"
 	"strings"
 	"testing"
 )
@@ -114,5 +115,44 @@ func TestTheNarrationTokenNeverLeavesTheServer(t *testing.T) {
 	}
 	if strings.Contains(string(config), "narration_token_configured") {
 		t.Fatalf("a display-only field was written into the config: %s", config)
+	}
+}
+
+// Two saves that overlap must not silently erase one another. The save that was built from a file another writer has since
+// replaced is a conflict, not a success.
+func TestUpdateRefusesWhenAnotherSaveMovedTheFile(t *testing.T) {
+	original := []byte(`{"kosync":{"username":"reader","password":"secret"},"libraries":[]}`)
+	changed := []byte(`{"kosync":{"username":"reader","password":"secret"},"libraries":[],"scan_every":"10m"}`)
+	body := []byte(`{"kosync":{"username":"reader","password":""},"libraries":[],"scan_every":"5m"}`)
+
+	// Count how many times Update reads the file on a happy path; the last read is the guard's own.
+	calls, stored := 0, original
+	counting := Service{
+		ReadSource:    func() ([]byte, error) { calls++; return stored, nil },
+		SaveSource:    func(data []byte) error { stored = append([]byte(nil), data...); return nil },
+		EffectiveUser: "reader", PasswordConfigured: true,
+	}
+	if _, err := counting.Update(body); err != nil {
+		t.Fatalf("happy path: %v", err)
+	}
+	if calls < 2 {
+		t.Fatalf("expected Update to read the file more than once, got %d", calls)
+	}
+
+	// Now the file moves on its final read, which is the guard's: a save is in flight and another one landed.
+	stored, seen := original, 0
+	racing := Service{
+		ReadSource: func() ([]byte, error) {
+			seen++
+			if seen >= calls {
+				return changed, nil
+			}
+			return stored, nil
+		},
+		SaveSource:    func(data []byte) error { t.Fatal("a stale save must not be written"); return nil },
+		EffectiveUser: "reader", PasswordConfigured: true,
+	}
+	if _, err := racing.Update(body); !errors.Is(err, ErrStale) {
+		t.Fatalf("Update = %v, want ErrStale", err)
 	}
 }

@@ -27,7 +27,8 @@ func TestAndroidDevicesOfOrdinaryAccountsCannotChangeServerWideSettings(t *testi
 	if err != nil {
 		t.Fatal(err)
 	}
-	m := &multiServer{accounts: store, androidDevices: devices, cfg: MultiConfig{Username: "owner"}}
+	m := &multiServer{androidDevices: devices, cfg: MultiConfig{Username: "owner"}}
+	m.accountsStoreField.Store(store)
 	readerToken, _, _ := devices.issue(reader.ID, "Reader phone")
 	ownerToken, _, _ := devices.issue(owner.ID, "Owner phone")
 	call := func(token, method, path string) (code int) {

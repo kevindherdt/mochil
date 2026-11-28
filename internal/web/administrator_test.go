@@ -24,6 +24,10 @@ func TestAdministratorOnlyPolicySeparatesGlobalAndPersonalMutations(t *testing.T
 		{"/api/video-show-metadata/tv/show", http.MethodDelete},
 		{"/api/podcast-feeds", http.MethodPost},
 		{"/api/podcast-downloads/one", http.MethodDelete},
+		// The OPML import rewrites the shared feed list and makes the server fetch every URL it lists; the UI already
+		// refuses it below administrator, and the gate used to let a plain account through.
+		{"/api/podcast-opml", http.MethodPost},
+		{"/api/video-metadata-search/movies/one", http.MethodPost},
 		{"/api/audio-analysis", http.MethodPost},
 		{"/api/video-preferences", http.MethodPut},
 		{"/api/source-connection", http.MethodPost},
@@ -42,6 +46,8 @@ func TestAdministratorOnlyPolicySeparatesGlobalAndPersonalMutations(t *testing.T
 		{"/api/annotations/books/one", http.MethodPost},
 		{"/api/external-library", http.MethodPost},
 		{"/api/podcast-feeds", http.MethodGet},
+		// Exporting the feed list reads what the account can already read.
+		{"/api/podcast-opml", http.MethodGet},
 	}
 	for _, request := range personal {
 		if administratorOnly(request[0], request[1]) {
@@ -134,7 +140,8 @@ func TestOnlyAdministratorsSeeTheVaultAsEditable(t *testing.T) {
 	if !(&multiServer{}).mayEditVaults(r) {
 		t.Fatal("without accounts the single owner may edit")
 	}
-	server := &multiServer{accounts: &accounts.Store{}}
+	server := &multiServer{}
+	server.accountsStoreField.Store(&accounts.Store{})
 	reader := r.WithContext(contextWithIdentity(r.Context(), accounts.Identity{ID: "r", Username: "r", Role: accounts.RoleUser}))
 	owner := r.WithContext(contextWithIdentity(r.Context(), accounts.Identity{ID: "o", Username: "o", Role: accounts.RoleAdministrator}))
 	if server.mayEditVaults(reader) || server.mayEditVaults(r) {
@@ -161,7 +168,8 @@ func TestNarrationStatusTellsWhoMayManageVoices(t *testing.T) {
 		}
 		return body.Manage
 	}
-	server := &multiServer{accounts: &accounts.Store{}}
+	server := &multiServer{}
+	server.accountsStoreField.Store(&accounts.Store{})
 	if status(server, &accounts.Identity{ID: "r", Role: accounts.RoleUser}) {
 		t.Fatal("an ordinary account must not be offered voice management")
 	}

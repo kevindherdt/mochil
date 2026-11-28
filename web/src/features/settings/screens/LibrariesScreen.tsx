@@ -62,7 +62,34 @@ export function LibrariesScreen() {
             </Link>
           </Inline>
         )}
-        <Async query={session}>{(me) => <LibrariesBody isAdministrator={me.role === "administrator"} />}</Async>
+        <Async query={session}>
+          {(me) => (
+            <Stack gap={12}>
+              {/* Import is a basic need, not the optional spreadsheet editor, so it is not behind the editor module; the
+                  endpoints are administrator-only, so the link is too. */}
+              {me.role === "administrator" ? (
+                <Inline gap={8} align="center" wrap>
+                  <Text size="12" muted>
+                    Filling a library from a folder of files?
+                  </Text>
+                  <Link
+                    to="/import"
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      minHeight: "var(--space-24)",
+                      fontSize: "var(--font-size-12)",
+                      color: "var(--color-accent)",
+                    }}
+                  >
+                    Open Import
+                  </Link>
+                </Inline>
+              ) : null}
+              <LibrariesBody isAdministrator={me.role === "administrator"} />
+            </Stack>
+          )}
+        </Async>
       </Stack>
     </Page>
   );

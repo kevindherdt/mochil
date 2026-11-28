@@ -8,8 +8,8 @@ import (
 )
 
 func (m *multiServer) authenticateAccount(username, password string) (accounts.Identity, bool) {
-	if m.accounts != nil {
-		if identity, err := m.accounts.Authenticate(username, password); err == nil {
+	if m.accountStore() != nil {
+		if identity, err := m.accountStore().Authenticate(username, password); err == nil {
 			return identity, true
 		}
 	}
@@ -22,7 +22,7 @@ func (m *multiServer) authenticateAccount(username, password string) (accounts.I
 	if m.cfg.Username == "" || m.cfg.Password == "" {
 		return accounts.Identity{}, false
 	}
-	if m.accounts != nil && !m.accounts.RecoveryEnabled() {
+	if m.accountStore() != nil && !m.accountStore().RecoveryEnabled() {
 		return accounts.Identity{}, false
 	}
 	goodUser := subtle.ConstantTimeCompare([]byte(username), []byte(m.cfg.Username)) == 1
@@ -30,8 +30,8 @@ func (m *multiServer) authenticateAccount(username, password string) (accounts.I
 	if !goodUser || !goodPass {
 		return accounts.Identity{}, false
 	}
-	if m.accounts != nil {
-		if identity, ok := m.accounts.InitialAdministrator(); ok {
+	if m.accountStore() != nil {
+		if identity, ok := m.accountStore().InitialAdministrator(); ok {
 			return identity, true
 		}
 	}
@@ -39,10 +39,10 @@ func (m *multiServer) authenticateAccount(username, password string) (accounts.I
 }
 
 func (m *multiServer) resolveAccountIdentity(identity accounts.Identity) (accounts.Identity, bool) {
-	if m.accounts == nil {
+	if m.accountStore() == nil {
 		return identity, identity.ID != ""
 	}
-	return m.accounts.IdentityByID(identity.ID)
+	return m.accountStore().IdentityByID(identity.ID)
 }
 
 // forgetBasicCredentials drops memoized Basic-auth results after an account is

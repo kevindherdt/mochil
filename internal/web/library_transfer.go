@@ -88,8 +88,6 @@ func (m *multiServer) editorTransfer(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusOK, map[string]any{"books": rows, "ready": len(rows) - blocked, "blocked": blocked, "to": to.Name})
 		return
 	}
-	m.metadataApplyMu.Lock()
-	defer m.metadataApplyMu.Unlock()
 	move := input.Mode == "move"
 	// Record the intent before the first write. An entry that stays open names
 	// the steps still missing, and reconcile finishes them later; without it a
@@ -113,9 +111,19 @@ func (m *multiServer) editorTransfer(w http.ResponseWriter, r *http.Request) {
 	}
 	undos := make([]func() error, 0, len(transferStepsInOrder))
 	for _, step := range m.transferSteps(from, to, ids, paths, move) {
+		// The file step is where the seconds are: 3.14 s/GB cross-device, so a 25 GB move pinned the global metadata lock for
+		// over a minute and every editor edit and undo in the app waited behind it. Only the bookkeeping steps need it; the
+		// journal is what keeps a half-finished move recoverable.
+		locked := step.name != transferStepFiles
+		if locked {
+			m.metadataApplyMu.Lock()
+		}
 		undo, applyErr := step.apply()
 		if applyErr == nil {
 			applyErr = journal.markDone(entry.ID, step.name)
+		}
+		if locked {
+			m.metadataApplyMu.Unlock()
 		}
 		if applyErr != nil {
 			// The entry stays open on purpose: reconcile replays the steps that

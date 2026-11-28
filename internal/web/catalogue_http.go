@@ -100,6 +100,19 @@ func (m *multiServer) apiLibraries(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, out)
 }
 
+// cursorStale reports whether a shelf request must be answered with "reload".
+//
+// Only a request that continues from an anchor can be looking at an older snapshot: it names a row that the newer
+// generation may no longer have, or has moved. A first page has no such promise to break, yet the version moves on every
+// catalogue commit -- a scan or a metadata edit -- so treating a version change as staleness turned an ordinary refresh
+// during a scan into 409 "reload the shelf", and reloading kept failing for as long as the scan ran.
+func cursorStale(kind string, anchorFound bool, seen, current uint64) bool {
+	if kind == "" {
+		return false
+	}
+	return !anchorFound || seen != current
+}
+
 func (m *multiServer) apiBooks(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -167,7 +180,7 @@ func (m *multiServer) apiBooks(w http.ResponseWriter, r *http.Request) {
 		request.Author = &wantAuthor[0]
 	}
 	result := m.query.Books(request)
-	if cursor.Kind != "" && !result.AnchorFound || version != m.query.Version(wantLibrary) {
+	if cursorStale(cursor.Kind, result.AnchorFound, version, m.query.Version(wantLibrary)) {
 		http.Error(w, "Book cursor expired; reload the shelf", http.StatusConflict)
 		return
 	}
@@ -211,7 +224,7 @@ func (m *multiServer) apiAuthors(w http.ResponseWriter, r *http.Request) {
 		offset = value
 	}
 	page := m.query.Authors(catalogquery.SeriesRequest{LibraryID: libraryID, Query: queryValue, Bucket: bucketValue, Limit: limit, Offset: offset, AfterLibraryID: cursor.LibraryID, AfterID: cursor.ItemID})
-	if cursor.Kind != "" && !page.AnchorFound || version != m.query.Version(libraryID) {
+	if cursorStale(cursor.Kind, page.AnchorFound, version, m.query.Version(libraryID)) {
 		http.Error(w, "Author cursor expired; reload the index", http.StatusConflict)
 		return
 	}
@@ -269,7 +282,7 @@ func (m *multiServer) apiSeries(w http.ResponseWriter, r *http.Request) {
 		offset = value
 	}
 	page := m.query.Series(catalogquery.SeriesRequest{LibraryID: libraryID, Query: queryValue, Bucket: bucketValue, Limit: limit, Offset: offset, AfterLibraryID: cursor.LibraryID, AfterID: cursor.ItemID})
-	if cursor.Kind != "" && !page.AnchorFound || version != m.query.Version(libraryID) {
+	if cursorStale(cursor.Kind, page.AnchorFound, version, m.query.Version(libraryID)) {
 		http.Error(w, "Series cursor expired; reload the index", http.StatusConflict)
 		return
 	}

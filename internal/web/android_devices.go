@@ -467,9 +467,9 @@ func (m *multiServer) authorizeAndroid(w http.ResponseWriter, r *http.Request) b
 		return false
 	}
 	identity := accounts.Identity{ID: account, Username: account, Role: accounts.RoleUser}
-	if m.accounts != nil {
+	if m.accountStore() != nil {
 		var exists bool
-		identity, exists = m.accounts.IdentityByID(account)
+		identity, exists = m.accountStore().IdentityByID(account)
 		if !exists {
 			writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "The device account is disabled or unavailable"})
 			return false

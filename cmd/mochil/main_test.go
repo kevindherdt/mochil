@@ -448,3 +448,60 @@ func TestEachScanIntervalRunsOnItsOwn(t *testing.T) {
 		t.Fatal("a library set to manual scans was scheduled")
 	}
 }
+
+// A cache-directory change used to be published half-applied: the config, sessions and annotations moved while the reading
+// store kept writing to the old path, so progress saved after the change went where the next boot does not look.
+func TestLiveApplicationRefusesToMoveTheCacheDirectoryUnderAWriter(t *testing.T) {
+	t.Setenv("MOCHIL_ALLOW_OPEN", "1")
+	root := t.TempDir()
+	libraryPath := filepath.Join(root, "books")
+	if err := os.MkdirAll(libraryPath, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	configPath := filepath.Join(root, "config.json")
+	base := appconfig.Config{
+		Listen: ":8080", ScanEvery: "0", CacheDirectory: filepath.Join(root, "data"),
+		Libraries: []appconfig.Library{{
+			ID: "books", Name: "Books", Kind: "books",
+			Source: appconfig.Source{Type: "filesystem", Path: libraryPath}, Inference: appconfig.Inference{FolderLayout: "auto"},
+		}},
+	}
+	initialData, _ := json.Marshal(base)
+	if err := saveConfig(configPath, initialData); err != nil {
+		t.Fatal(err)
+	}
+	runtime, err := configure(configPath, web.Config{}, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	application := &liveApplication{ctx: context.Background(), logger: slog.New(slog.NewTextHandler(io.Discard, nil)), configPath: configPath, current: runtime}
+	handler, err := application.build(runtime)
+	if err != nil {
+		t.Fatal(err)
+	}
+	application.handler.Store(handler)
+
+	before, err := os.ReadFile(configPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	base.CacheDirectory = filepath.Join(root, "elsewhere")
+	moved, _ := json.Marshal(base)
+	if _, err := application.apply(moved); err == nil || !strings.Contains(err.Error(), "cache directory cannot change") {
+		t.Fatalf("apply = %v, want a refusal naming the cache directory", err)
+	}
+	// Nothing may be written: a saved config the running process does not honour is the half-applied state itself.
+	stored, readErr := os.ReadFile(configPath)
+	if readErr != nil {
+		t.Fatal(readErr)
+	}
+	if string(stored) != string(before) {
+		t.Fatalf("config was rewritten despite the refusal: %s", stored)
+	}
+	// And the running handler still answers from the old runtime.
+	response := httptest.NewRecorder()
+	application.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/api/libraries", nil))
+	if response.Code != http.StatusOK || !strings.Contains(response.Body.String(), `"id":"books"`) {
+		t.Fatalf("runtime changed anyway: %d %s", response.Code, response.Body.String())
+	}
+}

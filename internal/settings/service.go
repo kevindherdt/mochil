@@ -1,6 +1,8 @@
 package settings
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -81,6 +83,21 @@ func (s Service) Read() ([]byte, error) {
 	return json.Marshal(document)
 }
 
+// ErrStale means the settings file moved while a save was in progress, so applying this save would erase whatever the other
+// writer just stored. The page has to reload before saving again.
+var ErrStale = errors.New("the settings changed elsewhere while this save was in progress; reload and try again")
+
+// sourceFingerprint identifies the settings file a save was built against. Two saves that overlap both read the file to
+// preserve the secrets it holds; the later one must notice that the file moved, or it silently writes the earlier save away.
+func sourceFingerprint(read func() ([]byte, error)) string {
+	data, err := read()
+	if err != nil {
+		return ""
+	}
+	sum := sha256.Sum256(data)
+	return hex.EncodeToString(sum[:8])
+}
+
 func (s Service) Update(data []byte) (ApplyResult, error) {
 	if !s.Available() {
 		return ApplyResult{}, ErrUnavailable
@@ -88,6 +105,7 @@ func (s Service) Update(data []byte) (ApplyResult, error) {
 	if len(data) > MaximumBytes {
 		return ApplyResult{}, errors.New("settings exceed 1 MiB")
 	}
+	before := sourceFingerprint(s.ReadSource)
 	incoming, err := decode(data)
 	if err != nil {
 		return ApplyResult{}, errors.New("invalid settings JSON")
@@ -120,6 +138,11 @@ func (s Service) Update(data []byte) (ApplyResult, error) {
 	// the file would then claim an address nobody chose.
 	if s.PublicURLFromEnvironment {
 		s.restoreStoredPublicURL(incoming)
+	}
+	// The preserve* helpers above read the file to keep the KoSync password, provider tokens and narration token. If the
+	// file moved since, this save was built on a snapshot that no longer exists and writing it would drop the other save.
+	if before != "" && sourceFingerprint(s.ReadSource) != before {
+		return ApplyResult{}, ErrStale
 	}
 	normalized, err := json.MarshalIndent(incoming, "", "  ")
 	if err != nil {

@@ -64,8 +64,8 @@ func (m *multiServer) recordKoSyncProgressAt(username string, progress koSyncPro
 
 func (m *multiServer) koSyncAccount(username string) (string, bool) {
 	account := m.readingAccount(nil)
-	if m.accounts != nil {
-		identity, ok := m.accounts.IdentityByUsername(username)
+	if m.accountStore() != nil {
+		identity, ok := m.accountStore().IdentityByUsername(username)
 		if !ok {
 			return "", false
 		}

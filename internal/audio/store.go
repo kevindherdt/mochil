@@ -114,8 +114,14 @@ func (s *Store) Scan() (Stats, error) {
 	jobs := []probeJob{}
 	probeMigrations := 0
 	err = filepath.WalkDir(root, func(path string, entry os.DirEntry, walkErr error) error {
+		// One unreadable folder used to abort the whole scan and publish nothing, so a permission change emptied the library
+		// and a full disk froze it at the previous snapshot. Count the entry and keep walking.
 		if walkErr != nil {
-			return walkErr
+			stats.Errors++
+			if entry != nil && entry.IsDir() {
+				return filepath.SkipDir
+			}
+			return nil
 		}
 		if path != root && entry.Type()&os.ModeSymlink != 0 {
 			if entry.IsDir() {
@@ -128,14 +134,16 @@ func (s *Store) Scan() (Stats, error) {
 		}
 		fileInfo, e := audioScanInfo(entry)
 		if e != nil {
-			return e
+			stats.Errors++
+			return nil
 		}
 		if fileInfo == nil {
 			return nil
 		}
 		relative, e := filepath.Rel(root, path)
 		if e != nil {
-			return e
+			stats.Errors++
+			return nil
 		}
 		item, ok := Identify(s.libraryID, relative, fileInfo.Size(), fileInfo.ModTime())
 		if !ok {
@@ -180,7 +188,8 @@ func (s *Store) Scan() (Stats, error) {
 				for job := range queue {
 					metadata, probeErr := probeContained(s.prober, job.path)
 					if probeErr != nil {
-						items[job.index].ProbeVersion = probeVersion
+						// Leave the version alone: stamping it here claimed current probe data for an item that has none, so
+						// every later scan reused it and the file was never probed again until its size or mtime changed.
 						failures.Add(1)
 						continue
 					}
@@ -216,11 +225,13 @@ func (s *Store) Scan() (Stats, error) {
 		}
 		return strings.ToLower(left.Title) < strings.ToLower(right.Title)
 	})
-	if err = s.save(items); err != nil {
-		return Stats{}, err
-	}
+	// Publish before saving: losing the whole catalogue because the cache file could not be written turns a full disk into
+	// an empty library.
 	s.publish(items)
 	stats.Items = len(items)
+	if err = s.save(items); err != nil {
+		return stats, err
+	}
 	return stats, nil
 }
 func applyMetadata(item *Item, m Metadata) {

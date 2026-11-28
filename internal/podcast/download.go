@@ -194,8 +194,17 @@ func (d *Downloader) Reconcile(feed Feed, playedAt PlaybackLookup) {
 		keep = len(episodes)
 	}
 	remove := make(map[string]bool)
-	if feed.Policy.RetainDownloads > 0 {
-		for _, episode := range episodes[keep:] {
+	// RetainDownloads bounds how many *downloads* this feed keeps. It used to bound episodes by publication date, so a
+	// hand-downloaded episode from 400 days ago was deleted as "outside the newest N" even when it was the only download
+	// on disk -- the policy ate the one thing it was meant to protect.
+	if retain := feed.Policy.RetainDownloads; retain > 0 {
+		downloaded := make([]Episode, 0, len(episodes))
+		for _, episode := range episodes {
+			if _, ok := d.Path(episode.ID); ok {
+				downloaded = append(downloaded, episode)
+			}
+		}
+		for _, episode := range downloaded[min(retain, len(downloaded)):] {
 			remove[episode.ID] = true
 		}
 	}

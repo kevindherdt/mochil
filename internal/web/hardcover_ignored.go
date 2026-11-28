@@ -63,28 +63,56 @@ func (s *hardcoverIgnored) has(libraryID, bookID string) bool {
 	return false
 }
 
-func (s *hardcoverIgnored) add(item ignoredBook) {
+// addAll records every item that is not recorded already and writes the file once. The caller with many books used to go
+// through add() per book, which meant one encode, fsync and rename each -- and every one of those errors was discarded.
+func (s *hardcoverIgnored) addAll(items []ignoredBook) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	for _, existing := range s.items {
-		if existing.Library == item.Library && existing.Book == item.Book {
-			return
+	added := 0
+	for _, item := range items {
+		known := false
+		for _, existing := range s.items {
+			if existing.Library == item.Library && existing.Book == item.Book {
+				known = true
+				break
+			}
+		}
+		if !known {
+			s.items = append([]ignoredBook{item}, s.items...)
+			added++
 		}
 	}
-	s.items = append([]ignoredBook{item}, s.items...)
-	s.saveLocked()
+	if added == 0 {
+		return nil
+	}
+	return s.saveLocked()
 }
 
-func (s *hardcoverIgnored) remove(libraryID, bookID string) {
+// removeAll drops the listed books and writes the file once.
+func (s *hardcoverIgnored) removeAll(items []ignoredBook) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	for i, existing := range s.items {
-		if existing.Library == libraryID && existing.Book == bookID {
-			s.items = append(s.items[:i:i], s.items[i+1:]...)
-			s.saveLocked()
-			return
+	drop := make(map[string]bool, len(items))
+	for _, item := range items {
+		drop[item.Library+"\x00"+item.Book] = true
+	}
+	kept := s.items[:0]
+	for _, existing := range s.items {
+		if !drop[existing.Library+"\x00"+existing.Book] {
+			kept = append(kept, existing)
 		}
 	}
+	if len(kept) == len(s.items) {
+		return nil
+	}
+	s.items = kept
+	return s.saveLocked()
+}
+
+func (s *hardcoverIgnored) add(item ignoredBook) error { return s.addAll([]ignoredBook{item}) }
+
+func (s *hardcoverIgnored) remove(libraryID, bookID string) error {
+	return s.removeAll([]ignoredBook{{Library: libraryID, Book: bookID}})
 }
 
 func (s *hardcoverIgnored) list() []ignoredBook {
@@ -93,10 +121,13 @@ func (s *hardcoverIgnored) list() []ignoredBook {
 	return append([]ignoredBook{}, s.items...)
 }
 
-func (s *hardcoverIgnored) saveLocked() {
-	if s.path != "" {
-		_ = writeJSONFile(s.path, map[string]any{"items": s.items}, ".hardcover-ignored-*")
+func (s *hardcoverIgnored) saveLocked() error {
+	if s.path == "" {
+		return nil
 	}
+	// Returning the error is the point: a UI that answers {"ignored":true} while the file never changed is a lie the reader
+	// has no way to notice until the book is synced again.
+	return writeJSONFile(s.path, map[string]any{"items": s.items}, ".hardcover-ignored-*")
 }
 
 // onShelfBefore is true when the shelf sync has already put this book on the Hardcover shelf, so finding it absent
@@ -113,14 +144,13 @@ func onShelfBefore(match hardcoverMatch, had bool) bool {
 }
 
 // setHardcoverIgnored stops or resumes sending a book's reading to Hardcover.
-func (m *multiServer) setHardcoverIgnored(lib Library, book catalog.Book, ignore bool) {
+func (m *multiServer) setHardcoverIgnored(lib Library, book catalog.Book, ignore bool) error {
 	if ignore {
-		m.hardcoverIgnored.add(ignoredBook{Library: lib.ID, Book: book.ID, Title: book.Title, Authors: append([]string{}, book.Authors...), Reason: ignoredByYou, At: time.Now().Unix()})
-		return
+		return m.hardcoverIgnored.add(ignoredBook{Library: lib.ID, Book: book.ID, Title: book.Title, Authors: append([]string{}, book.Authors...), Reason: ignoredByYou, At: time.Now().Unix()})
 	}
-	m.hardcoverIgnored.remove(lib.ID, book.ID)
 	// Syncing again may put the book back on the shelf, which is what resuming means.
 	m.hardcoverMatches.forgetShelf(lib.ID, book.ID)
+	return m.hardcoverIgnored.remove(lib.ID, book.ID)
 }
 
 // apiHardcoverIgnore serves /api/metadata/hardcover/ignored (the list) and /ignore (stop or resume syncing a book).
@@ -160,6 +190,9 @@ func (m *multiServer) apiHardcoverIgnore(w http.ResponseWriter, r *http.Request)
 		http.NotFound(w, r)
 		return
 	}
-	m.setHardcoverIgnored(lib, book, input.Ignore)
+	if err := m.setHardcoverIgnored(lib, book, input.Ignore); err != nil {
+		http.Error(w, "Could not save the Hardcover setting", http.StatusInternalServerError)
+		return
+	}
 	writeJSON(w, http.StatusOK, map[string]any{"ignored": input.Ignore})
 }

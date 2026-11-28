@@ -2,7 +2,10 @@ package web
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io/fs"
+	"log/slog"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -43,6 +46,9 @@ func (m *multiServer) editorImport(w http.ResponseWriter, r *http.Request) {
 		}
 		books = lib.Store.Books()
 	}
+	// Built once for the whole request: the page loop below can walk sixty discovery pages, and each one used to rebuild four
+	// maps over the entire library before matching a hundred rows.
+	matches := buildImportIndex(books)
 	wanted := map[string]bool{}
 	for _, status := range strings.Split(query.Get("status"), ",") {
 		if status = strings.TrimSpace(status); status != "" {
@@ -56,6 +62,7 @@ func (m *multiServer) editorImport(w http.ResponseWriter, r *http.Request) {
 	cursor := query.Get("cursor")
 	items := make([]importRow, 0, limit)
 	scanned := 0
+	truncated := false
 	for page := 0; page < importScanPages && len(items) < limit; page++ {
 		found, err := m.managedIngest.DiscoverNamed(r.Context(), ingest.Publication, cursor, ingest.MaximumDiscoveryItems, naming)
 		if err != nil {
@@ -63,7 +70,10 @@ func (m *multiServer) editorImport(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		scanned += len(found.Items)
-		for _, row := range matchImports(found.Items, books) {
+		// A drop folder larger than the discovery walk's visit cap is a partial answer, and saying so is the difference
+		// between "these are your books" and "these are the books I could see".
+		truncated = truncated || found.Truncated
+		for _, row := range matches.match(found.Items) {
 			row.Copied = m.managedIngest.Imported().Has(row.SourcePath)
 			if len(wanted) == 0 || wanted[row.Status] {
 				items = append(items, row)
@@ -80,7 +90,7 @@ func (m *multiServer) editorImport(w http.ResponseWriter, r *http.Request) {
 		next = items[limit-1].SourcePath
 		items = items[:limit]
 	}
-	reply := map[string]any{"enabled": true, "items": items, "next_cursor": next, "scanned": scanned, "incoming_directory": m.managedIngest.SourceRoot(), "managed_directory": m.managedIngest.TargetRoot(), "destinations": m.importDestinations()}
+	reply := map[string]any{"enabled": true, "items": items, "next_cursor": next, "scanned": scanned, "truncated": truncated, "incoming_directory": m.managedIngest.SourceRoot(), "managed_directory": m.managedIngest.TargetRoot(), "destinations": m.importDestinations()}
 	if library, found := m.libraryHolding(m.managedIngest.TargetRoot()); found {
 		reply["managed_library"] = map[string]string{"id": library.ID, "name": library.Name}
 	}
@@ -114,7 +124,12 @@ func (m *multiServer) editorImportNames(w http.ResponseWriter, r *http.Request) 
 	}
 	out := make([]named, 0, len(input.Items))
 	for _, item := range input.Items {
-		target, _ := ingest.TargetFor(input.Naming, item.SourcePath, ingest.Proposal{Kind: ingest.Publication, Title: item.Title, Authors: item.Authors, Series: item.Series, SeriesIndex: item.SeriesIndex})
+		// ok is false for a book that cannot be named, and a target plan would refuse must not be shown as the name a book
+		// is going to get — both come back empty, which the screen reads as "needs a look".
+		target, ok := ingest.TargetFor(input.Naming, item.SourcePath, ingest.Proposal{Kind: ingest.Publication, Title: item.Title, Authors: item.Authors, Series: item.Series, SeriesIndex: item.SeriesIndex})
+		if !ok || !ingest.ValidManagedPath(target) {
+			target = ""
+		}
 		out = append(out, named{SourcePath: item.SourcePath, Target: target})
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"items": out})
@@ -189,7 +204,14 @@ func (m *multiServer) editorImportLibrary(w http.ResponseWriter, r *http.Request
 	}
 	folder := filepath.Join(m.managedIngest.TargetRoot(), id)
 	if err := os.Mkdir(folder, 0o755); err != nil {
-		http.Error(w, "That folder already exists in the managed folder, so it was not used.", http.StatusConflict)
+		// Only an existing folder is the reader's problem. A permission, read-only or full-disk failure used to be reported as
+		// "that folder already exists", which sent an admin looking for a name collision that was not there.
+		if errors.Is(err, fs.ErrExist) {
+			http.Error(w, "That folder already exists in the managed folder, so it was not used.", http.StatusConflict)
+			return
+		}
+		slog.Error("could not create the managed folder", "folder", folder, "error", err)
+		http.Error(w, "The folder could not be created.", http.StatusInternalServerError)
 		return
 	}
 	document["libraries"] = append(libraries, map[string]any{

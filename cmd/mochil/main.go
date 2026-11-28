@@ -185,19 +185,37 @@ func bootstrapConfig(path, template string) error {
 // writeFileDurable writes a file through a temporary in the same directory and
 // flushes it before publishing, so a crash cannot leave a truncated file.
 func writeFileDurable(path string, data []byte, mode os.FileMode) error {
-	file, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, mode)
+	temp, err := os.CreateTemp(filepath.Dir(path), "."+filepath.Base(path)+".*")
 	if err != nil {
 		return err
 	}
-	if _, err := file.Write(data); err != nil {
-		file.Close()
+	name := temp.Name()
+	defer os.Remove(name)
+	if err := temp.Chmod(mode); err != nil {
+		temp.Close()
 		return err
 	}
-	if err := file.Sync(); err != nil {
-		file.Close()
+	if _, err := temp.Write(data); err != nil {
+		temp.Close()
 		return err
 	}
-	return file.Close()
+	if err := temp.Sync(); err != nil {
+		temp.Close()
+		return err
+	}
+	if err := temp.Close(); err != nil {
+		return err
+	}
+	if err := os.Rename(name, path); err != nil {
+		return err
+	}
+	// The rename is only durable once the directory entry is: without this an interrupted boot can publish nothing at all,
+	// which bootstrapConfig repairs, rather than a file that exists and does not parse, which it does not.
+	if directory, err := os.Open(filepath.Dir(path)); err == nil {
+		directory.Sync()
+		directory.Close()
+	}
+	return nil
 }
 
 func saveConfig(path string, data []byte) error {

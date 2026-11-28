@@ -68,7 +68,9 @@ func NewExecutor(sourceRoot, targetRoot string, journal *JournalStore, maxFileBy
 func (e *Executor) Plan(entries []PlanEntry) (Transaction, error) {
 	e.mu.Lock()
 	defer e.mu.Unlock()
-	if len(entries) == 0 || len(entries) > maximumEntries {
+	// Plan, not just preview, is a client-facing entry point: without this a direct POST could queue a thousand copies as
+	// one transaction, ten times the documented unit of work, bypassing the batching every screen uses.
+	if len(entries) == 0 || len(entries) > MaximumBatchPreviewEntries {
 		return Transaction{}, errors.New("managed ingest plan has an invalid number of entries")
 	}
 	id, err := newTransactionID()

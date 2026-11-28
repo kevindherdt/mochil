@@ -35,7 +35,8 @@ func TestAndroidHermesIsForAdministratorDevicesOnly(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	m := &multiServer{accounts: store, androidDevices: devices, cfg: MultiConfig{Username: "owner", Hermes: appconfig.Hermes{URL: hermes.URL + "/", Key: "secret"}}}
+	m := &multiServer{androidDevices: devices, cfg: MultiConfig{Username: "owner", Hermes: appconfig.Hermes{URL: hermes.URL + "/", Key: "secret"}}}
+	m.accountsStoreField.Store(store)
 	readerToken, _, _ := devices.issue(reader.ID, "Reader phone")
 	ownerToken, _, _ := devices.issue(owner.ID, "Owner phone")
 
@@ -88,7 +89,8 @@ func TestAndroidAvatarIsForAdministratorDevicesOnly(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	m := &multiServer{accounts: store, androidDevices: devices, cfg: MultiConfig{Username: "owner", Avatar: appconfig.Avatar{Directory: root}, AvatarState: avatars.cfg.AvatarState}}
+	m := &multiServer{androidDevices: devices, cfg: MultiConfig{Username: "owner", Avatar: appconfig.Avatar{Directory: root}, AvatarState: avatars.cfg.AvatarState}}
+	m.accountsStoreField.Store(store)
 	readerToken, _, _ := devices.issue(reader.ID, "Reader phone")
 	ownerToken, _, _ := devices.issue(owner.ID, "Owner phone")
 	get := func(token, path string) *httptest.ResponseRecorder {

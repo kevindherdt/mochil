@@ -10,7 +10,7 @@ import (
 )
 
 func (m *multiServer) accountAPI(w http.ResponseWriter, r *http.Request) {
-	if m.accounts == nil {
+	if m.accountStore() == nil {
 		http.Error(w, "Persistent accounts are unavailable", http.StatusNotImplemented)
 		return
 	}
@@ -20,7 +20,7 @@ func (m *multiServer) accountAPI(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case http.MethodGet:
 			identity, _ := identityFromRequest(r)
-			writeJSON(w, http.StatusOK, map[string]any{"items": m.accounts.List(), "current_account_id": identity.ID, "registration_enabled": false, "environment_recovery_enabled": m.accounts.RecoveryEnabled()})
+			writeJSON(w, http.StatusOK, map[string]any{"items": m.accountStore().List(), "current_account_id": identity.ID, "registration_enabled": false, "environment_recovery_enabled": m.accountStore().RecoveryEnabled()})
 		case http.MethodPost:
 			var input struct {
 				Username string `json:"username"`
@@ -31,7 +31,7 @@ func (m *multiServer) accountAPI(w http.ResponseWriter, r *http.Request) {
 				http.Error(w, "Invalid account", http.StatusBadRequest)
 				return
 			}
-			identity, err := m.accounts.Create(input.Username, input.Password, input.Role)
+			identity, err := m.accountStore().Create(input.Username, input.Password, input.Role)
 			if err != nil {
 				writeAccountError(w, err)
 				return
@@ -110,11 +110,11 @@ func (m *multiServer) applyAccountAction(w http.ResponseWriter, r *http.Request,
 			writeJSON(w, http.StatusConflict, map[string]string{"error": "You cannot disable the account you are currently using"})
 			return
 		}
-		err = m.accounts.SetDisabled(id, true)
+		err = m.accountStore().SetDisabled(id, true)
 	case "enable":
-		err = m.accounts.SetDisabled(id, false)
+		err = m.accountStore().SetDisabled(id, false)
 	case "reset_password":
-		if err = m.accounts.ResetPassword(id, password); err == nil {
+		if err = m.accountStore().ResetPassword(id, password); err == nil {
 			// The password is durable now, so the old one must stop working even
 			// if ending the old sign-ins then fails; the early return below used
 			// to skip the invalidation and leave the memo serving the old password.
@@ -126,7 +126,7 @@ func (m *multiServer) applyAccountAction(w http.ResponseWriter, r *http.Request,
 			}
 		}
 	case "confirm_recovery":
-		err = m.accounts.ConfirmRecovery(current.ID, password)
+		err = m.accountStore().ConfirmRecovery(current.ID, password)
 	default:
 		http.Error(w, "Invalid account action", http.StatusBadRequest)
 		return

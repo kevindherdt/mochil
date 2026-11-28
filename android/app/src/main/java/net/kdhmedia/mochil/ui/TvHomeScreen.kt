@@ -98,7 +98,7 @@ internal fun TvHomeScreen(
     LaunchedEffect(state.error, state.loading, empty) {
         when {
             state.loading && empty -> Unit
-            state.error != null -> retryFocus.requestFocus()
+            state.error != null -> runCatching { retryFocus.requestFocus() }
             empty -> focusRail()
             else -> runCatching { firstFocus.requestFocus() }
         }
@@ -110,20 +110,16 @@ internal fun TvHomeScreen(
         firstListening != null -> TvHomeFocus("Continue listening", firstListening.track.title, firstListening.track.artist.ifBlank { "Unknown artist" }, artworkUrl(firstListening.track), listeningFraction(firstListening))
         else -> null
     }
-    var focus by remember { mutableStateOf<TvHomeFocus?>(null) }
-    val shown = focus ?: initial
+    // The focused item is held here but never *read* here: every focus move used to invalidate this whole screen, which
+    // recomposed both rails and restarted the 400ms backdrop crossfade for a poster that had usually not changed. The two
+    // children below read it instead, so only they recompose.
+    val focus = remember { mutableStateOf<TvHomeFocus?>(null) }
     val background = MaterialTheme.colorScheme.background
     Box(Modifier.fillMaxSize()) {
         // The thing under the remote becomes the screen backdrop, so Home always looks like what you are about to watch.
-        TvBackdropEffect(shown?.let { it.backdrop.ifBlank { it.art } }.orEmpty())
+        TvHomeBackdrop(focus, initial)
         Column(Modifier.fillMaxSize().padding(start = 4.dp, end = 44.dp, top = 28.dp)) {
-            Column(Modifier.fillMaxWidth(.7f).padding(start = 8.dp, bottom = 12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                if (shown != null) {
-                    Text(shown.title, style = MaterialTheme.typography.headlineSmall.copy(fontSize = 24.sp, lineHeight = 28.sp), fontWeight = FontWeight.SemiBold, minLines = 2, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                    val line = listOf(shown.detail, shown.progress.takeIf { it >= .01f }?.let { "${(it * 100).toInt()}% watched" }.orEmpty()).filter(String::isNotBlank).joinToString(" · ")
-                    if (line.isNotBlank()) Text(line, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                }
-            }
+            TvHomeHeader(focus, initial)
             LazyColumn(
                 Modifier.weight(1f).focusRestorer().focusGroup(),
                 contentPadding = PaddingValues(bottom = 40.dp),
@@ -149,17 +145,51 @@ internal fun TvHomeScreen(
                     if (state.watching.isNotEmpty()) item(key = "watching") {
                         TvSection("Continue watching", state.watching, { catalogueItemIdentityKey(it.libraryId, it.id) }, authorizationHeader, onWatch, onDismissWatching, firstFocus = firstFocus.takeIf { firstWatching != null },
                             art = { videoArtworkUrl(it) }, name = { tvCleanTitle(it.displayTitle) }, detail = { videoContext(it) }, progress = VideoItem::progressFraction,
-                            onFocused = { focus = TvHomeFocus("Continue watching", tvCleanTitle(it.displayTitle), videoContext(it), videoArtworkUrl(it), it.progressFraction, it.overview, videoBackdropUrl(it)) })
+                            onFocused = { focus.value = TvHomeFocus("Continue watching", tvCleanTitle(it.displayTitle), videoContext(it), videoArtworkUrl(it), it.progressFraction, it.overview, videoBackdropUrl(it)) })
                     }
                     if (state.listening.isNotEmpty()) item(key = "listening") {
                         TvSection("Continue listening", state.listening, { it.track.identityKey }, authorizationHeader, onListen, onDismissListening, firstFocus = firstFocus.takeIf { firstWatching == null },
                             art = { artworkUrl(it.track) }, name = { it.track.title }, detail = { it.track.artist.ifBlank { "Unknown artist" } }, progress = ::listeningFraction, square = true,
-                            onFocused = { focus = TvHomeFocus("Continue listening", it.track.title, it.track.artist.ifBlank { "Unknown artist" }, artworkUrl(it.track), listeningFraction(it)) })
+                            onFocused = { focus.value = TvHomeFocus("Continue listening", it.track.title, it.track.artist.ifBlank { "Unknown artist" }, artworkUrl(it.track), listeningFraction(it)) })
                     }
                 }
             }
         }
     }
+}
+
+/**
+ * The billboard above the rails. Its own composable on purpose: it is the one part of Home that changes on every focus
+ * move, and reading the focused item here keeps that change from recomposing the two rails beneath it.
+ */
+@Composable
+private fun TvHomeHeader(focus: androidx.compose.runtime.MutableState<TvHomeFocus?>, initial: TvHomeFocus?) {
+    val shown = focus.value ?: initial
+    Column(Modifier.fillMaxWidth(.7f).padding(start = 8.dp, bottom = 12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        val shown = focus.value ?: initial
+        if (shown != null) {
+            // The sheets put a small caps eyebrow over the billboard title saying which rail it came from; it was
+            // already carried in TvHomeFocus and never drawn, so Home read as a poster with no label.
+            Text(
+                shown.label.uppercase(),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.primary,
+                maxLines = 1,
+            )
+            Text(shown.title, style = MaterialTheme.typography.headlineSmall.copy(fontSize = 24.sp, lineHeight = 28.sp), fontWeight = FontWeight.SemiBold, minLines = 2, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            val line = listOf(shown.detail, shown.progress.takeIf { it >= .01f }?.let { "${(it * 100).toInt()}% ${if (shown.label == "Continue listening") "listened" else "watched"}" }.orEmpty()).filter(String::isNotBlank).joinToString(" · ")
+            if (line.isNotBlank()) Text(line, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            // A billboard without its progress is just a poster: how far in you are is the reason to resume.
+            if (shown.progress >= .01f) TvProgressBar(shown.progress, Modifier.widthIn(max = 220.dp).fillMaxWidth(.45f).padding(top = 2.dp), height = 4.dp)
+        }
+    }
+}
+
+/** The backdrop, reading the focused item in its own scope so a D-pad step does not recompose the rails. */
+@Composable
+private fun TvHomeBackdrop(focus: androidx.compose.runtime.MutableState<TvHomeFocus?>, initial: TvHomeFocus?) {
+    val shown = focus.value ?: initial
+    TvBackdropEffect(shown?.let { it.backdrop.ifBlank { it.art } }.orEmpty())
 }
 
 private data class TvHomeFocus(val label: String, val title: String, val detail: String, val art: String, val progress: Float, val overview: String = "", val backdrop: String = "")

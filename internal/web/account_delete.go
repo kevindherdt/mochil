@@ -29,7 +29,7 @@ func (m *multiServer) deleteAccount(w http.ResponseWriter, r *http.Request, id, 
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "Enter the exact username to confirm permanent deletion"})
 		return
 	}
-	if id == m.cfg.Username && m.accounts.RecoveryEnabled() {
+	if id == m.cfg.Username && m.accountStore().RecoveryEnabled() {
 		writeJSON(w, http.StatusConflict, map[string]string{"error": "Finish account migration before deleting the original administrator"})
 		return
 	}
@@ -37,7 +37,7 @@ func (m *multiServer) deleteAccount(w http.ResponseWriter, r *http.Request, id, 
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "Deletion was interrupted. The account remains disabled; retry to finish deleting its data"})
 		return
 	}
-	if err := m.accounts.DeleteDisabled(id); err != nil {
+	if err := m.accountStore().DeleteDisabled(id); err != nil {
 		writeAccountError(w, err)
 		return
 	}

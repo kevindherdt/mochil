@@ -215,6 +215,22 @@ func TestADefaultNameDoesNotRepeatTheSeriesAndVolumeInTheTitle(t *testing.T) {
 	}
 }
 
+// A book the scanner could not name used to get a target made of its author alone — the file part was empty and the clean
+// loop dropped it — so plan and execute wrote a regular file called "Frank Herbert", marked the source imported, and the
+// catalogue never indexed it because it only reads known extensions. An empty target is the honest answer.
+func TestABookWithNoTitleIsNotGivenAnAuthorOnlyTarget(t *testing.T) {
+	for _, title := range []string{"", "   "} {
+		got := suggestedTarget("incoming/x.epub", Proposal{Kind: Publication, Title: title, Authors: []string{"Frank Herbert"}})
+		if got != "" {
+			t.Errorf("title %q produced %q, want no target at all", title, got)
+		}
+	}
+	// The same book with a title still names normally, so the guard is about the title and not the author.
+	if got := suggestedTarget("incoming/x.epub", Proposal{Kind: Publication, Title: "Dune", Authors: []string{"Frank Herbert"}}); got != "Frank Herbert/Dune.epub" {
+		t.Errorf("a titled book lost its name: %q", got)
+	}
+}
+
 func TestABatchFolderHoldingManySeriesIsNotAnAuthor(t *testing.T) {
 	executor, incoming, _, _ := newTestExecutor(t, 1<<20)
 	write := func(relative string) {

@@ -55,19 +55,29 @@ func importIndex(index *float64) string {
 	return strconv.FormatFloat(*index, 'f', -1, 64)
 }
 
-// matchImports compares discovered books with the library they would join. It reads both sides only.
-func matchImports(items []ingest.DiscoveryItem, books []catalog.Book) []importRow {
-	bySeriesNumber := map[string]catalog.Book{}
-	seriesKnown := map[string]bool{}
-	byTitleAuthor := map[string]catalog.Book{}
-	byTitle := map[string]catalog.Book{}
+// importCatalogIndex is the library side of matching, built once for a whole import request. The endpoint used to rebuild
+// four maps across the entire library on every discovery page — sixty pages meant sixty full index builds for one GET.
+type importCatalogIndex struct {
+	bySeriesNumber map[string]catalog.Book
+	seriesKnown    map[string]bool
+	byTitleAuthor  map[string]catalog.Book
+	byTitle        map[string]catalog.Book
+}
+
+func buildImportIndex(books []catalog.Book) importCatalogIndex {
+	index := importCatalogIndex{
+		bySeriesNumber: map[string]catalog.Book{},
+		seriesKnown:    map[string]bool{},
+		byTitleAuthor:  map[string]catalog.Book{},
+		byTitle:        map[string]catalog.Book{},
+	}
 	for _, book := range books {
 		series := importKey(book.Series)
 		if series != "" {
-			seriesKnown[series] = true
-			if index := importIndex(book.SeriesIndex); index != "" {
-				if _, taken := bySeriesNumber[series+"|"+index]; !taken {
-					bySeriesNumber[series+"|"+index] = book
+			index.seriesKnown[series] = true
+			if number := importIndex(book.SeriesIndex); number != "" {
+				if _, taken := index.bySeriesNumber[series+"|"+number]; !taken {
+					index.bySeriesNumber[series+"|"+number] = book
 				}
 			}
 		}
@@ -76,12 +86,22 @@ func matchImports(items []ingest.DiscoveryItem, books []catalog.Book) []importRo
 			continue
 		}
 		if len(book.Authors) > 0 {
-			byTitleAuthor[title+"|"+importKey(book.Authors[0])] = book
+			index.byTitleAuthor[title+"|"+importKey(book.Authors[0])] = book
 		}
-		if _, taken := byTitle[title]; !taken {
-			byTitle[title] = book
+		if _, taken := index.byTitle[title]; !taken {
+			index.byTitle[title] = book
 		}
 	}
+	return index
+}
+
+// matchImports compares discovered books with the library they would join. It reads both sides only.
+func matchImports(items []ingest.DiscoveryItem, books []catalog.Book) []importRow {
+	return buildImportIndex(books).match(items)
+}
+
+func (index importCatalogIndex) match(items []ingest.DiscoveryItem) []importRow {
+	bySeriesNumber, seriesKnown, byTitleAuthor, byTitle := index.bySeriesNumber, index.seriesKnown, index.byTitleAuthor, index.byTitle
 	rows := make([]importRow, len(items))
 	for i, item := range items {
 		row := importRow{DiscoveryItem: item, Status: importNew}

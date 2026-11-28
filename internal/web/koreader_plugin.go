@@ -271,8 +271,8 @@ func (m *multiServer) koReaderPlugin(w http.ResponseWriter, r *http.Request) {
 	// A token outlives a disabled account otherwise: unlike the Android routes this
 	// one never asked the account store, so disabling a reader did not lock its
 	// KOReader out of browsing, downloading or writing progress.
-	if m.accounts != nil {
-		if _, exists := m.accounts.IdentityByID(account); !exists {
+	if m.accountStore() != nil {
+		if _, exists := m.accountStore().IdentityByID(account); !exists {
 			writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "The device account is disabled or unavailable"})
 			return
 		}
@@ -512,12 +512,12 @@ func (m *multiServer) koSyncUserFor(account string) string {
 	// points at, not a shared key: handing it to every signed-in reader let one
 	// account read another's progress and write over it. Only the configured
 	// owner may use it; everyone else resolves to their own KoSync user.
-	if m.cfg.KoSyncUsername != "" && (m.accounts == nil || account == m.cfg.Username) {
+	if m.cfg.KoSyncUsername != "" && (m.accountStore() == nil || account == m.cfg.Username) {
 		return m.cfg.KoSyncUsername
 	}
 	name := account
-	if m.accounts != nil {
-		identity, ok := m.accounts.IdentityByID(account)
+	if m.accountStore() != nil {
+		identity, ok := m.accountStore().IdentityByID(account)
 		if !ok {
 			return ""
 		}

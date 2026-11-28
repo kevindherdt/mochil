@@ -3,6 +3,7 @@ package web
 import (
 	"context"
 	"errors"
+	"log/slog"
 	"math"
 	"net/http"
 	"os"
@@ -177,7 +178,10 @@ func (m *multiServer) planManagedIngest(w http.ResponseWriter, r *http.Request) 
 	}
 	transaction, err := ex.Plan(input.Entries)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusConflict)
+		// The executor's errors name absolute paths inside the drop folder ("lstat /root/.../incoming/x.epub: no such file").
+		// A fixed answer here, the detail in the log: the plan's per-book reasons are what preview is for.
+		slog.Warn("managed ingest plan refused", "error", err)
+		http.Error(w, "The plan was refused; open the preview for per-book reasons.", http.StatusConflict)
 		return
 	}
 	w.Header().Set("Cache-Control", "no-store")

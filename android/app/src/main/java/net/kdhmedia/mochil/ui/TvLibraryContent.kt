@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.background
@@ -156,7 +157,7 @@ internal fun TvPublicationGrid(state: LibraryState, auth: String?, bookArt: (Boo
             else -> state.series.indexOfFirst { seriesFocusKey(it) == key }
         }
     }) {
-        if (showingBooks) items(books, key = BookSummary::id, contentType = { "publication-cover" }) { value -> TvMediaCard(value.title, value.authors.joinToString(), bookArt(value), auth, TvArtworkRatio.Portrait, { onBook(value) }, progress = value.readingFraction?.toFloat() ?: 0f, completed = value.finished, focusIdentity = TvGridFocusIdentity(positionKey, bookFocusKey(value), positions)) { backdropArt = bookArt(value); onFocus(TvFocusDetail(value.title, publicationFocusContext(value), tvFocusDescription(value.description))) } }
+        if (showingBooks) items(books, key = BookSummary::id, contentType = { "publication-cover" }) { value -> TvMediaCard(value.title, value.authors.joinToString(), bookArt(value), auth, TvArtworkRatio.Portrait, { onBook(value) }, progress = value.readingFraction?.toFloat() ?: 0f, completed = value.finished, kind = state.selected?.kind.orEmpty(), focusIdentity = TvGridFocusIdentity(positionKey, bookFocusKey(value), positions)) { backdropArt = bookArt(value); onFocus(TvFocusDetail(value.title, publicationFocusContext(value), tvFocusDescription(value.description))) } }
         else if (state.grouping == PublicationGrouping.Authors) items(state.authors, key = AuthorSummary::name, contentType = { "publication-group-cover" }) { value -> TvMediaCard(value.name, "${value.count} ${if (value.count == 1) "book" else "books"}", authorArt(value), auth, TvArtworkRatio.Portrait, { onAuthor(value) }, focusIdentity = TvGridFocusIdentity(positionKey, authorFocusKey(value), positions)) { backdropArt = authorArt(value); onFocus(TvFocusDetail(value.name, "${value.count} ${if (value.count == 1) "book" else "books"}")) } }
         else items(state.series, key = SeriesSummary::name, contentType = { "publication-group-cover" }) { value -> TvMediaCard(value.name, "${value.count} ${if (value.count == 1) "book" else "books"}", seriesArt(value), auth, TvArtworkRatio.Portrait, { onSeries(value) }, focusIdentity = TvGridFocusIdentity(positionKey, seriesFocusKey(value), positions)) { backdropArt = seriesArt(value); onFocus(TvFocusDetail(value.name, listOfNotNull("${value.count} ${if (value.count == 1) "book" else "books"}", value.authors.joinToString().takeIf(String::isNotBlank)).joinToString(" · "))) } }
     }
@@ -192,12 +193,12 @@ internal fun TvVideoGrid(state: VideoState, auth: String?, artwork: (String) -> 
 
 
 /**
- * How wide a card has to be on a television. A portrait poster wall at 118dp put six books or shows across a
- * 1080p set, where each cover was about an eighth of the screen height -- small enough that the wall read as a
- * contact sheet rather than as something to choose from. Leaning back, four across is the shape the covers
- * deserve; a shelf of wide stills stays narrower than a poster, because it has less to show.
+ * How wide a card has to be on a television. Two rulings have been measured against a real couch and they disagree, so the
+ * newer one wins: 118dp put six posters across a 1080p set and read as a contact sheet, four felt enormous (Kevin, 26 Nov:
+ * "way way way too big"), and six is the shape that reads as a wall you can choose from without leaning forward. A shelf of
+ * wide stills takes fewer, because a still has less to show across the same height.
  */
-internal fun tvCardMinWidth(posterShelf: Boolean): Dp = if (posterShelf) 176.dp else 210.dp
+internal fun tvCardMinWidth(posterShelf: Boolean): Dp = if (posterShelf) 132.dp else 208.dp
 
 /** The columns [tvCardMinWidth] actually produces, so the intent can be asserted instead of eyeballed. */
 internal fun tvGridColumns(widthDp: Float, minColumnWidth: Dp, spacingDp: Float = 16f, contentPaddingDp: Float = 80f): Int {
@@ -216,9 +217,11 @@ private fun TvVideoPosters(state: VideoState, auth: String?, artwork: (String) -
         val index = if (state.selectedShow == null && state.shows.isNotEmpty()) state.shows.indexOfFirst { videoShowFocusKey(it) == key } else state.items.indexOfFirst { videoFocusKey(it) == key }
         if (index < 0) -1 else index + 1 // spotlight occupies the first grid slot
     }) {
-        // The spotlight is the first row of the grid, so it scrolls away with it instead of clipping the cards under a fixed panel.
-        item(key = "spotlight", span = { androidx.compose.foundation.lazy.grid.GridItemSpan(maxLineSpan) }, contentType = "spotlight") { TvSpotlightPanel(spotlight, auth, Modifier.fillMaxWidth().height(236.dp)) }
-        if (state.selectedShow == null && state.shows.isNotEmpty()) items(state.shows, key = VideoShow::name, contentType = { "video-show-cover" }) { value -> TvMediaCard(tvCleanTitle(value.name), listOfNotNull(value.year.takeIf { it > 0 && posterShelf }?.toString(), tvCount(value.count, "episode")).joinToString(" · "), artwork(value.artworkPath), auth, ratio, { onShow(value) }, progress = value.watchFraction, completed = value.completed, focusIdentity = TvGridFocusIdentity(positionKey, videoShowFocusKey(value), positions)) { onSpotlight(TvSpotlight(tvCleanTitle(value.name), tvShowMeta(value), value.overview, artwork(value.artworkPath), value.backdropPath.takeIf(String::isNotBlank)?.let(artwork).orEmpty())); onFocus(TvFocusDetail(value.name, "")) } }
+        // The spotlight is the first row of the grid, so it scrolls away with it instead of clipping the cards under a fixed
+        // panel — and it is a floor, not a fixed height: at a raised text scale the two-line title and the overview outgrew
+        // 236dp and painted over the first row of posters instead of pushing it down.
+        item(key = "spotlight", span = { androidx.compose.foundation.lazy.grid.GridItemSpan(maxLineSpan) }, contentType = "spotlight") { TvSpotlightPanel(spotlight, auth, Modifier.fillMaxWidth().heightIn(min = 236.dp)) }
+        if (state.selectedShow == null && state.shows.isNotEmpty()) items(state.shows, key = VideoShow::name, contentType = { "video-show-cover" }) { value -> TvMediaCard(tvCleanTitle(value.name), listOfNotNull(value.year.takeIf { it > 0 && posterShelf }?.toString(), tvCount(value.count, "episode")).joinToString(" · "), artwork(value.artworkPath), auth, ratio, { onShow(value) }, progress = value.watchFraction, completed = value.completed, kind = state.libraryKind, focusIdentity = TvGridFocusIdentity(positionKey, videoShowFocusKey(value), positions)) { onSpotlight(TvSpotlight(tvCleanTitle(value.name), tvShowMeta(value), value.overview, artwork(value.artworkPath), value.backdropPath.takeIf(String::isNotBlank)?.let(artwork).orEmpty())); onFocus(TvFocusDetail(value.name, "")) } }
         else items(state.items, key = VideoItem::id, contentType = { "video-episode-cover" }) { value ->
             var menu by remember(value.libraryId, value.id) { mutableStateOf(false) }
             Box {

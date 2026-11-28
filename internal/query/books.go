@@ -205,7 +205,9 @@ func (s *Service) BookNavigation(libraryID, queryValue string) []BookNavigationR
 	positions := make(map[string]int)
 	counts := make(map[string]int)
 	for index, item := range matched {
-		bucket := catalog.Bucket(item.indexed.book.Title)
+		// indexed.bucket was computed at index build and is what the shelf's own ordering indexes on; recomputing it
+		// here ran SortKey, ToUpper and two rune conversions per book for a value already in hand.
+		bucket := item.indexed.bucket
 		if counts[bucket] == 0 {
 			positions[bucket] = index
 		}

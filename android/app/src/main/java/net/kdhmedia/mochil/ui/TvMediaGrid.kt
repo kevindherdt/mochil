@@ -90,13 +90,23 @@ internal fun TvMediaGrid(paging: TvPagingState? = null, minColumnWidth: Dp = 120
     DisposableEffect(positionKey, gridState, positions) {
         onDispose { positions?.put(positionKey, gridState.firstVisibleItemIndex, gridState.firstVisibleItemScrollOffset) }
     }
-    LaunchedEffect(gridState, paging?.hasNextPage, paging?.loading) {
-        val currentPaging = paging ?: return@LaunchedEffect
+    // Keyed on the grid alone. Keying it on `loading` cancelled and restarted the collector on every page load, and the
+    // fresh snapshotFlow re-emitted the pair it had already acted on — so a page that filled the viewport asked for the next
+    // one immediately, and a server answering an empty page with a cursor produced an unbounded loop. `lastAsked` makes the
+    // decision remember which total it was made about.
+    val currentPaging by androidx.compose.runtime.rememberUpdatedState(paging)
+    val lastAsked = remember(gridState) { intArrayOf(-1) }
+    LaunchedEffect(gridState) {
         snapshotFlow {
             val layout = gridState.layoutInfo
             layout.totalItemsCount to (layout.visibleItemsInfo.lastOrNull()?.index ?: -1)
         }.distinctUntilChanged().collect { (total, lastVisible) ->
-            if (shouldLoadTvPage(total, lastVisible, currentPaging.hasNextPage, currentPaging.loading)) currentPaging.onLoadNextPage()
+            val current = currentPaging ?: return@collect
+            if (total == lastAsked[0]) return@collect
+            if (shouldLoadTvPage(total, lastVisible, current.hasNextPage, current.loading)) {
+                lastAsked[0] = total
+                current.onLoadNextPage()
+            }
         }
     }
     val gridFocused = remember { mutableStateOf(false) }
@@ -106,7 +116,7 @@ internal fun TvMediaGrid(paging: TvPagingState? = null, minColumnWidth: Dp = 120
     val focusChanges = remember { intArrayOf(0) }
     val restorations = remember { intArrayOf(0) }
     val currentFocusIndex by androidx.compose.runtime.rememberUpdatedState(focusIndex)
-    CompositionLocalProvider(androidx.compose.foundation.gestures.LocalBringIntoViewSpec provides TvGridBringIntoView, LocalTvGridFocused provides gridFocused, LocalTvRememberedCardFocus provides rememberedCardFocus, LocalTvRestoringKey provides restoringKey, LocalTvCardFocusChanged provides { focusChanges[0]++ }) {
+    CompositionLocalProvider(androidx.compose.foundation.gestures.LocalBringIntoViewSpec provides TvGridBringIntoView, LocalTvGridFocused provides gridFocused, LocalTvRememberedCardFocus provides rememberedCardFocus, LocalTvRestoringKey provides restoringKey, LocalTvCardFocusChanged provides remember { { focusChanges[0]++ } }) {
     LazyVerticalGrid(
         columns = GridCells.Adaptive(minColumnWidth),
         state = gridState,
@@ -336,6 +346,8 @@ internal fun TvMediaCard(
     onClick: () -> Unit,
     progress: Float = 0f,
     completed: Boolean = false,
+    /** The library kind behind this card, drawn as a small badge on the artwork; blank draws nothing. */
+    kind: String = "",
     onLongClick: (() -> Unit)? = null,
     focusIdentity: TvGridFocusIdentity? = null,
     onFocused: () -> Unit = {},
@@ -380,6 +392,13 @@ internal fun TvMediaCard(
                     }
                 }
                 if (progress > 0f || completed) TvProgressBar(if (completed) 1f else progress, Modifier.align(Alignment.BottomCenter).fillMaxWidth())
+                // Which shelf this came from, the same badge the phone and the web put on their cards. Decorative: the
+                // title and the library you are inside already say what it is, so it carries no description.
+                // 22dp, not 26: the wall settled at six posters across a 1080p set, and a badge sized for a four-across card
+                // took a fifth of the cover and read as a sticker.
+                if (kind.isNotBlank()) Surface(Modifier.align(Alignment.TopStart).padding(6.dp).size(22.dp), shape = androidx.compose.foundation.shape.CircleShape, color = Color.Black.copy(alpha = .55f)) {
+                    Icon(tvRailIcon(kind), contentDescription = null, tint = Color.White, modifier = Modifier.padding(4.dp))
+                }
                 if (completed) Surface(Modifier.align(Alignment.TopEnd).padding(8.dp).size(26.dp), shape = androidx.compose.foundation.shape.CircleShape, color = Color.Black.copy(alpha = .55f)) {
                     Icon(Icons.Default.Check, contentDescription = "Finished", tint = Color.White, modifier = Modifier.padding(5.dp))
                 }

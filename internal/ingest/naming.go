@@ -37,6 +37,13 @@ func pathPart(value string) string {
 }
 
 // paddedVolume writes a volume number with a two-digit whole part: 3 becomes 03 and 1.5 becomes 01.5.
+// sensibleVolume reports whether an index can be a volume number at all. Without it a client-supplied 1e20 became
+// "Vol -9223372036854775808" (and a negative index "Vol -3"), silently producing an absurd destination the screen showed as
+// valid.
+func sensibleVolume(index float64) bool {
+	return !math.IsNaN(index) && !math.IsInf(index, 0) && index > 0 && index < 10000
+}
+
 func paddedVolume(index float64) string {
 	whole := math.Floor(index)
 	text := fmt.Sprintf("%02d", int(whole))
@@ -84,7 +91,7 @@ func TargetFor(preset, source string, proposal Proposal) (string, bool) {
 		switch {
 		case sideStory:
 			return series + "/" + pathPart(series+" - Side Story - "+title) + extension, true
-		case proposal.SeriesIndex != nil:
+		case proposal.SeriesIndex != nil && sensibleVolume(*proposal.SeriesIndex):
 			return series + "/" + pathPart(series+" - Vol "+paddedVolume(*proposal.SeriesIndex)) + extension, true
 		}
 		return series + "/" + pathPart(series+" - "+title) + extension, true

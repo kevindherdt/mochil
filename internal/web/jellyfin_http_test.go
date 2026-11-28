@@ -157,7 +157,8 @@ func TestJellyfinTokenStopsWhenAccountIsDisabled(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	server := &multiServer{accounts: accountStore, jellyfinDevices: devices}
+	server := &multiServer{jellyfinDevices: devices}
+	server.accountsStoreField.Store(accountStore)
 	request := httptest.NewRequest(http.MethodGet, "/Items", nil)
 	request.Header.Set("X-Emby-Token", token)
 	if identity, ok := server.jellyfinIdentity(request); !ok || identity.ID != reader.ID {

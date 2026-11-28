@@ -238,6 +238,10 @@ func (m *multiServer) sendToHardcover(job hardcoverJob) (bool, error) {
 			HardcoverID: outcome.Book.ProviderID, HardcoverTitle: outcome.Book.Title, HardcoverAuthors: outcome.Book.Authors, URL: outcome.Book.SourceURL,
 			How: how, Result: string(outcome.Result), Doubt: doubtOf(outcome), At: time.Now().Unix(),
 		})
+	case errors.Is(err, enrichment.ErrHardcoverAmbiguous):
+		// Nothing was written: several Hardcover books share this title and author, and the top-ranked one may well be a
+		// different book. Left unflagged so the next sync asks again, and the editor shows the books to choose from.
+		slog.Info("Hardcover sync: several books match, left for a person to pick", "title", book.Title, "authors", book.Authors, "hardcover", outcome.Book.Title)
 	case errors.Is(err, enrichment.ErrHardcoverNoMatch):
 		slog.Info("Hardcover sync: no matching book, skipped", "title", book.Title, "authors", book.Authors)
 		m.hardcoverSkipped.add(skippedBook{Library: lib.ID, Book: book.ID, Title: book.Title, Authors: append([]string{}, book.Authors...), At: time.Now().Unix()})
@@ -250,10 +254,10 @@ func (m *multiServer) sendToHardcover(job hardcoverJob) (bool, error) {
 // hardcoverAccount says whose reading goes to Hardcover. The token belongs to one Hardcover account that an
 // administrator connected, so only an administrator's reading (or the single login of a one-user server) is sent.
 func (m *multiServer) hardcoverAccount(account string) bool {
-	if m.accounts == nil {
+	if m.accountStore() == nil {
 		return true
 	}
-	identity, ok := m.accounts.IdentityByID(account)
+	identity, ok := m.accountStore().IdentityByID(account)
 	return ok && identity.Administrator()
 }
 

@@ -39,6 +39,11 @@ type ShelfOutcome struct {
 // marking the wrong book as read is worse than skipping one.
 var ErrHardcoverNoMatch = errors.New("Hardcover has no matching book")
 
+// ErrHardcoverAmbiguous means several Hardcover books fit the title and author equally well. Writing the top-ranked one
+// would put a stranger's book on the reader's shelf -- "It" resolved to a cookbook once -- so the caller is told to let a
+// person pick instead. Guessing here edits state outside this server.
+var ErrHardcoverAmbiguous = errors.New("several Hardcover books match this title and author")
+
 // SetStatus marks a book as currently reading or read on the connected Hardcover account.
 // It never moves a finished book back to reading, and does nothing when the status is already right.
 func (h *Hardcover) SetStatus(ctx context.Context, title string, authors []string, status int) (ShelfOutcome, error) {
@@ -55,8 +60,11 @@ func (h *Hardcover) SetStatusAllowing(ctx context.Context, title string, authors
 	if err != nil {
 		return ShelfOutcome{}, err
 	}
+	if ambiguous {
+		return ShelfOutcome{Book: book, Ambiguous: true}, ErrHardcoverAmbiguous
+	}
 	result, err := h.SetStatusByIDAllowing(ctx, book.ProviderID, status, allowAdd)
-	return ShelfOutcome{Result: result, Book: book, Ambiguous: ambiguous}, err
+	return ShelfOutcome{Result: result, Book: book}, err
 }
 
 // findBookID looks for the one Hardcover book that is clearly this one. The title alone is searched first: adding

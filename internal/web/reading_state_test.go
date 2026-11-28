@@ -28,11 +28,11 @@ func TestKoSyncProgressResolvesStableAccountWithoutCrossAccountReplay(t *testing
 	book := catalog.Book{ID: "book", Path: "Example Book.epub", Title: "Example Book"}
 	server := &multiServer{
 		cfg:         MultiConfig{Username: "owner"},
-		accounts:    accountStore,
 		reading:     readingStore,
 		readingSync: reading.NewSyncCoordinator(readingStore),
 		libraries:   []Library{{ID: "books", Name: "Books", Store: staticBackend{books: []catalog.Book{book}}}},
 	}
+	server.accountsStoreField.Store(accountStore)
 	document := koSyncFilenameMD5(filepath.Base(book.Path))
 	server.recordKoSyncProgress("reader", koSyncProgress{Document: document, Progress: "reader-location", Percentage: .4, Timestamp: 20})
 	server.recordKoSyncProgress("owner", koSyncProgress{Document: document, Progress: "owner-location", Percentage: .7, Timestamp: 30})

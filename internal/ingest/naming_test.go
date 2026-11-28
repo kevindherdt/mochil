@@ -1,6 +1,9 @@
 package ingest
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 func TestNamingPresets(t *testing.T) {
 	index := func(value float64) *float64 { return &value }
@@ -50,5 +53,32 @@ func TestNamingNeverEscapesTheLibraryRoot(t *testing.T) {
 	}
 	if !ValidNamingPreset("kavita") || ValidNamingPreset("../x") {
 		t.Fatal("preset validation is wrong")
+	}
+}
+
+// A volume number that cannot be one must not be formatted as one: 1e20 used to become "Vol -9223372036854775808" and -3
+// "Vol -3", both of which the import screen showed as the name a book was going to get.
+func TestAnImpossibleVolumeIsNotFormatted(t *testing.T) {
+	odd := func(value float64) *float64 { return &value }
+	cases := []struct {
+		index float64
+		label string
+	}{
+		{1e20, "one that overflows an int"},
+		{-3, "a negative one"},
+		{0, "zero"},
+	}
+	for _, test := range cases {
+		target, ok := TargetFor(NamingKavita, "incoming/x.epub", Proposal{Kind: Publication, Title: "Dune", Series: "Dune", SeriesIndex: odd(test.index)})
+		if !ok {
+			t.Fatalf("%s: the book stopped being nameable", test.label)
+		}
+		if strings.Contains(target, "Vol") {
+			t.Errorf("%s produced %q, want a name without a volume", test.label, target)
+		}
+	}
+	// A real volume is still a volume.
+	if target, _ := TargetFor(NamingKavita, "incoming/x.epub", Proposal{Kind: Publication, Title: "Dune", Series: "Dune", SeriesIndex: odd(1.5)}); !strings.Contains(target, "Vol 01.5") {
+		t.Errorf("a real volume lost its number: %q", target)
 	}
 }

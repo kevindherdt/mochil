@@ -25,7 +25,7 @@ func fileExists(path string) bool {
 func (m *multiServer) createFirstRunAccount(username, password string) error {
 	firstRunMu.Lock()
 	defer firstRunMu.Unlock()
-	if m.accounts != nil {
+	if m.accountStore() != nil {
 		return accounts.ErrConflict
 	}
 	store, err := accounts.OpenFirstRun(m.firstRunAccountsPath)
@@ -35,7 +35,7 @@ func (m *multiServer) createFirstRunAccount(username, password string) error {
 	if _, err := store.Create(username, password, accounts.RoleAdministrator); err != nil {
 		return err
 	}
-	m.accounts = store
+	m.accountsStoreField.Store(store)
 	// The replacement handlers of a live reload continue this store rather than
 	// re-opening the file the first-run page just created.
 	m.stores.adoptAccounts(store)
@@ -46,7 +46,7 @@ func (m *multiServer) createFirstRunAccount(username, password string) error {
 func (m *multiServer) needsFirstAccount() bool {
 	firstRunMu.Lock()
 	defer firstRunMu.Unlock()
-	return m.accounts == nil && m.firstRunAccountsPath != ""
+	return m.accountStore() == nil && m.firstRunAccountsPath != ""
 }
 
 // The first-run page is the door of a fresh install. Without it a server with no credentials

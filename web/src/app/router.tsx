@@ -148,6 +148,13 @@ const editorRoute = createRoute({
   component: lazyRouteComponent(() => import("../features/editor/screens/EditorScreen"), "EditorScreen"),
 });
 
+/** Import: the drop folder's contents. Lazy, like the editor — a book-moving surface, opened deliberately. */
+const importRoute = createRoute({
+  getParentRoute: () => shellLayoutRoute,
+  path: "/import",
+  component: lazyRouteComponent(() => import("../features/import/screens/ImportScreen"), "ImportScreen"),
+});
+
 const discoverRoute = createRoute({
   getParentRoute: () => shellLayoutRoute,
   path: "/discover",
@@ -306,6 +313,7 @@ const routeTree = rootRoute.addChildren([
     playlistsRoute,
     playlistRoute,
     editorRoute,
+    importRoute,
     discoverRoute,
     lyanaRoute,
     notesRoute,

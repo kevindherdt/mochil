@@ -99,12 +99,28 @@ func (m *multiServer) editorHardcoverSync(w http.ResponseWriter, r *http.Request
 	for _, id := range in.IDs {
 		wanted[id] = true
 	}
-	changed := 0
+	var batch []ignoredBook
 	for _, book := range lib.Store.Books() {
 		if wanted[book.ID] && m.hardcoverIgnored.has(lib.ID, book.ID) != in.Ignore {
-			m.setHardcoverIgnored(lib, book, in.Ignore)
-			changed++
+			batch = append(batch, ignoredBook{Library: lib.ID, Book: book.ID, Title: book.Title, Authors: append([]string{}, book.Authors...), Reason: ignoredByYou, At: time.Now().Unix()})
 		}
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"changed": changed})
+	// One write for the whole request, and one honest answer: the old loop rewrote and fsynced the file per book and then
+	// reported a count even when every write had failed.
+	var err error
+	if in.Ignore {
+		err = m.hardcoverIgnored.addAll(batch)
+	} else {
+		err = m.hardcoverIgnored.removeAll(batch)
+		// Resuming means the next sync may put the book back on the shelf; the per-book path used to do this inside
+		// setHardcoverIgnored, which the batch no longer calls.
+		for _, item := range batch {
+			m.hardcoverMatches.forgetShelf(item.Library, item.Book)
+		}
+	}
+	if err != nil {
+		http.Error(w, "Could not save which books sync to Hardcover", http.StatusInternalServerError)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"changed": len(batch)})
 }

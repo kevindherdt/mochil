@@ -107,7 +107,7 @@ func TestOnlyAdministratorsReadingReachesHardcover(t *testing.T) {
 		t.Fatal(err)
 	}
 	owner, _ := store.IdentityByUsername("owner")
-	server.accounts = store
+	server.accountsStoreField.Store(store)
 	recorder := &shelfRecorder{}
 	server.hardcover = fakeHardcover(recorder)
 	if sent, _ := server.sendToHardcover(hardcoverJob{account: reader.ID, event: reading.Reading, library: "books", book: "a1"}); sent {

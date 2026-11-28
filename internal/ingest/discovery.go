@@ -209,6 +209,13 @@ func suggestedTarget(source string, proposal Proposal) string {
 	var parts []string
 	switch proposal.Kind {
 	case Publication:
+		// A book with no title cannot be named. Falling through would build a target out of the author alone (the file part
+		// is empty, and the clean loop drops it), which plan and execute would happily write as a regular file named after
+		// the author: copied, marked imported, and never indexed because the catalogue only reads known extensions. An
+		// empty target is the honest answer — it puts the row back in front of a person.
+		if component(proposal.Title) == "" {
+			return ""
+		}
 		if len(proposal.Authors) > 0 {
 			parts = append(parts, component(proposal.Authors[0]))
 		}

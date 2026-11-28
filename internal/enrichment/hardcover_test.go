@@ -267,9 +267,10 @@ func TestHardcoverMatchIsFlaggedWhenSeveralBooksFitEquallyWell(t *testing.T) {
 		}
 		return &http.Response{StatusCode: http.StatusOK, Header: make(http.Header), Body: io.NopCloser(strings.NewReader(response))}, nil
 	})})
+	// Two books fit equally well: the call must refuse and write nothing, rather than shelve the top-ranked guess.
 	outcome, err := provider.SetStatus(context.Background(), "Dune", []string{"Frank Herbert"}, HardcoverReading)
-	if err != nil || !outcome.Ambiguous || outcome.Book.ProviderID != "5" || len(calls) != 1 {
-		t.Fatalf("outcome=%+v err=%v calls=%d, want the top-ranked book (5), flagged", outcome, err, len(calls))
+	if !errors.Is(err, ErrHardcoverAmbiguous) || !outcome.Ambiguous || len(calls) != 0 {
+		t.Fatalf("outcome=%+v err=%v calls=%d, want a refusal with no write", outcome, err, len(calls))
 	}
 	var plain []string
 	if outcome, err := hardcoverShelf(t, `[]`, &plain).SetStatus(context.Background(), "Dune", []string{"Frank Herbert"}, HardcoverReading); err != nil || outcome.Ambiguous {

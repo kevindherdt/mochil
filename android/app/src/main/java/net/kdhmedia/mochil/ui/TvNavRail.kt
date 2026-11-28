@@ -245,7 +245,9 @@ private fun TvNavRailItem(label: String, icon: ImageVector, expanded: Boolean, s
             // One node per destination: the label is the description whether or not the rail is open, so a remote that
             // reads the screen names the destination rather than reading an icon; the glyph is decorative.
             .semantics {
-                contentDescription = label
+                // Only while collapsed: with the rail open the visible label is merged into this same node, and a
+                // description that repeats it makes the remote read "Home, Home".
+                if (!expanded) contentDescription = label
                 this.selected = selected
             }
             .clickable(interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }, indication = null, role = Role.Tab, onClick = onClick)

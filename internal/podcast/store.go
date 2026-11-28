@@ -46,13 +46,15 @@ type FeedPolicy struct {
 }
 
 type Feed struct {
-	ID           string     `json:"id"`
-	URL          string     `json:"url"`
-	Title        string     `json:"title"`
-	Description  string     `json:"description,omitempty"`
-	ArtworkURL   string     `json:"artwork_url,omitempty"`
-	ETag         string     `json:"-"`
-	LastModified string     `json:"-"`
+	ID          string `json:"id"`
+	URL         string `json:"url"`
+	Title       string `json:"title"`
+	Description string `json:"description,omitempty"`
+	ArtworkURL  string `json:"artwork_url,omitempty"`
+	// The validators are persisted: with json:"-" every restart forgot them and the first refresh of each feed was an
+	// unconditional 200 carrying the whole body instead of a 304.
+	ETag         string     `json:"etag,omitempty"`
+	LastModified string     `json:"last_modified,omitempty"`
 	Updated      time.Time  `json:"updated"`
 	LastError    string     `json:"last_error,omitempty"`
 	Policy       FeedPolicy `json:"policy,omitempty"`

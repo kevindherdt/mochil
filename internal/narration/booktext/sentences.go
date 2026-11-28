@@ -52,6 +52,24 @@ const (
 	maxChars = 400
 )
 
+// trailingToken returns at most width bytes of text ending at end, widened leftwards to a word boundary so a window never
+// begins inside the token it is testing. The abbreviation and initials patterns are anchored at the end ($), which is what
+// makes a bounded window equivalent to the whole prefix.
+func trailingToken(text string, end, width int) string {
+	start := end - width
+	if start < 0 {
+		start = 0
+	}
+	for start > 0 && end-start < width*4 && isWordByte(text[start-1]) {
+		start--
+	}
+	return text[start:end]
+}
+
+func isWordByte(c byte) bool {
+	return c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' || c == '.'
+}
+
 // span is a [from, to) range of runes in a block's text.
 type span struct{ from, to int }
 
@@ -66,12 +84,15 @@ func spans(runes []rune) []span {
 		at += len(string(r))
 	}
 	byteToRune[at] = len(runes)
+	_ = at
 
 	var cut []span
 	start := 0
 	for _, m := range sentenceEnd.FindAllStringIndex(text, -1) {
 		if text[m[0]] == '.' {
-			before := text[:m[0]]
+			// A bounded window, not the whole prefix: both patterns are anchored at the end, so the answer is the same,
+			// but re-scanning the prefix for every full stop made a single-block chapter quadratic -- 400KB took 92s.
+			before := trailingToken(text, m[0], 32)
 			if abbreviation.MatchString(before) || initials.MatchString(before) {
 				continue
 			}
