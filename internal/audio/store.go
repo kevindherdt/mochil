@@ -10,6 +10,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"mochil/internal/catalog"
 	"mochil/internal/statefile"
 )
 
@@ -216,7 +217,13 @@ func (s *Store) Scan() (Stats, error) {
 		if left.Track != right.Track {
 			return left.Track < right.Track
 		}
-		return strings.ToLower(left.Title) < strings.ToLower(right.Title)
+		// A chapter's title is what orders it when the files carry no track numbers -- which is the normal case for an
+		// audiobook inferred from a folder, where every file gets the book's own volume as its track. Comparing the titles
+		// as plain strings put "Chapter 10" before "Chapter 2" and made next-chapter play the wrong file.
+		if !strings.EqualFold(left.Title, right.Title) {
+			return catalog.NaturalLess(left.Title, right.Title)
+		}
+		return catalog.NaturalLess(left.Path, right.Path)
 	})
 	// Publish before saving: losing the whole catalogue because the cache file could not be written turns a full disk into
 	// an empty library.

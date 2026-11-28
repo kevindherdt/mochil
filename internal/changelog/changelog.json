@@ -2,6 +2,16 @@
  "entries": [
   {
    "component": "server",
+   "version": "0.2.4",
+   "date": "2026-11-28",
+   "fixed": [
+    "Chapters in an audiobook without track tags now play in reading order instead of alphabetically, where Chapter 10 came before Chapter 2.",
+    "The same podcast feed added with and without a trailing slash is one subscription, not two with separate downloads and progress.",
+    "A corrected video probe now reaches files already in the library instead of waiting for the file itself to change."
+   ]
+  },
+  {
+   "component": "server",
    "version": "0.2.3",
    "date": "2026-11-28",
    "fixed": [

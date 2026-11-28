@@ -13,6 +13,9 @@ import (
 
 const cacheVersion = 2
 
+// probeVersion is bumped whenever the probe's answers change shape or meaning, which re-probes what is already cached.
+const probeVersion = 1
+
 type Stats struct {
 	Items  int
 	Reused int
@@ -42,6 +45,15 @@ func NewStore(libraryID, root, cache string) *Store {
 }
 
 func (s *Store) SetProber(prober Prober) { s.prober = prober }
+
+// probeStaleForTest ages the published items' probe stamp, which is what a bumped probeVersion looks like to a scan.
+func (s *Store) probeStaleForTest() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for index := range s.items {
+		s.items[index].ProbeVersion = probeVersion - 1
+	}
+}
 
 func (s *Store) Items() []Item {
 	s.mu.RLock()
@@ -142,7 +154,7 @@ func (s *Store) Scan() (Stats, error) {
 			return nil
 		}
 		reused := false
-		if old, ok := previous[item.Path]; ok && old.Revision == item.Revision && (s.prober == nil || len(old.Video) > 0) {
+		if old, ok := previous[item.Path]; ok && old.Revision == item.Revision && (s.prober == nil || (len(old.Video) > 0 && old.ProbeVersion == probeVersion)) {
 			item = old
 			stats.Reused++
 			reused = true
@@ -150,9 +162,12 @@ func (s *Store) Scan() (Stats, error) {
 		if s.prober != nil && !reused {
 			probe, probeErr := s.prober.Probe(path)
 			if probeErr != nil {
+				// No stamp on failure: a stamped version would claim current probe data for a file that has none, and every
+				// later scan would reuse it.
 				stats.Errors++
 			} else {
 				item.Duration, item.Video, item.Audio, item.Subtitles = probe.Duration, probe.Video, probe.Audio, probe.Subtitles
+				item.ProbeVersion = probeVersion
 			}
 		}
 		InferEpisode(&item)

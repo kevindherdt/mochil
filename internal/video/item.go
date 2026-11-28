@@ -11,20 +11,23 @@ import (
 )
 
 type Item struct {
-	ID           string           `json:"id"`
-	LibraryID    string           `json:"library_id"`
-	Path         string           `json:"path"`
-	Title        string           `json:"title"`
-	Show         string           `json:"show,omitempty"`
-	Season       int              `json:"season,omitempty"`
-	Episode      int              `json:"episode,omitempty"`
-	EpisodeTitle string           `json:"episode_title,omitempty"`
-	Container    string           `json:"container"`
-	MediaType    string           `json:"media_type"`
-	DirectPlay   bool             `json:"direct_play"`
-	Size         int64            `json:"size"`
-	Modified     time.Time        `json:"modified"`
-	Revision     string           `json:"revision"`
+	ID           string    `json:"id"`
+	LibraryID    string    `json:"library_id"`
+	Path         string    `json:"path"`
+	Title        string    `json:"title"`
+	Show         string    `json:"show,omitempty"`
+	Season       int       `json:"season,omitempty"`
+	Episode      int       `json:"episode,omitempty"`
+	EpisodeTitle string    `json:"episode_title,omitempty"`
+	Container    string    `json:"container"`
+	MediaType    string    `json:"media_type"`
+	DirectPlay   bool      `json:"direct_play"`
+	Size         int64     `json:"size"`
+	Modified     time.Time `json:"modified"`
+	Revision     string    `json:"revision"`
+	// ProbeVersion stamps the probe that filled in a file's streams and subtitles. Reuse compares it, so a corrected or
+	// extended probe reaches the items already in the catalogue instead of waiting for the file itself to change.
+	ProbeVersion int              `json:"probe_version,omitempty"`
 	Duration     float64          `json:"duration_seconds,omitempty"`
 	Video        []VideoStream    `json:"video_streams,omitempty"`
 	Audio        []AudioStream    `json:"audio_streams,omitempty"`

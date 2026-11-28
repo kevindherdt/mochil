@@ -10,7 +10,9 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"sort"
@@ -201,22 +203,56 @@ func (s *Store) Episode(id string) (Episode, bool) {
 	return Episode{}, false
 }
 
+// canonicalFeedAddress is the one form of an address a subscription is keyed and stored by. Without it "…/feed" and
+// "…/feed/" were two subscriptions with disjoint episode ids: with auto-download every enclosure was fetched twice and
+// playback state was split between them.
+func canonicalFeedAddress(u *url.URL) string {
+	canonical := *u
+	canonical.Scheme = strings.ToLower(canonical.Scheme)
+	host := strings.ToLower(canonical.Hostname())
+	port := canonical.Port()
+	if (canonical.Scheme == "http" && port == "80") || (canonical.Scheme == "https" && port == "443") {
+		port = ""
+	}
+	if port != "" {
+		canonical.Host = net.JoinHostPort(host, port)
+	} else {
+		canonical.Host = host
+	}
+	canonical.Fragment, canonical.RawFragment = "", ""
+	// The path keeps its case: it is the server's, not ours. Only a trailing slash goes, and "/" alone becomes empty so the
+	// bare host and the host with a slash agree.
+	if canonical.Path == "/" {
+		canonical.Path = ""
+	} else {
+		canonical.Path = strings.TrimSuffix(canonical.Path, "/")
+	}
+	return canonical.String()
+}
+
 func (s *Store) Subscribe(ctx context.Context, rawURL string) (Feed, error) {
 	parsed, err := validatePodcastURL(rawURL, s.publicOnly)
 	if err != nil {
 		return Feed{}, err
 	}
-	idSum := sha256.Sum256([]byte(parsed.String()))
+	address := canonicalFeedAddress(parsed)
+	idSum := sha256.Sum256([]byte(address))
 	id := hex.EncodeToString(idSum[:12])
 	s.mu.RLock()
 	for _, feed := range s.feeds {
+		// Compare the canonical form, not the stored string: subscriptions made before this rule stored whatever the user
+		// pasted, and re-subscribing to a variant of one of those must find it rather than create a twin.
 		if feed.ID == id {
+			s.mu.RUnlock()
+			return cloneFeed(feed), nil
+		}
+		if existing, parseErr := url.Parse(feed.URL); parseErr == nil && canonicalFeedAddress(existing) == address {
 			s.mu.RUnlock()
 			return cloneFeed(feed), nil
 		}
 	}
 	s.mu.RUnlock()
-	feed := Feed{ID: id, URL: parsed.String()}
+	feed := Feed{ID: id, URL: address}
 	feed, err = s.fetch(ctx, feed)
 	if err != nil {
 		return Feed{}, err
