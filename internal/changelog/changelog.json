@@ -2,6 +2,15 @@
  "entries": [
   {
    "component": "server",
+   "version": "0.2.5",
+   "date": "2026-11-28",
+   "fixed": [
+    "Searching the vault no longer lower-cases every note on every keystroke. On a 20,000-note vault that was about 111 ms of work per query, and it blocked other readers for the whole scan.",
+    "A search result near the end of a long note shows the words around the match instead of copying the whole note to make a snippet."
+   ]
+  },
+  {
+   "component": "server",
    "version": "0.2.4",
    "date": "2026-11-28",
    "fixed": [
